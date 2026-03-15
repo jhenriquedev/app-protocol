@@ -1,0 +1,32 @@
+name: Spec proposal
+description: Propose a substantive change to APP
+title: "spec: "
+labels:
+  - spec
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is missing or incorrect in the current protocol?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the smallest coherent change that solves the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Which parts of the spec, examples, or tooling would be affected?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other options did you evaluate?

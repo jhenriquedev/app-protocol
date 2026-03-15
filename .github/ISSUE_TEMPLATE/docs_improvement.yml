@@ -1,0 +1,18 @@
+name: Docs improvement
+description: Report a gap, ambiguity, or documentation issue
+title: "docs: "
+labels:
+  - docs
+body:
+  - type: textarea
+    id: issue
+    attributes:
+      label: Issue
+      description: What is unclear, missing, or inconsistent?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: If you have a concrete fix in mind, describe it here.
