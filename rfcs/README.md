@@ -12,8 +12,10 @@ Good candidates for RFCs:
 
 ## Process
 
-1. Copy [`0000-template.md`](./0000-template.md).
-2. Give it the next available number.
-3. Describe the problem, proposal, tradeoffs, and migration impact.
-4. Open a pull request for discussion.
-5. Once accepted, update `spec.md` and supporting docs.
+1. Open an issue for the problem or proposal.
+2. Copy [`0000-template.md`](./0000-template.md).
+3. Give it the next available number.
+4. Describe the problem, proposal, tradeoffs, and migration impact.
+5. Open a pull request for discussion.
+6. Once accepted, update `spec.md` and supporting docs.
+7. If the change is accepted and release-worthy, publish a new snapshot in `versions/`.

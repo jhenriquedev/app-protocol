@@ -7,6 +7,10 @@ All notable changes to this project should be documented in this file.
 - Repository foundation for public GitHub publication
 - Governance, contribution, RFC, and CI scaffolding
 - Working draft promoted to `spec.md`
+- Documentation consistency pass across README, spec, and process docs
+- English-first policy documented for active materials
+- Portuguese backup copies preserved under `i18n/pt-br`
+- `agentic.case.ts` clarified as optional for now, but normative when present
 
 ## v0.0.2
 

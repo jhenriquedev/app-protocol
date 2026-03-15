@@ -9,9 +9,15 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Stable snapshot: [`v0.0.2`](./versions/v0.0.2.md)
+- Latest released snapshot: [`v0.0.2`](./versions/v0.0.2.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: conceptual, pre-reference-implementation
+
+Language policy:
+
+- English is the canonical language for active documentation going forward.
+- Early released snapshots in `versions/` are legacy Portuguese documents.
+- Portuguese backups are preserved under [`i18n/pt-br/`](./i18n/pt-br/).
 
 ## Why APP
 
@@ -32,6 +38,7 @@ APP exists to make codebases easier to understand, extend, and operate with AI a
 - [`docs/development-flow.md`](./docs/development-flow.md): how the spec evolves
 - [`rfcs/`](./rfcs): proposal process for substantive changes
 - [`examples/`](./examples): planned reference implementations and ecosystem examples
+- [`i18n/pt-br/`](./i18n/pt-br/): backup copies of native Portuguese materials
 
 ## Core Model
 
@@ -51,6 +58,11 @@ Canonical surfaces:
 - `ui.case.ts`
 - `stream.case.ts`
 - `agentic.case.ts`
+
+Not every Case needs every surface.
+
+For now, `agentic.case.ts` is optional.
+If a Case exposes it, it must follow the APP agentic protocol.
 
 ## Naming Decision
 
@@ -80,10 +92,11 @@ Editorial improvements can go directly to pull requests.
 
 Substantive changes should:
 
-1. open an issue or RFC
-2. update the working draft in `spec.md`
-3. update supporting docs when needed
-4. cut a new snapshot under `versions/` when the change is accepted
+1. open an issue
+2. add an RFC when the change affects protocol semantics, structure, schema, or governance
+3. update the working draft in `spec.md`
+4. update supporting docs when needed
+5. cut a new snapshot under `versions/` only when the change is accepted and release-worthy
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`GOVERNANCE.md`](./GOVERNANCE.md).
 

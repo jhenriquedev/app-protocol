@@ -9,6 +9,12 @@ Current snapshot alignment:
 
 This document is the living draft of the AI-First Programming Protocol. Released versions are copied into [`versions/`](./versions).
 
+Language policy:
+
+- this working draft is canonical in English
+- early released snapshots in `versions/` are legacy Portuguese documents
+- Portuguese backups are preserved in [`i18n/pt-br/`](./i18n/pt-br/)
+
 ## 1. Purpose
 
 APP defines a protocol for organizing software in a way that is predictable for humans and legible to AI agents.
@@ -67,6 +73,11 @@ app/
 ## 4. Surfaces
 
 APP currently defines five canonical surfaces.
+
+Not every Case needs every surface.
+
+For now, `agentic.case.ts` is optional.
+If present, it must follow the APP agentic protocol and map back to canonical execution logic.
 
 ### 4.1 Domain Surface
 
@@ -170,7 +181,8 @@ A Case may depend on:
 - `core`
 - `core/shared`
 - its own local `domain.case.ts`
-- runtime-approved external dependencies
+
+Infrastructure concerns such as storage, HTTP, auth, queues, or other runtime services should be accessed through context or abstractions owned by `core`.
 
 A Case should not directly depend on another Case.
 
@@ -241,3 +253,5 @@ The highest-priority gaps are:
 3. reference implementations
 4. conformance tests and lint rules
 5. versioning and release discipline for the spec itself
+
+Recommended versus optional versus required protocol details will be frozen after clearer practical examples exist across multiple languages and ecosystems.

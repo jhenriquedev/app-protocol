@@ -33,7 +33,8 @@ Changes that affect protocol behavior, constraints, schemas, or terminology.
 
 Approval bar:
 
-- issue or RFC discussion
+- issue discussion
+- RFC discussion when protocol semantics, structure, schema, or governance are affected
 - maintainer acceptance
 - working draft update
 

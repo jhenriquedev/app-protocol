@@ -15,8 +15,15 @@ Editorial changes can go straight to pull requests.
 
 Substantive changes should start with:
 
-- an issue, or
-- an RFC in [`rfcs/`](./rfcs)
+- an issue
+
+Add an RFC in [`rfcs/`](./rfcs) when the change affects:
+
+- protocol semantics
+- canonical surfaces
+- dependency rules
+- schemas
+- governance or release policy
 
 ## Preferred Workflow
 
@@ -26,6 +33,12 @@ Substantive changes should start with:
 4. Update `spec.md` first.
 5. Update supporting docs when needed.
 6. If the change is accepted and release-worthy, add a snapshot in `versions/`.
+
+## Language Policy
+
+- Active documentation is English-first.
+- Portuguese backups of native-language materials live in [`i18n/pt-br/`](./i18n/pt-br/).
+- New normative documentation should be written in English unless maintainers explicitly decide otherwise.
 
 ## Writing Guidelines
 

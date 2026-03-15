@@ -4,6 +4,10 @@ The `agentic.case.ts` surface is the main addition introduced in APP `v0.0.2`.
 
 It exists to make a Case discoverable, understandable, and executable by AI agents without breaking the core APP rule that execution must remain tied to the canonical implementation.
 
+For now, `agentic.case.ts` is optional.
+
+If a Case exposes this surface, it must follow the APP agentic protocol and must not diverge from canonical execution behavior.
+
 ## Goals
 
 - expose a Case as a tool
@@ -38,6 +42,9 @@ The following rules should remain stable even if the schema changes:
 3. `policy` must be evaluated before execution.
 4. `context` should declare the minimum information required for safe execution.
 5. `examples` should be deterministic and minimal.
+
+The presence of the surface is optional for now.
+Its behavior is not optional once the surface exists.
 
 ## Recommended Sections
 

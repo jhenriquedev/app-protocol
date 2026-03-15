@@ -26,7 +26,15 @@ Examples:
 - conformance rules
 - new registry behavior
 
-Substantive changes should start with an issue or an RFC.
+Substantive changes should start with an issue.
+
+An RFC is required when the change affects:
+
+- protocol semantics
+- canonical surfaces
+- dependency rules
+- formal schemas
+- governance or release policy
 
 ### 3. Release
 
@@ -35,10 +43,10 @@ A release snapshots the current accepted spec into `versions/`.
 ## Recommended Workflow
 
 1. Open an issue for the problem or proposal.
-2. If the change is substantive, create an RFC in `rfcs/`.
+2. If the change affects protocol semantics, structure, schema, or governance, create an RFC in `rfcs/`.
 3. Update `spec.md`.
 4. Update supporting docs in `docs/`.
-5. If accepted, publish a new version snapshot in `versions/`.
+5. If accepted and release-worthy, publish a new version snapshot in `versions/`.
 6. Update `CHANGELOG.md`.
 
 ## Repository Discipline
@@ -47,6 +55,7 @@ A release snapshots the current accepted spec into `versions/`.
 - `versions/` contains historical snapshots.
 - `docs/` explains the model but does not override the spec.
 - `examples/` should demonstrate conformance once implementations exist.
+- `i18n/pt-br/` preserves native-language backup copies of Portuguese materials.
 
 ## Release Criteria
 
