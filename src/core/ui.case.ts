@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.1
+ * APP v0.0.2
  * Base contract for ui.case.ts
  *
  * Representa a superfície de interface da capacidade.
@@ -54,9 +54,9 @@ export abstract class BaseUiCase<TState extends UIState = UIState> {
   public mount?(): Promise<void>;
 
   /**
-   * Teste opcional.
+   * Teste interno da capacidade.
    */
-  public async test?(): Promise<void>;
+  public abstract test(): Promise<void>;
 
   /* =======================================================================
    * Hooks internos

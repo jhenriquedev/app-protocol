@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.1
+ * APP v0.0.2
  * Base contract for stream.case.ts
  *
  * Representa execução orientada a eventos.
@@ -52,9 +52,9 @@ export abstract class BaseStreamCase<TInput = unknown, TOutput = unknown> {
   public subscribe?(): unknown;
 
   /**
-   * Teste opcional.
+   * Teste interno da capacidade.
    */
-  public async test?(event: StreamEvent<TInput>): Promise<void>;
+  public abstract test(event: StreamEvent<TInput>): Promise<void>;
 
   /* =======================================================================
    * Hooks internos

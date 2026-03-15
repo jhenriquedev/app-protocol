@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.1
+ * APP v0.0.2
  * Base contract for api.case.ts
  *
  * Esta classe define o contrato de execução síncrona de um Case.
@@ -58,9 +58,9 @@ export abstract class BaseApiCase<TInput = unknown, TOutput = unknown> {
   public router?(): unknown;
 
   /**
-   * Teste interno opcional da capacidade.
+   * Teste interno da capacidade.
    */
-  public async test?(input: TInput): Promise<ApiResponse<TOutput>>;
+  public abstract test(input: TInput): Promise<ApiResponse<TOutput>>;
 
   /* =======================================================================
    * Hooks protegidos (opcionais)
