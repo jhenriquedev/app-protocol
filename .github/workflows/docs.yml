@@ -47,6 +47,6 @@ jobs:
       - name: Check links
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --no-progress --verbose --exclude-mail "./**/*.md" "./**/*.MD"
+          args: --no-progress --verbose "./**/*.md" "./**/*.MD"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
