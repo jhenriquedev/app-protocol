@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.2
+ * APP v0.0.3
  * core/agentic.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface agentic no APP.
@@ -16,6 +16,10 @@
  * Integração com domain.case.ts:
  * - esta base permite derivar schema, descrição e exemplos do domínio
  * - isso reduz duplicação semântica e drift entre domínio e tool
+ *
+ * Contexto:
+ * - AgenticContext estende AppBaseContext com infraestrutura agentic
+ * - inclui registry de Cases e informações de runtime MCP
  * ========================================================================== */
 
 import {
@@ -25,39 +29,38 @@ import {
   DomainExample,
 } from "./domain.case";
 
+import { AppBaseContext } from "./shared/app_base_context";
+
 /* ==========================================================================
- * Contexto base do runtime APP
+ * AgenticContext
+ * --------------------------------------------------------------------------
+ * Contexto específico da surface agentic.
+ *
+ * Estende AppBaseContext com infraestrutura de operação agentic:
+ * - cases: registro de Cases carregados pelo runtime (para resolução de tools)
+ * - mcp: informações do runtime MCP, quando disponível
+ *
+ * O campo cases é essencial para que a tool do agentic consiga
+ * apontar para a execução canônica via ctx.cases.
  * ========================================================================== */
 
-/**
- * Contexto canônico injetado no runtime.
- *
- * Este contrato é propositalmente neutro.
- * Cada projeto APP pode estendê-lo conforme necessário.
- */
-export interface AppContext {
-  tenantId?: string;
-  userId?: string;
-  auth?: unknown;
-
-  logger: {
-    debug(message: string, meta?: Dict): void;
-    info(message: string, meta?: Dict): void;
-    warn(message: string, meta?: Dict): void;
-    error(message: string, meta?: Dict): void;
-  };
-
-  http?: unknown;
-  db?: unknown;
-  storage?: unknown;
-  cache?: unknown;
-  eventBus?: unknown;
-  config?: Dict;
-
+export interface AgenticContext extends AppBaseContext {
   /**
-   * Registro opcional de Cases carregados pelo runtime.
+   * Registro de Cases carregados pelo runtime.
+   *
+   * Usado pela tool para resolver a execução canônica do Case.
+   *
+   * Exemplo de acesso:
+   * ctx.cases?.users?.user_validate?.api?.handler(input)
    */
   cases?: Dict;
+
+  /**
+   * Informações do runtime MCP, quando disponível.
+   *
+   * Exemplos: MCP server instance, adapter config, transport info.
+   */
+  mcp?: unknown;
 
   /**
    * Espaço de extensão livre para o host do projeto.
@@ -221,62 +224,174 @@ export interface AgenticToolContract<TInput = unknown, TOutput = unknown> {
    * Regra:
    * deve apontar para a implementação canônica do Case.
    */
-  execute(input: TInput, ctx: AppContext): Promise<TOutput>;
+  execute(input: TInput, ctx: AgenticContext): Promise<TOutput>;
 }
 
 /* ==========================================================================
  * MCP
+ * --------------------------------------------------------------------------
+ * MCP exposure contract with normative fallback to tool.
+ *
+ * `tool` is the canonical contract for agent execution.
+ * `mcp` is an optional exposure configuration for MCP publication.
+ *
+ * Fallback rules (normative — adapters must follow):
+ * - name:        uses mcp.name if provided, otherwise falls back to tool.name
+ * - description: uses mcp.description if provided, otherwise falls back to tool.description
+ * - title:       uses mcp.title if provided; otherwise the adapter may derive
+ *                a display title from tool.name (e.g. "user_validate" → "User Validate")
+ * - inputSchema and outputSchema: always derived from tool
+ * - execute:     always delegates to tool.execute()
+ *
+ * mcp controls presence and presentation.
+ * It never redefines schemas or execution paths.
  * ========================================================================== */
 
 export interface AgenticMcpContract {
   /**
-   * Nome da tool exposta via MCP.
-   */
-  toolName: string;
-
-  /**
-   * Título amigável.
-   */
-  title: string;
-
-  /**
-   * Descrição da exposição MCP.
-   */
-  description: string;
-
-  /**
-   * Indica se a exposição está ativa.
+   * Whether this Case should be exposed via MCP.
+   *
+   * Default: true when mcp() is defined.
    */
   enabled?: boolean;
 
   /**
-   * Metadados extras para adapters MCP.
+   * MCP tool name.
+   *
+   * Falls back to tool().name if not provided.
+   */
+  name?: string;
+
+  /**
+   * MCP human-readable title.
+   *
+   * This is an MCP-native concept — tool does not define title.
+   * If not provided, the adapter may derive a display title from tool().name.
+   */
+  title?: string;
+
+  /**
+   * MCP tool description.
+   *
+   * Falls back to tool().description if not provided.
+   */
+  description?: string;
+
+  /**
+   * Additional metadata for MCP adapters.
    */
   metadata?: Dict;
 }
 
 /* ==========================================================================
  * RAG
+ * --------------------------------------------------------------------------
+ * O contrato RAG do APP opera em duas camadas:
+ *
+ * 1. Camada semântica — topics, hints, scope, mode
+ *    Define a intenção de retrieval: sobre o quê, com qual orientação,
+ *    em qual escopo, e com qual grau de dependência.
+ *
+ * 2. Camada de referência concreta — resources
+ *    Define referências concretas a artefatos APP-native ou project-native.
+ *    O APP define o endereçamento (kind + ref). O runtime define a resolução.
+ *
+ * O APP não define motor de RAG, mecanismo de retrieval, ranking,
+ * embedding, nem pipeline de busca. Essas responsabilidades são do runtime.
+ *
+ * Extensibilidade:
+ * Novos resource kinds (ex: "index") podem ser padronizados apenas
+ * após reference implementations demonstrarem semântica estável.
  * ========================================================================== */
+
+/**
+ * Tipos de recurso de conhecimento reconhecidos pelo APP.
+ *
+ * Cada kind define uma categoria de artefato que o protocolo
+ * consegue endereçar de forma estável:
+ *
+ * - "case": referência a outro Case no projeto APP.
+ *   ref é um identificador relativo ao diretório cases/.
+ *   Exemplo: "users/user_validate"
+ *
+ * - "file": referência a um arquivo do projeto.
+ *   ref é um path relativo à raiz do projeto.
+ *   Exemplo: "docs/validation-rules.md"
+ */
+export type RagResourceKind = "case" | "file";
+
+/**
+ * Referência concreta a um artefato de conhecimento.
+ *
+ * O APP define o endereçamento (kind + ref).
+ * O runtime define como resolver e acessar o conteúdo.
+ */
+export interface RagResource {
+  /**
+   * Tipo do recurso.
+   */
+  kind: RagResourceKind;
+
+  /**
+   * Referência ao recurso.
+   *
+   * Formato por kind:
+   * - "case": identificador relativo a cases/ (ex: "users/user_validate")
+   * - "file": path relativo à raiz do projeto (ex: "docs/validation-rules.md")
+   */
+  ref: string;
+
+  /**
+   * Descrição opcional do porquê este recurso é relevante para o Case.
+   */
+  description?: string;
+}
 
 export interface AgenticRagContract {
   /**
-   * Fontes preferidas para recuperação contextual.
+   * Rótulos semânticos normalizados do domínio de conhecimento
+   * relevante para este Case.
+   *
+   * Usados para:
+   * - indexação e classificação semântica
+   * - agrupamento de Cases por área de conhecimento
+   * - validação por tooling (lint, catálogos)
+   * - integração com runtimes que possuam catálogo de conhecimento
+   *
+   * Exemplo: ["validation_rules", "document_policy"]
    */
-  sources?: string[];
+  topics?: string[];
 
   /**
-   * Dicas de recuperação.
+   * Referências concretas a artefatos de conhecimento APP-native
+   * ou project-native.
+   *
+   * APP não define retrieval resolution. O runtime é responsável
+   * por resolver e acessar o conteúdo de cada resource.
+   *
+   * Novos resource kinds podem ser padronizados apenas após
+   * reference implementations demonstrarem semântica estável.
+   */
+  resources?: RagResource[];
+
+  /**
+   * Orientações livres de raciocínio e preferência para o agente.
+   *
+   * Diferente de topics (que são indexáveis e normalizados),
+   * hints são interpretativos e não estruturais.
+   *
+   * Exemplo: ["Prefer official compliance material",
+   *           "Use tenant-approved rules first"]
    */
   hints?: string[];
 
   /**
-   * Escopo máximo permitido.
+   * Escopo máximo permitido para recuperação contextual.
    */
   scope?: "case-local" | "project" | "org-approved";
 
   /**
-   * Modo de uso do RAG.
+   * Grau de dependência do Case em relação a contexto externo.
    */
   mode?: "disabled" | "optional" | "recommended" | "required";
 }
@@ -360,9 +475,9 @@ export interface AgenticDefinition<TInput = unknown, TOutput = unknown> {
  *    A surface agentic reutiliza descrição, schemas e exemplos do domain.case.ts.
  */
 export abstract class BaseAgenticCase<TInput = unknown, TOutput = unknown> {
-  protected readonly ctx: AppContext;
+  protected readonly ctx: AgenticContext;
 
-  constructor(ctx: AppContext) {
+  constructor(ctx: AgenticContext) {
     this.ctx = ctx;
   }
 

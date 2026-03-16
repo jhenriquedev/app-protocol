@@ -1,8 +1,8 @@
 /* ========================================================================== *
- * APP v0.0.2
- * Base contract for api.case.ts
- *
- * Esta classe define o contrato de execução síncrona de um Case.
+ * APP v0.0.3
+ * core/api.case.ts
+ * ----------------------------------------------------------------------------
+ * Contrato base da surface de API no APP.
  *
  * Responsabilidade:
  * - expor uma capacidade via interface de backend (HTTP, RPC, CLI, etc)
@@ -12,26 +12,128 @@
  * Regra fundamental:
  * - lógica de domínio pertence ao domain.case.ts
  * - persistência ou integração deve ser encapsulada em métodos privados
+ *
+ * Contexto:
+ * - ApiContext estende AppBaseContext com infraestrutura de backend
+ * - cada projeto define os tipos concretos de http, db, auth, etc.
  * ========================================================================== */
 
-import { AppContext } from "./agentic.case";
+import { Dict } from "./domain.case";
+import { AppBaseContext } from "./shared/app_base_context";
+import { AppHttpClient, AppStorageClient, AppCache } from "./shared/app_infra_contracts";
+import { AppResult, AppError } from "./shared/app_structural_contracts";
+
+/* ==========================================================================
+ * ApiContext
+ * --------------------------------------------------------------------------
+ * Contexto específico da surface de API.
+ *
+ * Estende AppBaseContext com infraestrutura de backend:
+ * - httpClient: outbound HTTP client (fetch, axios, etc.)
+ * - db: acesso a banco de dados (unknown — sem contrato estável)
+ * - auth: autenticação e autorização (unknown — semântica de domínio)
+ * - storage: persistent storage client
+ * - cache: cache com TTL
+ *
+ * Campos com contrato mínimo usam interfaces de app_infra_contracts.ts.
+ * Campos sem semântica estável permanecem unknown.
+ * ========================================================================== */
+
+export interface ApiContext extends AppBaseContext {
+  /**
+   * Outbound HTTP client.
+   *
+   * Exemplos: fetch wrapper, Axios instance, got, ky, undici.
+   * Nota: este é um client contract, não um server/framework contract.
+   */
+  httpClient?: AppHttpClient;
+
+  /**
+   * Acesso a banco de dados.
+   *
+   * Mantido como unknown — paradigmas incompatíveis (ORM, query builder,
+   * document store) impedem contrato mínimo convergente.
+   *
+   * Exemplos: Prisma client, Drizzle, Knex, connection pool.
+   */
+  db?: unknown;
+
+  /**
+   * Informações de autenticação e autorização.
+   *
+   * Mantido como unknown — carrega semântica de domínio que varia
+   * entre modelos (RBAC, ABAC, claims, scopes, sessions).
+   *
+   * Exemplos: JWT decoded, session object, API key metadata.
+   */
+  auth?: unknown;
+
+  /**
+   * Persistent storage client.
+   *
+   * Exemplos: S3 client, GCS client, local filesystem adapter.
+   */
+  storage?: AppStorageClient;
+
+  /**
+   * Cache com TTL opcional.
+   *
+   * Exemplos: Redis client, in-memory cache, Memcached.
+   */
+  cache?: AppCache;
+
+  /**
+   * Registro de Cases carregados pelo runtime.
+   *
+   * Permite composição cross-case via registry boundary.
+   * Usado por `_composition` para resolver capabilities de outros Cases.
+   *
+   * Exemplo: ctx.cases?.billing?.balance_check?.api?.handler(input)
+   */
+  cases?: Dict;
+
+  /**
+   * Espaço de extensão livre para o host do projeto.
+   */
+  extra?: Dict;
+}
+
+/* ==========================================================================
+ * ApiResponse
+ * --------------------------------------------------------------------------
+ * Extends AppResult with API-specific metadata.
+ *
+ * ApiResponse inherits the canonical result shape (success, data, error)
+ * and adds optional HTTP-specific fields. Surfaces that don't need
+ * API-specific metadata can use AppResult directly.
+ * ========================================================================== */
 
 /**
- * Estrutura genérica de resposta.
+ * Estrutura de resposta da surface de API.
+ *
+ * Estende AppResult com metadados opcionais específicos de API.
  */
-export interface ApiResponse<T = unknown> {
-  success: boolean;
-  data?: T;
-  error?: string;
+export interface ApiResponse<T = unknown> extends AppResult<T> {
+  /**
+   * HTTP status code hint.
+   *
+   * The runtime/adapter may use this to set the HTTP response status.
+   * APP does not mandate HTTP — this is a convenience for HTTP-based hosts.
+   */
+  statusCode?: number;
 }
+
+/* ==========================================================================
+ * BaseApiCase
+ * ========================================================================== */
 
 /**
  * Classe base para surfaces de API.
  */
 export abstract class BaseApiCase<TInput = unknown, TOutput = unknown> {
-  protected readonly ctx: AppContext;
+  protected readonly ctx: ApiContext;
 
-  constructor(ctx: AppContext) {
+  constructor(ctx: ApiContext) {
     this.ctx = ctx;
   }
 
@@ -42,6 +144,12 @@ export abstract class BaseApiCase<TInput = unknown, TOutput = unknown> {
   /**
    * Handler principal da capacidade.
    *
+   * handler é o entrypoint público da capability. Recebe input de negócio
+   * e retorna resultado de negócio. NÃO é um endpoint HTTP.
+   *
+   * Bindings de transporte (HTTP routes, gRPC definitions, CLI commands)
+   * vivem em router() ou no adapter/host.
+   *
    * Deve:
    * - validar input
    * - verificar autorização
@@ -51,14 +159,21 @@ export abstract class BaseApiCase<TInput = unknown, TOutput = unknown> {
   public abstract handler(input: TInput): Promise<ApiResponse<TOutput>>;
 
   /**
-   * Router opcional.
+   * Router opcional — bindings de transporte.
    *
-   * Pode registrar endpoints HTTP ou outros bindings.
+   * É onde o Case declara sua superfície de transporte (HTTP, gRPC, CLI).
+   * O router delega para handler(), nunca contém lógica de negócio.
+   * O host/adapter monta as rotas coletando os router() de cada Case.
+   *
+   * Retorno é framework-specific (unknown).
    */
   public router?(): unknown;
 
   /**
    * Teste interno da capacidade.
+   *
+   * Obrigatório no APP — toda surface que implementa um contrato base
+   * deve fornecer um método test().
    */
   public abstract test(input: TInput): Promise<ApiResponse<TOutput>>;
 
@@ -77,9 +192,34 @@ export abstract class BaseApiCase<TInput = unknown, TOutput = unknown> {
   protected async _authorize?(input: TInput): Promise<void>;
 
   /**
-   * Execução da lógica principal.
+   * Acesso a persistência e integrations locais do Case.
+   *
+   * Slot canônico para queries, mutations, cache reads e chamadas
+   * a serviços externos de infraestrutura.
+   *
+   * Regra: _repository não realiza composição cross-case.
+   */
+  protected _repository?(): unknown;
+
+  /**
+   * Execução da lógica principal (Case atômico).
+   *
+   * Slot canônico para lógica de negócio que não envolve
+   * orquestração cross-case. Mutuamente exclusivo com _composition
+   * como centro de execução principal.
    */
   protected abstract _service(input: TInput): Promise<TOutput>;
+
+  /**
+   * Orquestração cross-case via registry (Case composto).
+   *
+   * Slot canônico para Cases que precisam invocar outros Cases.
+   * Resolve capabilities via ctx.cases, nunca por import direto.
+   *
+   * Mutuamente exclusivo com _service como centro de execução principal.
+   * Quando presente, o pipeline deve usar _composition em vez de _service.
+   */
+  protected async _composition?(input: TInput): Promise<TOutput>;
 
   /**
    * Transformação da saída para resposta final.
@@ -88,12 +228,19 @@ export abstract class BaseApiCase<TInput = unknown, TOutput = unknown> {
 
   /**
    * Método utilitário padrão para execução.
+   *
+   * Orquestra o pipeline: validate → authorize → (composition | service) → present.
+   *
+   * Se _composition estiver definido, ele é o centro de execução (Case composto).
+   * Caso contrário, _service é usado (Case atômico).
    */
   protected async execute(input: TInput): Promise<ApiResponse<TOutput>> {
     if (this._validate) await this._validate(input);
     if (this._authorize) await this._authorize(input);
 
-    const result = await this._service(input);
+    const result = this._composition
+      ? await this._composition(input)
+      : await this._service(input);
 
     if (this._present) {
       return this._present(result);

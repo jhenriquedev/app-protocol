@@ -1,34 +1,137 @@
 /* ========================================================================== *
- * APP v0.0.2
- * Base contract for ui.case.ts
+ * APP v0.0.3
+ * core/ui.case.ts
+ * ----------------------------------------------------------------------------
+ * Contrato base da surface de UI no APP.
  *
  * Representa a superfície de interface da capacidade.
  *
  * Responsabilidade:
- * - gerenciar estado local
- * - reagir a interações do usuário
- * - renderizar interface
- * - integrar com APIs
+ * - apresentar interface ao usuário
+ * - gerenciar estado local via viewmodel
+ * - acessar dados via repository
+ * - executar lógica de negócio local via service
+ *
+ * Gramática canônica:
+ *   view <-> _viewmodel <-> _service <-> _repository
+ *
+ * A view é uma unidade visual viva e autocontida: um formulário,
+ * uma tabela com filtros, uma sidebar, uma appbar.
+ *
+ * O ciclo de vida de framework (render, mount, dismount, etc.)
+ * vive dentro de view como detalhe de implementação — o protocolo
+ * não dita lifecycle hooks.
  *
  * Não depende de framework específico.
+ *
+ * Contexto:
+ * - UiContext estende AppBaseContext com infraestrutura de frontend
+ * - cada projeto define os tipos concretos de renderer, router, store, etc.
  * ========================================================================== */
 
-import { AppContext } from "./agentic.case";
+import { Dict } from "./domain.case";
+import { AppBaseContext } from "./shared/app_base_context";
+import { AppHttpClient } from "./shared/app_infra_contracts";
+
+/* ==========================================================================
+ * UiContext
+ * --------------------------------------------------------------------------
+ * Contexto específico da surface de UI.
+ *
+ * Estende AppBaseContext com infraestrutura de frontend:
+ * - renderer: framework de renderização (React, Vue, Svelte, Flutter, etc.)
+ * - router: roteador client-side
+ * - store: estado global ou compartilhado
+ * - api: cliente HTTP para chamadas ao backend
+ *
+ * Todos os campos de infraestrutura são opcionais e tipados como unknown
+ * para manter neutralidade de framework.
+ * ========================================================================== */
+
+export interface UiContext extends AppBaseContext {
+  /**
+   * Framework de renderização.
+   *
+   * Exemplos: React root, Vue app instance, Svelte component context.
+   */
+  renderer?: unknown;
+
+  /**
+   * Roteador client-side.
+   *
+   * Exemplos: React Router, Vue Router, Svelte navigate.
+   */
+  router?: unknown;
+
+  /**
+   * Estado global ou compartilhado.
+   *
+   * Exemplos: Redux store, Zustand, Pinia, Riverpod.
+   */
+  store?: unknown;
+
+  /**
+   * HTTP client para chamadas ao backend.
+   *
+   * Exemplos: fetch wrapper, Axios instance, tRPC client.
+   */
+  api?: AppHttpClient;
+
+  /**
+   * Espaço de extensão livre para o host do projeto.
+   */
+  extra?: Dict;
+}
+
+/* ==========================================================================
+ * UIState
+ * ========================================================================== */
 
 /**
  * Estrutura genérica de estado de UI.
  */
 export type UIState = Record<string, unknown>;
 
+/* ==========================================================================
+ * BaseUiCase
+ * --------------------------------------------------------------------------
+ * Classe base para surfaces de UI.
+ *
+ * A gramática canônica da UI é:
+ *
+ *   view <-> _viewmodel <-> _service <-> _repository
+ *
+ * - view(): entrypoint público — a unidade visual viva (formulário, tabela,
+ *   sidebar, appbar, widget). O ciclo de vida de framework (render, mount,
+ *   dismount) é detalhe de implementação interno à view.
+ *
+ * - _viewmodel(): transforma estado e dados em modelo de apresentação
+ *   para a view consumir.
+ *
+ * - _service(): lógica de negócio local da UI (comportamento de estado,
+ *   validações client-side, transformações de dados locais).
+ *
+ * - _repository(): acesso a dados — API calls, local storage, cache reads.
+ *
+ * Nota sobre _composition:
+ * ui.case.ts não inclui _composition. Orquestração cross-case direta
+ * a partir da UI é desencorajada no APP.
+ *
+ * Nota sobre múltiplas classes:
+ * O pattern de separar UIPresenter + UICase dentro do mesmo ui.case.ts
+ * é permitido como estrutura interna opcional. O protocolo congela os
+ * slots semânticos, não a organização interna de classes.
+ * ========================================================================== */
+
 /**
  * Classe base para surfaces de UI.
  */
 export abstract class BaseUiCase<TState extends UIState = UIState> {
-  protected readonly ctx: AppContext;
+  protected readonly ctx: UiContext;
 
   protected state: TState;
 
-  constructor(ctx: AppContext, initialState: TState) {
+  constructor(ctx: UiContext, initialState: TState) {
     this.ctx = ctx;
     this.state = initialState;
   }
@@ -38,28 +141,73 @@ export abstract class BaseUiCase<TState extends UIState = UIState> {
    * ===================================================================== */
 
   /**
-   * Renderização principal da interface.
+   * Entrypoint público da unidade visual.
+   *
+   * A view é a unidade visual viva e autocontida do Case.
+   * Exemplos: formulário de cadastro, tabela com filtros, sidebar, appbar.
    *
    * Pode retornar:
    * - HTML
    * - JSX
    * - Virtual DOM
-   * - outro formato suportado pelo host
+   * - Widget tree
+   * - outro formato suportado pelo host/framework
+   *
+   * O ciclo de vida de framework (render, mount, dismount, etc.)
+   * vive dentro de view como detalhe de implementação.
+   * O protocolo não dita lifecycle hooks.
    */
-  public abstract render(): unknown;
-
-  /**
-   * Montagem inicial da interface.
-   */
-  public mount?(): Promise<void>;
+  public abstract view(): unknown;
 
   /**
    * Teste interno da capacidade.
+   *
+   * Obrigatório no APP — toda surface que implementa um contrato base
+   * deve fornecer um método test().
    */
   public abstract test(): Promise<void>;
 
   /* =======================================================================
-   * Hooks internos
+   * Slots canônicos internos
+   * ===================================================================== */
+
+  /**
+   * Viewmodel — transforma estado e dados em modelo de apresentação.
+   *
+   * Slot canônico que separa a preparação de dados da renderização.
+   * A view consome o resultado do viewmodel, sem conter lógica
+   * de transformação de estado.
+   *
+   * Responsabilidades:
+   * - combinar state + dados externos em modelo de apresentação
+   * - derivar campos calculados
+   * - formatar dados para a view
+   */
+  protected _viewmodel?(): unknown;
+
+  /**
+   * Lógica de negócio local da UI.
+   *
+   * Slot canônico para comportamento de estado, validações client-side,
+   * transformações de dados locais, e ações do usuário.
+   *
+   * Nota: _service na UI é lógica local — não envolve composição
+   * cross-case nem orquestração.
+   */
+  protected _service?(): unknown;
+
+  /**
+   * Acesso a dados e persistência local.
+   *
+   * Slot canônico para API calls, local storage, cache reads,
+   * e qualquer integração de dados.
+   *
+   * Regra: _repository não realiza composição cross-case.
+   */
+  protected _repository?(): unknown;
+
+  /* =======================================================================
+   * Utilitário interno
    * ===================================================================== */
 
   /**
@@ -71,19 +219,4 @@ export abstract class BaseUiCase<TState extends UIState = UIState> {
       ...partial,
     };
   }
-
-  /**
-   * Ações do usuário.
-   */
-  protected _actions?(): Record<string, (...args: unknown[]) => unknown>;
-
-  /**
-   * Efeitos colaterais da interface.
-   */
-  protected async _effects?(): Promise<void>;
-
-  /**
-   * Queries de dados externos.
-   */
-  protected async _queries?(): Promise<void>;
 }
