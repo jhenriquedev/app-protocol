@@ -4,16 +4,21 @@
  * Monolith host: API routes + stream subscriptions.
  *
  * Creates in-memory stores and injects them via ctx.db.
- * Builds cases map at boot for cross-case composition via ctx.cases.
+ *
+ * Composition model:
+ * ctx.cases contains factory wrappers, not singleton instances.
+ * Each call to handler() creates a fresh instance with a per-execution
+ * context (unique correlationId), preserving AppBaseContext semantics.
+ * The casesMap structure is built once at boot; only the instances
+ * inside are per-call.
  * ========================================================================== */
 
 import { ApiContext } from "../../core/api.case";
-import { StreamContext, StreamEvent } from "../../core/stream.case";
+import { StreamContext } from "../../core/stream.case";
 import { AppLogger } from "../../core/shared/app_base_context";
-import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
 import { Task } from "../../cases/tasks/task_create/task_create.domain.case";
 import { Notification } from "../../cases/notifications/notification_send/notification_send.domain.case";
-import { registry } from "./registry";
+import { registry, BackendCasesMap } from "./registry";
 
 /* --------------------------------------------------------------------------
  * Logger
@@ -44,7 +49,16 @@ function generateId(): string {
 }
 
 /* --------------------------------------------------------------------------
- * Boot — build cases map once
+ * Boot — build cases map with per-call factory wrappers
+ * --------------------------------------------------------------------------
+ * The casesMap is a stable structure built once at boot.
+ * Each surface entry is a thin wrapper that creates a fresh instance
+ * with a per-execution context on every handler() call.
+ *
+ * This preserves AppBaseContext semantics:
+ * - Each execution gets its own correlationId
+ * - Composition calls inherit fresh context, not stale boot context
+ * - The casesMap itself is shared (no per-request rebuild)
  * ------------------------------------------------------------------------ */
 
 type CasesMap = Record<string, Record<string, Record<string, unknown>>>;
@@ -52,32 +66,41 @@ type CasesMap = Record<string, Record<string, Record<string, unknown>>>;
 function buildCasesMap(): CasesMap {
   const cases: CasesMap = {};
 
-  const bootApiCtx: ApiContext = {
-    correlationId: "boot",
-    logger,
-    db,
-    cases,
-  };
-
-  const bootStreamCtx: StreamContext = {
-    correlationId: "boot",
-    logger,
-    db,
-    cases,
-  };
-
   for (const [domain, domainCases] of Object.entries(registry)) {
     cases[domain] = {};
-    for (const [caseName, _surfaces] of Object.entries(domainCases)) {
-      const surfaces = _surfaces as AppCaseSurfaces;
+    for (const [caseName, surfaces] of Object.entries(domainCases)) {
       const entry: Record<string, unknown> = {};
 
       if (surfaces.api) {
-        entry.api = new surfaces.api(bootApiCtx);
+        const ApiClass = surfaces.api;
+        entry.api = {
+          handler: async (input: unknown) => {
+            const ctx: ApiContext = {
+              correlationId: generateId(),
+              logger,
+              db,
+              cases,
+            };
+            const instance = new ApiClass(ctx);
+            return (instance as { handler(input: unknown): Promise<unknown> }).handler(input);
+          },
+        };
       }
 
       if (surfaces.stream) {
-        entry.stream = new surfaces.stream(bootStreamCtx);
+        const StreamClass = surfaces.stream;
+        entry.stream = {
+          handler: async (event: unknown) => {
+            const ctx: StreamContext = {
+              correlationId: generateId(),
+              logger,
+              db,
+              cases,
+            };
+            const instance = new StreamClass(ctx);
+            return (instance as { handler(event: unknown): Promise<void> }).handler(event);
+          },
+        };
       }
 
       cases[domain]![caseName] = entry;
@@ -91,6 +114,10 @@ const casesMap = buildCasesMap();
 
 /* --------------------------------------------------------------------------
  * Request context factories
+ * --------------------------------------------------------------------------
+ * Used by route handlers and stream listeners for the top-level entry.
+ * Composition inside Cases uses the factory wrappers in casesMap,
+ * so each composed call gets its own fresh context automatically.
  * ------------------------------------------------------------------------ */
 
 function createApiContext(): ApiContext {
@@ -113,6 +140,10 @@ function createStreamContext(): StreamContext {
 
 /* --------------------------------------------------------------------------
  * Monolith bootstrap
+ * --------------------------------------------------------------------------
+ * Route/subscription collection uses temporary instances (boot-time only).
+ * These are discarded after collecting router()/subscribe() metadata.
+ * Request-time instances are created fresh per call.
  * ------------------------------------------------------------------------ */
 
 async function startBackend(): Promise<void> {
@@ -120,12 +151,10 @@ async function startBackend(): Promise<void> {
   const subscriptions: unknown[] = [];
 
   for (const [domain, domainCases] of Object.entries(registry)) {
-    for (const [caseName, _surfaces] of Object.entries(domainCases)) {
-      const surfaces = _surfaces as AppCaseSurfaces;
-
+    for (const [caseName, surfaces] of Object.entries(domainCases)) {
       if (surfaces.api) {
-        const ctx = createApiContext();
-        const instance = new surfaces.api(ctx) as { router?(): unknown };
+        const bootCtx: ApiContext = { correlationId: "boot", logger, db };
+        const instance = new surfaces.api(bootCtx) as { router?(): unknown };
 
         if (instance.router) {
           const route = instance.router();
@@ -135,8 +164,8 @@ async function startBackend(): Promise<void> {
       }
 
       if (surfaces.stream) {
-        const ctx = createStreamContext();
-        const instance = new surfaces.stream(ctx) as { subscribe?(): unknown };
+        const bootCtx: StreamContext = { correlationId: "boot", logger, db };
+        const instance = new surfaces.stream(bootCtx) as { subscribe?(): unknown };
 
         if (instance.subscribe) {
           const sub = instance.subscribe();

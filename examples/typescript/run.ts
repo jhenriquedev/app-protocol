@@ -246,7 +246,7 @@ async function main(): Promise<void> {
   // Boot
   await startBackend();
   const chatbot = await startChatbot(casesMap);
-  console.log(`Chatbot tools: ${chatbot.tools.map((t) => t.name).join(", ")}`);
+  console.log(`Chatbot tools: ${chatbot.registeredCases.map((c) => c.definition.tool.name).join(", ")}`);
 
   // Scenario
   await runScenario();

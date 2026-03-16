@@ -1,12 +1,17 @@
 /* ========================================================================== *
  * Chatbot App — Bootstrap
  * --------------------------------------------------------------------------
- * Agentic host: collects tool definitions and discovery for AI agent use.
+ * Agentic host: collects full definitions from all agentic surfaces.
+ *
+ * Uses definition() as the canonical contract — this includes all facets:
+ * discovery, context, prompt, tool, mcp, rag, policy, examples.
  * ========================================================================== */
 
-import { AgenticContext } from "../../core/agentic.case";
+import {
+  AgenticContext,
+  AgenticDefinition,
+} from "../../core/agentic.case";
 import { AppLogger } from "../../core/shared/app_base_context";
-import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
 import { registry } from "./registry";
 
 /* --------------------------------------------------------------------------
@@ -33,61 +38,67 @@ function createAgenticContext(cases?: unknown): AgenticContext {
 }
 
 /* --------------------------------------------------------------------------
- * Bootstrap — collects tools and discovery from all agentic surfaces
+ * Bootstrap — collects full definitions from all agentic surfaces
+ * --------------------------------------------------------------------------
+ * Uses definition() as the single canonical entrypoint.
+ * This ensures all facets (discovery, context, prompt, tool, mcp, rag,
+ * policy, examples) are collected and available to the agent runtime.
  * ------------------------------------------------------------------------ */
 
-interface AgenticTool {
+interface RegisteredCase {
   domain: string;
   caseName: string;
-  name: string;
-  description: string;
-  isMutating?: boolean;
+  definition: AgenticDefinition;
+  isMcpEnabled: boolean;
+  requiresConfirmation: boolean;
 }
 
 async function startChatbot(cases?: unknown): Promise<{
-  tools: AgenticTool[];
-  discovery: Array<{ name: string; description: string; category?: string }>;
+  registeredCases: RegisteredCase[];
 }> {
-  const tools: AgenticTool[] = [];
-  const discovery: Array<{ name: string; description: string; category?: string }> = [];
+  const registeredCases: RegisteredCase[] = [];
 
   for (const [domain, domainCases] of Object.entries(registry)) {
-    for (const [caseName, _surfaces] of Object.entries(domainCases)) {
-      const surfaces = _surfaces as AppCaseSurfaces;
-
+    for (const [caseName, surfaces] of Object.entries(domainCases)) {
       if (surfaces.agentic) {
         const ctx = createAgenticContext(cases);
-        const instance = new surfaces.agentic(ctx) as {
-          discovery(): { name: string; description: string; category?: string };
-          tool(): { name: string; description: string; isMutating?: boolean };
-          definition(): unknown;
-        };
+        const instance = new surfaces.agentic(ctx);
 
-        const disc = instance.discovery();
-        discovery.push(disc);
+        const definition = (instance as {
+          definition(): AgenticDefinition;
+          isMcpEnabled(): boolean;
+          requiresConfirmation(): boolean;
+        });
 
-        const tool = instance.tool();
-        tools.push({
+        const def = definition.definition();
+
+        registeredCases.push({
           domain,
           caseName,
-          name: tool.name,
-          description: tool.description,
-          isMutating: tool.isMutating,
+          definition: def,
+          isMcpEnabled: definition.isMcpEnabled(),
+          requiresConfirmation: definition.requiresConfirmation(),
         });
 
         logger.info(`Registered agentic: ${domain}/${caseName}`, {
-          tool: tool.name,
+          tool: def.tool.name,
+          mcp: def.mcp?.enabled ? def.mcp.name : "disabled",
+          rag: def.rag?.mode ?? "none",
+          policy: def.policy?.riskLevel ?? "unset",
+          examples: def.examples?.length ?? 0,
         });
       }
     }
   }
 
   logger.info("Chatbot started", {
-    tools: tools.length,
-    discovery: discovery.length,
+    tools: registeredCases.length,
+    mcpEnabled: registeredCases.filter((c) => c.isMcpEnabled).length,
+    mutating: registeredCases.filter((c) => c.definition.tool.isMutating).length,
+    requireConfirmation: registeredCases.filter((c) => c.requiresConfirmation).length,
   });
 
-  return { tools, discovery };
+  return { registeredCases };
 }
 
 export { registry, createAgenticContext, startChatbot };
