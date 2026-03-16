@@ -1,30 +1,34 @@
 /* ========================================================================== *
- * Chatbot App — Registry
+ * Chatbot App — Registry (Unified)
  * --------------------------------------------------------------------------
- * Imports only Agentic surfaces.
- * The chatbot never loads API, Stream, or UI surfaces directly —
- * agentic surfaces resolve to canonical API execution via ctx.cases.
- *
- * This registry feeds:
- * - app.ts bootstrap (MCP tool registration, agent discovery)
- * - ctx.cases for agentic tool execution (resolves to API surfaces)
+ * O chatbot registra surfaces agentic para discovery e surfaces API para
+ * execução canônica das tools via ctx.cases.
  * ========================================================================== */
 
-import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
+import { AppCaseSurfaces, InferCasesMap } from "../../core/shared/app_host_contracts";
 
-// Cases — only agentic surfaces
+// Cases — discovery + execução canônica
+import { UserValidateApi } from "../../cases/users/user_validate/user_validate.api.case";
 import { UserValidateAgentic } from "../../cases/users/user_validate/user_validate.agentic.case";
+import { UserRegisterApi } from "../../cases/users/user_register/user_register.api.case";
 import { UserRegisterAgentic } from "../../cases/users/user_register/user_register.agentic.case";
 
 /* --------------------------------------------------------------------------
  * Registry
- * --------------------------------------------------------------------------
- * Usa `satisfies` para preservar tipos literais (InferCasesMap).
  * ------------------------------------------------------------------------ */
 
 export const registry = {
-  users: {
-    user_validate: { agentic: UserValidateAgentic },
-    user_register: { agentic: UserRegisterAgentic },
-  },
-} satisfies Record<string, Record<string, AppCaseSurfaces>>;
+  _cases: {
+    users: {
+      user_validate: { api: UserValidateApi, agentic: UserValidateAgentic },
+      user_register: { api: UserRegisterApi, agentic: UserRegisterAgentic },
+    },
+  } satisfies Record<string, Record<string, AppCaseSurfaces>>,
+
+  _providers: {},
+
+  _packages: {},
+} as const;
+
+export type ChatbotCases = typeof registry._cases;
+export type ChatbotCasesMap = InferCasesMap<ChatbotCases>;

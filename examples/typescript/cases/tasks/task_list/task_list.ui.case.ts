@@ -19,6 +19,28 @@ interface TaskListState extends UIState {
   error: string | null;
 }
 
+type UiPackages = {
+  designSystem?: {
+    list(config: {
+      title: string;
+      filter: unknown;
+      items: unknown[];
+      feedback: { type: "success" | "error"; message: string } | null;
+      meta?: Record<string, unknown>;
+      onFilter: (value: string) => void;
+    }): unknown;
+    feedback(
+      type: "success" | "error",
+      message: string
+    ): { type: "success" | "error"; message: string };
+    badge(label: string, tone?: "neutral" | "success" | "danger"): unknown;
+  };
+  dateUtils?: {
+    formatDateTime(date: Date, locale?: string): string;
+    timeAgo(date: Date, locale?: string): string;
+  };
+};
+
 /* --------------------------------------------------------------------------
  * UI Case
  * ------------------------------------------------------------------------ */
@@ -35,6 +57,22 @@ export class TaskListUi extends BaseUiCase<TaskListState> {
 
   public view(): unknown {
     const vm = this._viewmodel();
+    const packages = this.ctx.packages as UiPackages | undefined;
+    const list = packages?.designSystem?.list;
+
+    if (list) {
+      return list({
+        title: "Task List",
+        filter: vm.filter,
+        items: vm.items,
+        feedback: vm.feedback,
+        meta: vm.meta,
+        onFilter: (status: string) => {
+          this.setState({ statusFilter: status });
+          void this._service();
+        },
+      });
+    }
 
     return {
       type: "list",
@@ -42,6 +80,7 @@ export class TaskListUi extends BaseUiCase<TaskListState> {
       filter: vm.filter,
       items: vm.items,
       feedback: vm.feedback,
+      meta: vm.meta,
       onFilter: (status: string) => {
         this.setState({ statusFilter: status });
         void this._service();
@@ -59,6 +98,10 @@ export class TaskListUi extends BaseUiCase<TaskListState> {
 
   protected _viewmodel() {
     const { statusFilter, tasks, loading, error } = this.state;
+    const packages = this.ctx.packages as UiPackages | undefined;
+    const feedback = error
+      ? this.buildFeedback("error", error, packages)
+      : null;
 
     return {
       filter: {
@@ -74,13 +117,20 @@ export class TaskListUi extends BaseUiCase<TaskListState> {
         id: t.id,
         title: t.title,
         description: t.description,
-        status: t.status,
-        createdAt: t.createdAt,
+        status: packages?.designSystem?.badge?.(
+          t.status,
+          t.status === "done" ? "success" : "neutral"
+        ) ?? t.status,
+        createdAt:
+          packages?.dateUtils?.formatDateTime(new Date(t.createdAt))
+          ?? t.createdAt,
+        createdAgo:
+          packages?.dateUtils?.timeAgo?.(new Date(t.createdAt))
+          ?? t.createdAt,
       })),
       loading,
-      feedback: error
-        ? { type: "error" as const, message: error }
-        : null,
+      feedback,
+      meta: { totalItems: tasks.length },
     };
   }
 
@@ -111,5 +161,15 @@ export class TaskListUi extends BaseUiCase<TaskListState> {
     });
 
     return response as TaskListOutput;
+  }
+
+  private buildFeedback(
+    type: "success" | "error",
+    message: string,
+    packages?: UiPackages
+  ) {
+    return packages?.designSystem?.feedback
+      ? packages.designSystem.feedback(type, message)
+      : { type, message };
   }
 }

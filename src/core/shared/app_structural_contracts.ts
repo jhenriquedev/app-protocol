@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.3
+ * APP v0.0.4
  * core/shared/app_structural_contracts.ts
  * ----------------------------------------------------------------------------
  * Structural contracts that cross all surfaces.
@@ -132,6 +132,64 @@ export interface AppResult<T = unknown> {
    * Structured error when success is false.
    */
   error?: AppError;
+}
+
+/* ==========================================================================
+ * StreamFailureEnvelope
+ * --------------------------------------------------------------------------
+ * Canonical dead-letter payload shape for stream failures.
+ *
+ * This contract is structural, not transport-specific.
+ * Apps may enrich it with additional metadata, but the minimum shape
+ * remains stable so tooling and hosts can reason about dead-letter events.
+ * ========================================================================== */
+
+export interface StreamFailureEnvelope<TEvent = unknown> {
+  /**
+   * Canonical case identifier that produced the failure.
+   */
+  caseName: string;
+
+  /**
+   * Surface identifier.
+   *
+   * Fixed to "stream" for this envelope type.
+   */
+  surface: "stream";
+
+  /**
+   * Original event that failed processing.
+   */
+  originalEvent: TEvent;
+
+  /**
+   * Last observed error after retries were exhausted.
+   */
+  lastError: {
+    message: string;
+    code?: string;
+    stack?: string;
+  };
+
+  /**
+   * Total attempts executed, including the first one.
+   */
+  attempts: number;
+
+  /**
+   * First attempt timestamp in ISO format.
+   */
+  firstAttemptAt: string;
+
+  /**
+   * Last attempt timestamp in ISO format.
+   */
+  lastAttemptAt: string;
+
+  /**
+   * Correlation identifier shared across the operation.
+   */
+  correlationId: string;
 }
 
 /* ==========================================================================

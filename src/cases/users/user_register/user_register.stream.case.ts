@@ -7,9 +7,11 @@
  * ========================================================================== */
 
 import {
+  AppStreamRecoveryPolicy,
   BaseStreamCase,
   StreamContext,
   StreamEvent,
+  validateStreamRecoveryPolicy,
 } from "../../../core/stream.case";
 import { UserRegisterOutput } from "./user_register.domain.case";
 
@@ -48,6 +50,27 @@ export class UserRegisterStream extends BaseStreamCase<
     };
   }
 
+  public recoveryPolicy(): AppStreamRecoveryPolicy {
+    return {
+      retry: {
+        maxAttempts: 5,
+        backoffMs: 1000,
+        multiplier: 2,
+        maxBackoffMs: 30000,
+        jitter: true,
+        retryableErrors: [
+          "TIMEOUT",
+          "SERVICE_UNAVAILABLE",
+          "CONNECTION_RESET",
+        ],
+      },
+      deadLetter: {
+        destination: "users.user_register.stream.dlq",
+        includeFailureMetadata: true,
+      },
+    };
+  }
+
   /* =======================================================================
    * Public — test
    * ===================================================================== */
@@ -56,6 +79,12 @@ export class UserRegisterStream extends BaseStreamCase<
     // Phase 1 — Subscription shape
     const sub = this.subscribe() as { topic?: string } | undefined;
     if (!sub?.topic) throw new Error("test: subscribe() must return a topic");
+
+    // Phase 1.5 — Recovery contract shape
+    validateStreamRecoveryPolicy(
+      "users/user_register/stream",
+      this.recoveryPolicy()
+    );
 
     // Phase 2 — Pipeline slots
     const event: StreamEvent<UserRegisterOutput> = {
@@ -115,20 +144,5 @@ export class UserRegisterStream extends BaseStreamCase<
    */
   protected _repository(): unknown {
     return this.ctx.db;
-  }
-
-  /**
-   * Retry — retry policy for failed event processing.
-   */
-  protected async _retry(
-    event: StreamEvent<UserRegisterOutput>,
-    error: Error
-  ): Promise<void> {
-    this.ctx.logger.error("Failed to process user_registered event", {
-      userId: event.payload.id,
-      error: error.message,
-    });
-
-    // In practice: dead letter queue, exponential backoff, etc.
   }
 }

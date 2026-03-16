@@ -1,17 +1,19 @@
 /* ========================================================================== *
- * Lambdas App — Registry
+ * Lambdas App — Registry (Unified)
  * --------------------------------------------------------------------------
- * Registry organizado por feature (domínio).
- * Cada feature vira uma lambda — contendo todos os Cases daquele domínio.
+ * Registry organizado por feature (domínio) com os três slots canônicos:
  *
- * Exemplo:
- *   feature "users" → 1 lambda com user_validate + user_register
- *
- * O registry importa apenas surfaces de API e Stream (backend).
- * Cada lambda resolve internamente qual Case executar via rota ou evento.
+ * - _cases: surfaces de API e Stream carregadas por feature
+ * - _providers: bindings de runtime do host (inclui recovery/dlq)
+ * - _packages: bibliotecas compartilhadas expostas ao contexto, se houver
  * ========================================================================== */
 
+import {
+  AppStreamDeadLetterBinding,
+  AppStreamRuntimeCapabilities,
+} from "../../core/stream.case";
 import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
+import { StreamFailureEnvelope } from "../../core/shared/app_structural_contracts";
 
 // Feature: users
 import { UserValidateApi } from "../../cases/users/user_validate/user_validate.api.case";
@@ -29,12 +31,42 @@ import { UserRegisterStream } from "../../cases/users/user_register/user_registe
  * Usa `satisfies` para preservar tipos literais (InferCasesMap).
  * ------------------------------------------------------------------------ */
 
-export const registry = {
-  users: {
-    user_validate: { api: UserValidateApi },
-    user_register: { api: UserRegisterApi, stream: UserRegisterStream },
+class InMemoryDeadLetterSink implements AppStreamDeadLetterBinding {
+  public readonly events: StreamFailureEnvelope[] = [];
+
+  constructor(public readonly target: string) {}
+
+  async publish(envelope: StreamFailureEnvelope): Promise<void> {
+    this.events.push(envelope);
+  }
+}
+
+const userRegisterDeadLetter = new InMemoryDeadLetterSink(
+  "lambdas-users-user-register-dlq"
+);
+
+const streamRuntime: AppStreamRuntimeCapabilities = {
+  maxAttemptsLimit: 5,
+  supportsJitter: true,
+  deadLetters: {
+    "users.user_register.stream.dlq": userRegisterDeadLetter,
   },
-} satisfies Record<string, Record<string, AppCaseSurfaces>>;
+};
+
+export const registry = {
+  _cases: {
+    users: {
+      user_validate: { api: UserValidateApi },
+      user_register: { api: UserRegisterApi, stream: UserRegisterStream },
+    },
+  } satisfies Record<string, Record<string, AppCaseSurfaces>>,
+
+  _providers: {
+    streamRuntime,
+  },
+
+  _packages: {},
+} as const;
 
 
 /* --------------------------------------------------------------------------
@@ -45,9 +77,11 @@ export const registry = {
  * ------------------------------------------------------------------------ */
 
 export function getFeature(featureName: string) {
-  return (registry as Record<string, Record<string, AppCaseSurfaces>>)[featureName] ?? {};
+  return (
+    registry._cases as Record<string, Record<string, AppCaseSurfaces>>
+  )[featureName] ?? {};
 }
 
 export function getFeatureNames(): string[] {
-  return Object.keys(registry);
+  return Object.keys(registry._cases);
 }

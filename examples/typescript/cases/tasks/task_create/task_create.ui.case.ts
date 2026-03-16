@@ -19,6 +19,32 @@ interface TaskCreateState extends UIState {
   error: string | null;
 }
 
+type UiPackages = {
+  designSystem?: {
+    form(config: {
+      title: string;
+      fields: Array<{
+        name: string;
+        value: string;
+        label: string;
+        type: string;
+        required?: boolean;
+      }>;
+      submitLabel: string;
+      feedback: { type: "success" | "error"; message: string } | null;
+      meta?: Record<string, unknown>;
+      onSubmit: () => void;
+    }): unknown;
+    feedback(
+      type: "success" | "error",
+      message: string
+    ): { type: "success" | "error"; message: string };
+  };
+  dateUtils?: {
+    formatDateTime(date: Date, locale?: string): string;
+  };
+};
+
 /* --------------------------------------------------------------------------
  * UI Case
  * ------------------------------------------------------------------------ */
@@ -36,6 +62,19 @@ export class TaskCreateUi extends BaseUiCase<TaskCreateState> {
 
   public view(): unknown {
     const vm = this._viewmodel();
+    const packages = this.ctx.packages as UiPackages | undefined;
+    const form = packages?.designSystem?.form;
+
+    if (form) {
+      return form({
+        title: "Create Task",
+        fields: vm.fields,
+        submitLabel: vm.submitLabel,
+        feedback: vm.feedback,
+        meta: vm.meta,
+        onSubmit: () => this._service(),
+      });
+    }
 
     return {
       type: "form",
@@ -43,6 +82,7 @@ export class TaskCreateUi extends BaseUiCase<TaskCreateState> {
       fields: vm.fields,
       submitLabel: vm.submitLabel,
       feedback: vm.feedback,
+      meta: vm.meta,
       onSubmit: () => this._service(),
     };
   }
@@ -58,6 +98,20 @@ export class TaskCreateUi extends BaseUiCase<TaskCreateState> {
 
   protected _viewmodel() {
     const { title, description, result, loading, error } = this.state;
+    const packages = this.ctx.packages as UiPackages | undefined;
+    const feedback = error
+      ? this.buildFeedback("error", error, packages)
+      : result
+        ? this.buildFeedback(
+            "success",
+            `Task "${result.task.title}" created`,
+            packages
+          )
+        : null;
+    const createdAt = result
+      ? packages?.dateUtils?.formatDateTime(new Date(result.task.createdAt))
+        ?? result.task.createdAt
+      : null;
 
     return {
       fields: [
@@ -65,11 +119,8 @@ export class TaskCreateUi extends BaseUiCase<TaskCreateState> {
         { name: "description", value: description, label: "Description", type: "textarea" },
       ],
       submitLabel: loading ? "Creating..." : "Create Task",
-      feedback: error
-        ? { type: "error" as const, message: error }
-        : result
-          ? { type: "success" as const, message: `Task "${result.task.title}" created` }
-          : null,
+      feedback,
+      meta: createdAt ? { createdAt } : undefined,
     };
   }
 
@@ -99,5 +150,15 @@ export class TaskCreateUi extends BaseUiCase<TaskCreateState> {
     });
 
     return response as TaskCreateOutput;
+  }
+
+  private buildFeedback(
+    type: "success" | "error",
+    message: string,
+    packages?: UiPackages
+  ) {
+    return packages?.designSystem?.feedback
+      ? packages.designSystem.feedback(type, message)
+      : { type, message };
   }
 }

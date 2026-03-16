@@ -20,7 +20,16 @@
  * ========================================================================== */
 
 import { ApiContext } from "../../core/api.case";
-import { StreamContext, StreamEvent } from "../../core/stream.case";
+import {
+  AppStreamRecoveryPolicy,
+  computeStreamRetryDelayMs,
+  createStreamFailureEnvelope,
+  isStreamErrorRetryable,
+  StreamContext,
+  StreamEvent,
+  validateStreamRecoveryPolicy,
+  validateStreamRuntimeCompatibility,
+} from "../../core/stream.case";
 import { AppLogger } from "../../core/shared/app_base_context";
 import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
 import { registry, getFeature } from "./registry";
@@ -44,6 +53,11 @@ function generateId(): string {
   return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
 
+function sleep(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /* --------------------------------------------------------------------------
  * Boot — build cases map per feature (once per cold start)
  * --------------------------------------------------------------------------
@@ -58,6 +72,10 @@ function generateId(): string {
  * ------------------------------------------------------------------------ */
 
 type FeatureCasesMap = Record<string, Record<string, Record<string, unknown>>>;
+type StreamSurfaceInstance = {
+  subscribe?(): unknown;
+  recoveryPolicy?(): AppStreamRecoveryPolicy;
+};
 
 const featureCasesCache = new Map<string, FeatureCasesMap>();
 
@@ -85,7 +103,16 @@ function buildFeatureCasesMap(featureName: string): FeatureCasesMap {
 
     if (surfaces.stream) {
       const streamCtx: StreamContext = { correlationId: "boot", logger, cases };
-      entry.stream = new surfaces.stream(streamCtx);
+      const instance = new surfaces.stream(streamCtx) as StreamSurfaceInstance;
+      const source = `${featureName}/${caseName}/stream`;
+      const policy = instance.recoveryPolicy?.();
+      validateStreamRecoveryPolicy(source, policy);
+      validateStreamRuntimeCompatibility(
+        source,
+        policy,
+        registry._providers.streamRuntime
+      );
+      entry.stream = instance;
     }
 
     cases[featureName][caseName] = entry;
@@ -103,20 +130,107 @@ function buildFeatureCasesMap(featureName: string): FeatureCasesMap {
  * - cases: o mapa pré-construído no cold start (compartilhado)
  * ------------------------------------------------------------------------ */
 
-function createApiContext(feature: string): ApiContext {
+function createApiContext(
+  feature: string,
+  parent?: Partial<ApiContext>
+): ApiContext {
   return {
-    correlationId: generateId(),
+    correlationId: parent?.correlationId ?? generateId(),
+    executionId: generateId(),
+    tenantId: parent?.tenantId,
+    userId: parent?.userId,
+    config: parent?.config,
     logger,
     cases: buildFeatureCasesMap(feature),
   };
 }
 
-function createStreamContext(feature: string): StreamContext {
+function createStreamContext(
+  feature: string,
+  parent?: Partial<StreamContext>
+): StreamContext {
   return {
-    correlationId: generateId(),
+    correlationId: parent?.correlationId ?? generateId(),
+    executionId: generateId(),
+    tenantId: parent?.tenantId,
+    userId: parent?.userId,
+    config: parent?.config,
     logger,
     cases: buildFeatureCasesMap(feature),
   };
+}
+
+async function dispatchFeatureStream(
+  featureName: string,
+  caseName: string,
+  event: StreamEvent,
+  parent?: Partial<StreamContext>
+): Promise<void> {
+  const surfaces = getFeature(featureName)[caseName];
+  if (!surfaces?.stream) {
+    throw new Error(`No stream surface registered for ${featureName}/${caseName}`);
+  }
+
+  const source = `${featureName}/${caseName}/stream`;
+  const correlationId = parent?.correlationId ?? generateId();
+  const firstAttemptAt = new Date().toISOString();
+  const runtime = registry._providers.streamRuntime;
+  let attempts = 0;
+
+  while (true) {
+    attempts += 1;
+    const ctx = createStreamContext(featureName, {
+      ...parent,
+      correlationId,
+    });
+    const instance = new surfaces.stream(ctx) as StreamSurfaceInstance & {
+      handler(payload: StreamEvent): Promise<void>;
+    };
+    const policy = instance.recoveryPolicy?.();
+    validateStreamRecoveryPolicy(source, policy);
+    validateStreamRuntimeCompatibility(source, policy, runtime);
+
+    try {
+      await instance.handler(event);
+      return;
+    } catch (error) {
+      const retry = policy?.retry;
+      const canRetry =
+        !!retry &&
+        attempts < retry.maxAttempts &&
+        isStreamErrorRetryable(error, retry.retryableErrors);
+
+      if (canRetry) {
+        const delayMs = computeStreamRetryDelayMs(retry, attempts);
+        logger.warn(`${source}: retry scheduled`, {
+          attempts,
+          delayMs,
+          correlationId,
+        });
+        await sleep(delayMs);
+        continue;
+      }
+
+      if (policy?.deadLetter) {
+        const binding = runtime.deadLetters?.[policy.deadLetter.destination];
+        if (binding) {
+          await binding.publish(
+            createStreamFailureEnvelope(
+              `${featureName}/${caseName}`,
+              event,
+              error,
+              attempts,
+              correlationId,
+              firstAttemptAt,
+              new Date().toISOString()
+            )
+          );
+        }
+      }
+
+      throw error;
+    }
+  }
 }
 
 /* ==========================================================================
@@ -293,12 +407,7 @@ export function createFeatureStreamHandler(featureName: string) {
         continue;
       }
 
-      const ctx = createStreamContext(featureName);
-      const instance = new (entry.CaseClass as new (ctx: StreamContext) => unknown)(ctx) as {
-        handler(event: StreamEvent): Promise<void>;
-      };
-
-      await instance.handler(parsed);
+      await dispatchFeatureStream(featureName, entry.caseName, parsed);
     }
   };
 }
@@ -313,9 +422,19 @@ function buildSubscriptionMap(
     if (!surfaces.stream) continue;
 
     const tempCtx: StreamContext = { correlationId: "boot", logger };
-    const instance = new surfaces.stream(tempCtx) as {
-      subscribe?(): unknown;
-    };
+    const instance = new surfaces.stream(tempCtx) as StreamSurfaceInstance;
+
+    // Protocol-level validation lives in core. App/runtime compatibility
+    // remains a host concern at bootstrap.
+    validateStreamRecoveryPolicy(
+      `${featureName}/${caseName}/stream`,
+      instance.recoveryPolicy?.()
+    );
+    validateStreamRuntimeCompatibility(
+      `${featureName}/${caseName}/stream`,
+      instance.recoveryPolicy?.(),
+      registry._providers.streamRuntime
+    );
 
     if (instance.subscribe) {
       const sub = instance.subscribe() as { topic: string };
@@ -353,4 +472,3 @@ export const usersHttp = createFeatureHttpHandler("users");
 
 // Feature: users — Stream
 export const usersStream = createFeatureStreamHandler("users");
-

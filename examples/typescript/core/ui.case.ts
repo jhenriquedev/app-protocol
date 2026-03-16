@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.3
+ * APP v0.0.4
  * core/ui.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface de UI no APP.
@@ -76,6 +76,14 @@ export interface UiContext extends AppBaseContext {
    * Exemplos: fetch wrapper, Axios instance, tRPC client.
    */
   api?: AppHttpClient;
+
+  /**
+   * Packages de biblioteca registrados pelo host.
+   *
+   * Expostos via registry._packages.
+   * Bibliotecas puras de packages/ que o app disponibiliza.
+   */
+  packages?: Dict;
 
   /**
    * Espaço de extensão livre para o host do projeto.

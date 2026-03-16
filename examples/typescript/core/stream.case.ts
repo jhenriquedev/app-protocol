@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.3
+ * APP v0.0.4
  * core/stream.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface de stream no APP.
@@ -24,6 +24,7 @@
 
 import { Dict } from "./domain.case";
 import { AppBaseContext } from "./shared/app_base_context";
+import { StreamFailureEnvelope } from "./shared/app_structural_contracts";
 import { AppEventPublisher, AppCache } from "./shared/app_infra_contracts";
 
 /* ==========================================================================
@@ -88,6 +89,14 @@ export interface StreamContext extends AppBaseContext {
   cases?: Dict;
 
   /**
+   * Packages de biblioteca registrados pelo host.
+   *
+   * Expostos via registry._packages.
+   * Bibliotecas puras de packages/ que o app disponibiliza.
+   */
+  packages?: Dict;
+
+  /**
    * Espaço de extensão livre para o host do projeto.
    */
   extra?: Dict;
@@ -118,6 +127,232 @@ export interface StreamEvent<T = unknown> {
   idempotencyKey?: string;
 
   metadata?: Record<string, unknown>;
+}
+
+/* ==========================================================================
+ * AppStreamRecoveryPolicy
+ * --------------------------------------------------------------------------
+ * Declarative recovery contract for stream capabilities.
+ *
+ * This policy describes intended semantics only.
+ * The app host is responsible for validating compatibility with the
+ * chosen runtime and for translating the contract to platform-specific
+ * configuration.
+ * ========================================================================== */
+
+export interface AppStreamRecoveryPolicy {
+  retry?: {
+    /**
+     * Total number of attempts, including the first execution.
+     *
+     * maxAttempts: 1 = fail-fast, no retry.
+     */
+    maxAttempts: number;
+    backoffMs?: number;
+    multiplier?: number;
+    maxBackoffMs?: number;
+    jitter?: boolean;
+    retryableErrors?: string[];
+  };
+
+  deadLetter?: {
+    /**
+     * Logical dead-letter destination identifier.
+     *
+     * Must be bound by the app host to a physical transport destination.
+     */
+    destination: string;
+    includeFailureMetadata?: boolean;
+  };
+}
+
+export interface AppStreamDeadLetterBinding<TEvent = unknown> {
+  publish(envelope: StreamFailureEnvelope<StreamEvent<TEvent>>): Promise<void>;
+}
+
+export interface AppStreamRuntimeCapabilities {
+  maxAttemptsLimit?: number;
+  supportsJitter?: boolean;
+  deadLetters?: Dict<AppStreamDeadLetterBinding>;
+}
+
+/* ==========================================================================
+ * Policy validation
+ * --------------------------------------------------------------------------
+ * Protocol-level shape validation for recovery metadata.
+ *
+ * This validates the canonical APP invariants that are independent of any
+ * specific runtime. Host-specific compatibility checks (DLQ bindings,
+ * jitter support, attempt limits, etc.) remain the app's responsibility.
+ * ========================================================================== */
+
+export function validateStreamRecoveryPolicy(
+  source: string,
+  policy?: AppStreamRecoveryPolicy
+): void {
+  if (!policy) return;
+
+  const label = source || "stream";
+  const retry = policy.retry;
+  const deadLetter = policy.deadLetter;
+
+  if (retry) {
+    if (!Number.isInteger(retry.maxAttempts) || retry.maxAttempts < 1) {
+      throw new Error(
+        `${label}: recoveryPolicy.retry.maxAttempts must be an integer >= 1`
+      );
+    }
+
+    if (retry.backoffMs !== undefined && retry.backoffMs < 0) {
+      throw new Error(`${label}: recoveryPolicy.retry.backoffMs must be >= 0`);
+    }
+
+    if (retry.multiplier !== undefined && retry.multiplier < 1) {
+      throw new Error(`${label}: recoveryPolicy.retry.multiplier must be >= 1`);
+    }
+
+    if (retry.maxBackoffMs !== undefined && retry.maxBackoffMs < 0) {
+      throw new Error(`${label}: recoveryPolicy.retry.maxBackoffMs must be >= 0`);
+    }
+
+    if (
+      retry.backoffMs !== undefined &&
+      retry.maxBackoffMs !== undefined &&
+      retry.maxBackoffMs < retry.backoffMs
+    ) {
+      throw new Error(
+        `${label}: recoveryPolicy.retry.maxBackoffMs must be >= backoffMs`
+      );
+    }
+
+    if (
+      retry.retryableErrors?.some((code) => code.trim().length === 0)
+    ) {
+      throw new Error(
+        `${label}: recoveryPolicy.retry.retryableErrors must contain stable non-empty codes`
+      );
+    }
+  }
+
+  if (deadLetter && deadLetter.destination.trim().length === 0) {
+    throw new Error(
+      `${label}: recoveryPolicy.deadLetter.destination must be a non-empty logical identifier`
+    );
+  }
+}
+
+export function validateStreamRuntimeCompatibility(
+  source: string,
+  policy: AppStreamRecoveryPolicy | undefined,
+  runtime: AppStreamRuntimeCapabilities
+): void {
+  if (!policy) return;
+
+  const label = source || "stream";
+  const retry = policy.retry;
+  const deadLetter = policy.deadLetter;
+
+  if (
+    retry?.maxAttempts !== undefined &&
+    runtime.maxAttemptsLimit !== undefined &&
+    retry.maxAttempts > runtime.maxAttemptsLimit
+  ) {
+    throw new Error(
+      `${label}: recoveryPolicy.retry.maxAttempts=${retry.maxAttempts} exceeds host limit ${runtime.maxAttemptsLimit}`
+    );
+  }
+
+  if (retry?.jitter && runtime.supportsJitter === false) {
+    throw new Error(
+      `${label}: recoveryPolicy.retry.jitter=true but host runtime does not support jitter`
+    );
+  }
+
+  if (
+    deadLetter &&
+    !runtime.deadLetters?.[deadLetter.destination]
+  ) {
+    throw new Error(
+      `${label}: dead-letter destination "${deadLetter.destination}" is not bound by the host app`
+    );
+  }
+}
+
+export function isStreamErrorRetryable(
+  error: unknown,
+  retryableErrors?: string[]
+): boolean {
+  if (!retryableErrors || retryableErrors.length === 0) {
+    return true;
+  }
+
+  const code = extractStreamErrorCode(error);
+  return code ? retryableErrors.includes(code) : false;
+}
+
+export function computeStreamRetryDelayMs(
+  retry: NonNullable<AppStreamRecoveryPolicy["retry"]>,
+  attempt: number
+): number {
+  const base = retry.backoffMs ?? 0;
+  if (base <= 0) return 0;
+
+  const multiplier = retry.multiplier ?? 1;
+  const exponent = Math.max(0, attempt - 1);
+  let delay = base * Math.pow(multiplier, exponent);
+
+  if (retry.maxBackoffMs !== undefined) {
+    delay = Math.min(delay, retry.maxBackoffMs);
+  }
+
+  if (retry.jitter && delay > 0) {
+    delay = Math.floor(Math.random() * delay);
+  }
+
+  return Math.floor(delay);
+}
+
+export function createStreamFailureEnvelope<TEvent>(
+  caseName: string,
+  event: StreamEvent<TEvent>,
+  error: unknown,
+  attempts: number,
+  correlationId: string,
+  firstAttemptAt: string,
+  lastAttemptAt: string
+): StreamFailureEnvelope<StreamEvent<TEvent>> {
+  const code = extractStreamErrorCode(error);
+  const message =
+    error instanceof Error ? error.message : "Unknown stream failure";
+  const stack = error instanceof Error ? error.stack : undefined;
+
+  return {
+    caseName,
+    surface: "stream",
+    originalEvent: event,
+    lastError: {
+      message,
+      ...(code !== undefined && { code }),
+      ...(stack !== undefined && { stack }),
+    },
+    attempts,
+    firstAttemptAt,
+    lastAttemptAt,
+    correlationId,
+  };
+}
+
+function extractStreamErrorCode(error: unknown): string | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof (error as { code?: unknown }).code === "string"
+  ) {
+    return (error as { code: string }).code;
+  }
+
+  return undefined;
 }
 
 /* ==========================================================================
@@ -153,6 +388,19 @@ export abstract class BaseStreamCase<TInput = unknown, TOutput = unknown> {
    * Registro de subscription.
    */
   public subscribe?(): unknown;
+
+  /**
+   * Declaração contratual de recovery.
+   *
+   * O retorno deve ser metadata pura:
+   * - determinística
+   * - serializável
+   * - sem callbacks
+   * - independente do payload do evento
+   *
+   * O app host valida e traduz essa policy para o runtime real.
+   */
+  public recoveryPolicy?(): AppStreamRecoveryPolicy;
 
   /**
    * Teste interno da capacidade.
@@ -214,41 +462,31 @@ export abstract class BaseStreamCase<TInput = unknown, TOutput = unknown> {
   protected async _publish?(output: TOutput): Promise<void>;
 
   /**
-   * Política de retry.
-   */
-  protected async _retry?(event: StreamEvent<TInput>, error: Error): Promise<void>;
-
-  /**
    * Pipeline padrão de execução.
    *
    * Se _composition estiver definido, delega para ele (Case composto).
    * Caso contrário, orquestra o fluxo atômico: consume → service → publish.
-   * Em caso de erro, delega para _retry se disponível.
+   *
+   * O pipeline default não implementa retry, backoff nem dead-letter.
+   * Recovery é responsabilidade do app host/runtime quando recoveryPolicy()
+   * estiver declarada.
    */
   protected async pipeline(event: StreamEvent<TInput>): Promise<void> {
-    try {
-      if (this._composition) {
-        await this._composition(event);
-        return;
-      }
+    if (this._composition) {
+      await this._composition(event);
+      return;
+    }
 
-      const consumed = this._consume
-        ? await this._consume(event)
-        : event.payload;
+    const consumed = this._consume
+      ? await this._consume(event)
+      : event.payload;
 
-      const transformed = this._service
-        ? await this._service(consumed)
-        : (consumed as unknown as TOutput);
+    const transformed = this._service
+      ? await this._service(consumed)
+      : (consumed as unknown as TOutput);
 
-      if (this._publish) {
-        await this._publish(transformed);
-      }
-    } catch (err) {
-      if (this._retry) {
-        await this._retry(event, err as Error);
-      } else {
-        throw err;
-      }
+    if (this._publish) {
+      await this._publish(transformed);
     }
   }
 }

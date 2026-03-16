@@ -16,14 +16,18 @@ import { TaskCompleteOutput } from "./cases/tasks/task_complete/task_complete.do
 
 import {
   db,
-  casesMap,
   createApiContext,
   createStreamContext,
+  dispatchStream,
   startBackend,
   registry as backendRegistry,
 } from "./apps/backend/app";
 
-import { startChatbot } from "./apps/chatbot/app";
+import {
+  createAgenticContext,
+  startChatbot,
+} from "./apps/chatbot/app";
+import { registry as portalRegistry } from "./apps/portal/app";
 
 /* --------------------------------------------------------------------------
  * Logger
@@ -35,6 +39,11 @@ const logger: AppLogger = {
   warn: (msg, meta) => console.warn("[RUN]", msg, meta),
   error: (msg, meta) => console.error("[RUN]", msg, meta),
 };
+
+function resetDb(): void {
+  db.tasks.clear();
+  db.notifications.length = 0;
+}
 
 /* --------------------------------------------------------------------------
  * Scenario: full task lifecycle
@@ -49,10 +58,11 @@ const logger: AppLogger = {
 
 async function runScenario(): Promise<void> {
   console.log("\n========== SCENARIO: Task Lifecycle ==========\n");
+  resetDb();
 
   // Step 1: Create a task
   const createCtx = createApiContext();
-  const taskCreateApi = new backendRegistry.tasks.task_create.api(createCtx);
+  const taskCreateApi = new backendRegistry._cases.tasks.task_create.api(createCtx);
   const createResult = await taskCreateApi.handler({ title: "Buy groceries", description: "Milk, eggs, bread" });
 
   if (!createResult.success || !createResult.data) {
@@ -63,19 +73,19 @@ async function runScenario(): Promise<void> {
   console.log(`1. Task created: "${createdTask.title}" (id: ${createdTask.id}, status: ${createdTask.status})`);
 
   // Step 2: Simulate task.created stream event
-  const streamCtx = createStreamContext();
-  const taskCreateStream = new backendRegistry.tasks.task_create.stream(streamCtx);
   const createdEvent: StreamEvent<TaskCreateOutput> = {
     type: "task.created",
     payload: createResult.data,
     idempotencyKey: `task-created-${createdTask.id}`,
   };
-  await taskCreateStream.handler(createdEvent);
+  await dispatchStream("tasks", "task_create", createdEvent, {
+    correlationId: createCtx.correlationId,
+  });
   console.log("2. Stream: task.created event processed → notification sent");
 
   // Step 3: Complete the task
   const completeCtx = createApiContext();
-  const taskCompleteApi = new backendRegistry.tasks.task_complete.api(completeCtx);
+  const taskCompleteApi = new backendRegistry._cases.tasks.task_complete.api(completeCtx);
   const completeResult = await taskCompleteApi.handler({ taskId: createdTask.id });
 
   if (!completeResult.success || !completeResult.data) {
@@ -86,19 +96,19 @@ async function runScenario(): Promise<void> {
   console.log(`3. Task completed: "${completedTask.title}" (status: ${completedTask.status})`);
 
   // Step 4: Simulate task.completed stream event
-  const streamCtx2 = createStreamContext();
-  const taskCompleteStream = new backendRegistry.tasks.task_complete.stream(streamCtx2);
   const completedEvent: StreamEvent<TaskCompleteOutput> = {
     type: "task.completed",
     payload: completeResult.data,
     idempotencyKey: `task-completed-${completedTask.id}`,
   };
-  await taskCompleteStream.handler(completedEvent);
+  await dispatchStream("tasks", "task_complete", completedEvent, {
+    correlationId: completeCtx.correlationId,
+  });
   console.log("4. Stream: task.completed event processed → notification sent");
 
   // Step 5: List all tasks
   const listCtx = createApiContext();
-  const taskListApi = new backendRegistry.tasks.task_list.api(listCtx);
+  const taskListApi = new backendRegistry._cases.tasks.task_list.api(listCtx);
   const listResult = await taskListApi.handler({});
 
   if (!listResult.success || !listResult.data) {
@@ -129,6 +139,7 @@ async function runScenario(): Promise<void> {
 
 async function runTests(): Promise<void> {
   console.log("========== RUNNING TESTS ==========\n");
+  resetDb();
 
   let passed = 0;
   let failed = 0;
@@ -147,7 +158,7 @@ async function runTests(): Promise<void> {
   ];
 
   // API tests (need ctx.db)
-  const apiCtx: ApiContext = { correlationId: "test", logger, db, cases: casesMap };
+  const apiCtx: ApiContext = createApiContext({ correlationId: "test" });
   const { TaskCreateApi } = await import("./cases/tasks/task_create/task_create.api.case");
   const { TaskCompleteApi } = await import("./cases/tasks/task_complete/task_complete.api.case");
   const { TaskListApi } = await import("./cases/tasks/task_list/task_list.api.case");
@@ -155,12 +166,13 @@ async function runTests(): Promise<void> {
 
   const apiTests = [
     { name: "task_create.api", fn: () => new TaskCreateApi(apiCtx).test() },
+    { name: "task_complete.api", fn: () => new TaskCompleteApi(apiCtx).test() },
     { name: "task_list.api", fn: () => new TaskListApi(apiCtx).test() },
     { name: "notification_send.api", fn: () => new NotificationSendApi(apiCtx).test() },
   ];
 
   // Stream tests
-  const streamCtx: StreamContext = { correlationId: "test", logger, db, cases: casesMap };
+  const streamCtx: StreamContext = createStreamContext({ correlationId: "test" });
   const { TaskCreateStream } = await import("./cases/tasks/task_create/task_create.stream.case");
   const { TaskCompleteStream } = await import("./cases/tasks/task_complete/task_complete.stream.case");
   const { NotificationSendStream } = await import("./cases/notifications/notification_send/notification_send.stream.case");
@@ -175,6 +187,7 @@ async function runTests(): Promise<void> {
   const uiCtx: UiContext = {
     correlationId: "test",
     logger,
+    packages: portalRegistry._packages,
     api: {
       async request(config: unknown): Promise<unknown> {
         const { method, url, body } = config as { method: string; url: string; body?: unknown };
@@ -203,7 +216,7 @@ async function runTests(): Promise<void> {
   ];
 
   // Agentic tests
-  const agenticCtx: AgenticContext = { correlationId: "test", logger, cases: casesMap };
+  const agenticCtx: AgenticContext = createAgenticContext({ correlationId: "test" });
   const { TaskCreateAgentic } = await import("./cases/tasks/task_create/task_create.agentic.case");
   const { TaskCompleteAgentic } = await import("./cases/tasks/task_complete/task_complete.agentic.case");
   const { TaskListAgentic } = await import("./cases/tasks/task_list/task_list.agentic.case");
@@ -245,7 +258,7 @@ async function runTests(): Promise<void> {
 async function main(): Promise<void> {
   // Boot
   await startBackend();
-  const chatbot = await startChatbot(casesMap);
+  const chatbot = await startChatbot();
   console.log(`Chatbot tools: ${chatbot.registeredCases.map((c) => c.definition.tool.name).join(", ")}`);
 
   // Scenario

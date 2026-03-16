@@ -1,12 +1,13 @@
 {
   "name": "app-protocol",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "AI-First Programming Protocol — specification and reference implementation",
   "private": true,
   "type": "module",
   "scripts": {
+    "validate:boundaries": "node scripts/validate-boundaries.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit"
+    "lint": "npm run typecheck && npm run validate:boundaries"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

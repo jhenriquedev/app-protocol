@@ -10,6 +10,7 @@ import {
   BaseStreamCase,
   StreamContext,
   StreamEvent,
+  AppStreamRecoveryPolicy,
 } from "../../../core/stream.case";
 import {
   Notification,
@@ -47,6 +48,22 @@ export class NotificationSendStream extends BaseStreamCase<
       topic: "notification.requested",
       handler: (event: StreamEvent<NotificationSendInput>) =>
         this.handler(event),
+    };
+  }
+
+  public recoveryPolicy(): AppStreamRecoveryPolicy {
+    return {
+      retry: {
+        maxAttempts: 3,
+        backoffMs: 2000,
+        multiplier: 2,
+        jitter: true,
+        retryableErrors: ["TIMEOUT", "SERVICE_UNAVAILABLE"],
+      },
+      deadLetter: {
+        destination: "notifications.notification_send.stream.dlq",
+        includeFailureMetadata: true,
+      },
     };
   }
 
@@ -99,13 +116,4 @@ export class NotificationSendStream extends BaseStreamCase<
     });
   }
 
-  protected async _retry(
-    event: StreamEvent<NotificationSendInput>,
-    error: Error
-  ): Promise<void> {
-    this.ctx.logger.error("Failed to deliver notification", {
-      channel: event.payload.channel,
-      error: error.message,
-    });
-  }
 }

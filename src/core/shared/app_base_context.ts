@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.3
+ * APP v0.0.4
  * core/shared/app_base_context.ts
  * ----------------------------------------------------------------------------
  * Contexto base compartilhado do APP.
@@ -10,7 +10,7 @@
  * Cada surface estende este contexto com suas necessidades específicas:
  * - ApiContext   → http, db, auth
  * - UiContext    → framework renderer, client router, store
- * - StreamContext → eventBus, queue adapters, retry
+ * - StreamContext → eventBus, queue adapters, recovery metadata
  * - AgenticContext → cases registry, MCP runtime
  *
  * O domain.case.ts não recebe contexto — ele é puro por definição.

@@ -1,31 +1,35 @@
 /* ========================================================================== *
  * Backend App — Bootstrap
  * --------------------------------------------------------------------------
- * Example host for a backend application.
+ * Host para aplicação backend.
  *
- * This file demonstrates how a host:
- * 1. Imports its registry (only API + Stream surfaces)
- * 2. Builds a shared cases map once at boot (no per-request instantiation)
- * 3. Creates per-request contexts with a single correlationId
- * 4. Mounts the runtime (routes, subscriptions)
+ * Consome o registry unificado e monta o contexto:
  *
- * The deployment model (monolith, lambda, edge) changes only HOW
- * this file consumes the registry — the Cases themselves are unchanged.
+ * 1. registry._cases     → ctx.cases   (mapa de Cases para _composition)
+ * 2. registry._providers → ctx.cache, ctx.httpClient (contratos de core/)
+ * 3. registry._packages  → ctx.packages (bibliotecas puras)
  *
- * Instanciação:
- * - Cases são instanciados uma vez no boot com um contexto de bootstrap.
- * - O mapa de cases é construído em duas fases (create → populate)
- *   para evitar recursão e garantir que ctx.cases esteja completo
- *   quando qualquer Case acessar _composition.
- * - Em cada request, o host cria um contexto fresco com correlationId
- *   único e o mesmo mapa de cases pré-construído.
+ * O Case nunca sabe de onde veio a implementação.
+ * Consome tudo via ctx e contratos de core/.
  * ========================================================================== */
 
 import { ApiContext } from "../../core/api.case";
-import { StreamContext } from "../../core/stream.case";
+import {
+  AppStreamRecoveryPolicy,
+  computeStreamRetryDelayMs,
+  createStreamFailureEnvelope,
+  isStreamErrorRetryable,
+  StreamContext,
+  StreamEvent,
+  validateStreamRecoveryPolicy,
+  validateStreamRuntimeCompatibility,
+} from "../../core/stream.case";
 import { AppLogger } from "../../core/shared/app_base_context";
 import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
-import { registry } from "./registry";
+import {
+  createRegistry,
+  type BackendConfig,
+} from "./registry";
 
 /* --------------------------------------------------------------------------
  * Logger (minimal example)
@@ -46,34 +50,54 @@ function generateId(): string {
   return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
 
+function sleep(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /* --------------------------------------------------------------------------
- * Boot — build cases map once
+ * Bootstrap
  * --------------------------------------------------------------------------
- * Fase 1: cria o container vazio e instancia cada Case com um contexto
- *         de bootstrap que aponta para o container compartilhado.
- * Fase 2: quando o loop termina, o container está completo.
- *         Qualquer chamada futura a _composition via ctx.cases
- *         encontra todos os Cases disponíveis.
- *
- * Não há recursão: o contexto de bootstrap é criado inline,
- * e o container é preenchido incrementalmente no mesmo loop.
+ * 1. Cria o registry (configura providers, registra cases e packages)
+ * 2. Builda o mapa de Cases (boot-time, uma vez)
+ * 3. Cria contextos por request usando os três slots do registry
  * ------------------------------------------------------------------------ */
 
 type CasesMap = Record<string, Record<string, Record<string, unknown>>>;
 
-function buildCasesMap(): CasesMap {
-  const cases: CasesMap = {};
+type StreamSurfaceInstance = {
+  handler(event: StreamEvent): Promise<void>;
+  subscribe?(): unknown;
+  recoveryPolicy?(): AppStreamRecoveryPolicy;
+};
 
-  // Contexto de bootstrap compartilhado — todos os Cases de composição
-  // referenciam o mesmo objeto, que é populado incrementalmente.
+export function bootstrap(config: BackendConfig) {
+  const registry = createRegistry(config);
+  const streamRuntime = registry._providers.streamRuntime;
+
+  /* ........................................................................
+   * Build cases map (boot-time)
+   * ......................................................................
+   * Fase 1: cria container vazio e instancia cada Case com contexto de boot.
+   * Fase 2: quando o loop termina, o container está completo.
+   *         _composition via ctx.cases encontra todos os Cases disponíveis.
+   * ...................................................................... */
+
+  const casesMap: CasesMap = {};
+
   const bootCtx: ApiContext = {
     correlationId: "boot",
     logger,
-    cases,
+    cases: casesMap,
+    // _providers → propriedades diretas do contexto
+    cache: registry._providers.cache,
+    httpClient: registry._providers.httpClient,
+    // _packages → ctx.packages
+    packages: registry._packages,
   };
 
-  for (const [domain, domainCases] of Object.entries(registry)) {
-    cases[domain] = {};
+  for (const [domain, domainCases] of Object.entries(registry._cases)) {
+    casesMap[domain] = {};
     for (const [caseName, _surfaces] of Object.entries(domainCases)) {
       const surfaces = _surfaces as AppCaseSurfaces;
       const entry: Record<string, unknown> = {};
@@ -83,96 +107,200 @@ function buildCasesMap(): CasesMap {
       }
 
       if (surfaces.stream) {
-        const streamCtx: StreamContext = { correlationId: "boot", logger, cases };
-        entry.stream = new surfaces.stream(streamCtx);
+        const streamCtx: StreamContext = {
+          correlationId: "boot",
+          logger,
+          cases: casesMap,
+          cache: registry._providers.cache,
+          packages: registry._packages,
+        };
+        const instance = new surfaces.stream(streamCtx) as StreamSurfaceInstance;
+        const source = `${domain}/${caseName}/stream`;
+        const policy = instance.recoveryPolicy?.();
+        validateStreamRecoveryPolicy(source, policy);
+        validateStreamRuntimeCompatibility(source, policy, streamRuntime);
+        entry.stream = instance;
       }
 
-      cases[domain][caseName] = entry;
+      casesMap[domain][caseName] = entry;
     }
   }
 
-  return cases;
-}
+  /* ........................................................................
+   * Request context factories
+   * ......................................................................
+   * Cada request recebe contexto fresco com:
+   * - correlationId único
+   * - cases: mapa pré-construído no boot (compartilhado)
+   * - providers: instâncias do registry (cache, httpClient)
+   * - packages: bibliotecas puras do registry
+   * ...................................................................... */
 
-// Instancia uma vez no boot do módulo
-const casesMap = buildCasesMap();
+  function createApiContext(parent?: Partial<ApiContext>): ApiContext {
+    return {
+      correlationId: parent?.correlationId ?? generateId(),
+      executionId: generateId(),
+      tenantId: parent?.tenantId,
+      userId: parent?.userId,
+      config: parent?.config,
+      logger,
+      // _cases → ctx.cases
+      cases: casesMap,
+      // _providers → propriedades diretas do ctx (contratos de core/)
+      cache: registry._providers.cache,
+      httpClient: registry._providers.httpClient,
+      // _packages → ctx.packages
+      packages: registry._packages,
+    };
+  }
 
-/* --------------------------------------------------------------------------
- * Request context factories
- * --------------------------------------------------------------------------
- * Cada request recebe um contexto fresco com:
- * - correlationId único (rastreabilidade da operação)
- * - cases: o mapa pré-construído no boot (compartilhado, não recriado)
- *
- * Isso garante que:
- * - todas as chamadas dentro de uma operação compartilham o mesmo correlationId
- * - _composition resolve Cases já instanciados, sem recursão
- * ------------------------------------------------------------------------ */
+  function createStreamContext(parent?: Partial<StreamContext>): StreamContext {
+    return {
+      correlationId: parent?.correlationId ?? generateId(),
+      executionId: generateId(),
+      tenantId: parent?.tenantId,
+      userId: parent?.userId,
+      config: parent?.config,
+      logger,
+      cases: casesMap,
+      cache: registry._providers.cache,
+      packages: registry._packages,
+    };
+  }
 
-function createApiContext(): ApiContext {
-  return {
-    correlationId: generateId(),
-    logger,
-    cases: casesMap,
-  };
-}
+  async function dispatchStream<TEvent>(
+    domain: string,
+    caseName: string,
+    event: StreamEvent<TEvent>,
+    parent?: Partial<StreamContext>
+  ): Promise<void> {
+    const registeredCases = registry._cases as Record<
+      string,
+      Record<string, AppCaseSurfaces>
+    >;
+    const surfaces = registeredCases[domain]?.[caseName];
+    if (!surfaces?.stream) {
+      throw new Error(`No stream surface registered for ${domain}/${caseName}`);
+    }
 
-function createStreamContext(): StreamContext {
-  return {
-    correlationId: generateId(),
-    logger,
-    cases: casesMap,
-  };
-}
+    const source = `${domain}/${caseName}/stream`;
+    const correlationId = parent?.correlationId ?? generateId();
+    const firstAttemptAt = new Date().toISOString();
+    let attempts = 0;
 
-/* --------------------------------------------------------------------------
- * Monolith bootstrap
- * --------------------------------------------------------------------------
- * Iterates the registry, instantiates each Case, collects routers.
- * In a real project this would use Hono, Express, Fastify, etc.
- * ------------------------------------------------------------------------ */
+    while (true) {
+      attempts += 1;
+      const ctx = createStreamContext({
+        ...parent,
+        correlationId,
+      });
 
-async function startMonolith(): Promise<void> {
-  const routes: unknown[] = [];
-  const subscriptions: unknown[] = [];
+      const instance = new surfaces.stream(ctx) as StreamSurfaceInstance;
+      const policy = instance.recoveryPolicy?.();
+      validateStreamRecoveryPolicy(source, policy);
+      validateStreamRuntimeCompatibility(source, policy, streamRuntime);
 
-  for (const [domain, domainCases] of Object.entries(registry)) {
-    for (const [caseName, _surfaces] of Object.entries(domainCases)) {
-      const surfaces = _surfaces as AppCaseSurfaces;
-      // Mount API surfaces
-      if (surfaces.api) {
-        const ctx = createApiContext();
-        const instance = new surfaces.api(ctx) as {
-          router?(): unknown;
-        };
+      try {
+        await instance.handler(event as StreamEvent);
+        return;
+      } catch (error) {
+        const retry = policy?.retry;
+        const canRetry =
+          !!retry &&
+          attempts < retry.maxAttempts &&
+          isStreamErrorRetryable(error, retry.retryableErrors);
 
-        if (instance.router) {
-          const route = instance.router();
-          routes.push(route);
-          logger.info(`Mounted API: ${domain}/${caseName}`, { route });
+        if (canRetry) {
+          const delayMs = computeStreamRetryDelayMs(retry, attempts);
+          logger.warn(`${source}: retry scheduled`, {
+            attempts,
+            delayMs,
+            correlationId,
+          });
+          await sleep(delayMs);
+          continue;
         }
-      }
 
-      // Mount Stream surfaces
-      if (surfaces.stream) {
-        const ctx = createStreamContext();
-        const instance = new surfaces.stream(ctx) as {
-          subscribe?(): unknown;
-        };
-
-        if (instance.subscribe) {
-          const sub = instance.subscribe();
-          subscriptions.push(sub);
-          logger.info(`Mounted Stream: ${domain}/${caseName}`, { sub });
+        if (policy?.deadLetter) {
+          const binding = streamRuntime.deadLetters?.[policy.deadLetter.destination];
+          if (binding) {
+            await binding.publish(
+              createStreamFailureEnvelope(
+                `${domain}/${caseName}`,
+                event,
+                error,
+                attempts,
+                correlationId,
+                firstAttemptAt,
+                new Date().toISOString()
+              )
+            );
+          }
         }
+
+        throw error;
       }
     }
   }
 
-  logger.info("Backend started", {
-    routes: routes.length,
-    subscriptions: subscriptions.length,
-  });
-}
+  /* ........................................................................
+   * Monolith startup
+   * ...................................................................... */
 
-export { registry, createApiContext, createStreamContext };
+  async function start(): Promise<void> {
+    const routes: unknown[] = [];
+    const subscriptions: unknown[] = [];
+
+    for (const [domain, domainCases] of Object.entries(registry._cases)) {
+      for (const [caseName, _surfaces] of Object.entries(domainCases)) {
+        const surfaces = _surfaces as AppCaseSurfaces;
+
+        if (surfaces.api) {
+          const ctx = createApiContext();
+          const instance = new surfaces.api(ctx) as { router?(): unknown };
+          if (instance.router) {
+            routes.push(instance.router());
+            logger.info(`Mounted API: ${domain}/${caseName}`);
+          }
+        }
+
+        if (surfaces.stream) {
+          const ctx = createStreamContext();
+          const instance = new surfaces.stream(ctx) as StreamSurfaceInstance;
+
+          // Protocol-level validation happens here.
+          // Runtime-specific compatibility (DLQ bindings, jitter support,
+          // attempt limits) must still be enforced by the app host.
+          validateStreamRecoveryPolicy(
+            `${domain}/${caseName}/stream`,
+            instance.recoveryPolicy?.()
+          );
+          validateStreamRuntimeCompatibility(
+            `${domain}/${caseName}/stream`,
+            instance.recoveryPolicy?.(),
+            streamRuntime
+          );
+
+          if (instance.subscribe) {
+            subscriptions.push(instance.subscribe());
+            logger.info(`Mounted Stream: ${domain}/${caseName}`);
+          }
+        }
+      }
+    }
+
+    logger.info("Backend started", {
+      routes: routes.length,
+      subscriptions: subscriptions.length,
+    });
+  }
+
+  return {
+    registry,
+    casesMap,
+    createApiContext,
+    createStreamContext,
+    dispatchStream,
+    start,
+  };
+}

@@ -101,6 +101,40 @@ A typical capability should be understandable by reading a **small number of fil
 
 This property makes APP particularly suitable for **AI-assisted development**.
 
+## Why Code Generation Needs Architectural Constraints
+
+Code generation amplifies both speed and entropy.
+
+When a codebase has weak ownership, hidden runtime coupling, or scattered execution paths, generated code tends to:
+
+- duplicate behavior
+- place logic in the wrong layer
+- create accidental coupling
+- introduce parallel implementations of the same capability
+
+APP exists in part to reduce that entropy. Its value is not only stylistic consistency; it is the reduction of ambiguity during generation, review, and maintenance.
+
+That is why APP prefers:
+
+- explicit capability ownership
+- explicit surfaces
+- explicit host composition
+- explicit contracts for tooling and runtime mediation
+
+## APP as a Native Architectural Model
+
+APP should be read as its own architectural model, not as a loose remix of older ideas.
+
+Its center of gravity is different:
+
+- the primary unit is the capability (`Case`)
+- the protocol grammar lives in `core/`
+- runtime assembly lives in `apps/`
+- shared project code lives in `packages/`
+- structural discoverability is treated as an architectural concern
+
+This is a direct response to a software world where humans and AI generate, inspect, and evolve code together.
+
 ## Agent-Operable Systems
 
 APP introduces the idea that software should not only be executable by machines and understandable by humans, but also **operable by agents**.
@@ -168,6 +202,28 @@ Instead, it focuses on:
 If a rule makes the system harder to work with, it should be reconsidered.
 
 The protocol should evolve with experience.
+
+## Relationship to Established Architectural Ideas
+
+APP overlaps with several familiar architectural traditions, but it is not derived from any of them as a normative source.
+
+Examples of useful parallels:
+
+- `Capability Cohesion` resembles parts of SRP
+- host-owned runtime assembly resembles Composition Root and dependency injection
+- `core/` contracts plus host bindings resemble parts of DIP and ports/adapters
+- pure `domain.case.ts` overlaps with ideas from DDD and functional-core thinking
+
+These parallels help experienced developers orient themselves.
+
+But APP is trying to solve a newer problem set:
+
+- low-context code generation
+- AI-assisted navigation
+- explicit capability discovery
+- predictable cross-runtime materialization of the same capability
+
+That is why APP names and freezes its own properties in protocol terms instead of delegating authority to older labels.
 
 ## The Long-Term Vision
 

@@ -4,13 +4,31 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
-- Repository foundation for public GitHub publication
-- Governance, contribution, RFC, and CI scaffolding
-- Working draft promoted to `spec.md`
-- Documentation consistency pass across README, spec, and process docs
-- English-first policy documented for active materials
-- Portuguese backup copies preserved under `i18n/pt-br`
-- `examples/typescript/` standalone example (in progress)
+- No unreleased changes yet.
+
+## v0.0.4
+
+### Added
+
+- `v0.0.4` release snapshot under [`versions/`](./versions)
+- Initial static boundary validator via `npm run validate:boundaries`
+- Unified registry slots across illustrative hosts (`_cases`, `_providers`, `_packages`)
+- Host-level stream recovery compatibility checks and dead-letter bindings in `src/` and `examples/typescript/`
+- Stream dispatch wrapper in the TypeScript example so scenario execution goes through the app host instead of calling stream handlers directly
+
+### Changed
+
+- Root and example package versions advanced to `0.0.4`
+- README and spec snapshot alignment updated to `v0.0.4`
+- Open Work synchronized with completed documentation, `packages/`, chatbot-host, and stream-recovery items
+- Active documentation no longer frames APP as a library-style deliverable; APP remains documented as a protocol
+
+### Fixed
+
+- Removed remaining legacy retry-slot references from active illustrative hosts
+- Removed stale MCP integration blocker wording from active canonical materials
+- Aligned `src/apps/chatbot/registry.ts` and `src/apps/lambdas/registry.ts` with the unified registry contract
+- Updated the TypeScript example chatbot host metadata to `0.0.4`
 
 ## v0.0.3
 
@@ -37,7 +55,7 @@ All notable changes to this project should be documented in this file.
 - `BaseAgenticCase.validateDefinition()` with structural invariant checks (discovery, tool, prompt, mcp)
 - `user_register.domain.case.ts` examples (3 scenarios: valid, invalid email, short password)
 - `AppSchema` formally documented as compatible subset of JSON Schema Draft 2020-12 (spec §4, JSDoc)
-- Non-Goals expanded: SDK, CLI, and scaffold explicitly excluded from protocol scope (spec §9)
+- Non-Goals expanded: importable runtime library, CLI, and scaffold explicitly excluded from protocol scope (spec §9)
 - Open Work (spec §11) rewritten with versioned roadmap (v0.0.4, v0.0.4/v0.0.5, v0.0.5+)
 
 ### Changed

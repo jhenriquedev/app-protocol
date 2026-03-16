@@ -12,9 +12,11 @@ Conventions:
 
 Current snapshots:
 
+- [`v0.0.4`](./v0.0.4.md)
 - [`v0.0.1`](./v0.0.1.md)
 - [`v0.0.2`](./v0.0.2.md)
 
 Note:
 
+- `v0.0.4` is the first English snapshot published under the current documentation policy.
 - `v0.0.1` and `v0.0.2` are legacy Portuguese snapshots that predate the English-first documentation policy.

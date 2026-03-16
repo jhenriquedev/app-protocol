@@ -4,8 +4,8 @@ Status: Working draft
 
 Current snapshot alignment:
 
-- latest released version: [`v0.0.2`](./versions/v0.0.2.md)
-- previous version: [`v0.0.1`](./versions/v0.0.1.md)
+- latest released version: [`v0.0.4`](./versions/v0.0.4.md)
+- earlier released snapshots: [`v0.0.2`](./versions/v0.0.2.md), [`v0.0.1`](./versions/v0.0.1.md)
 
 This document is the living draft of the AI-First Programming Protocol. Released versions are copied into [`versions/`](./versions).
 
@@ -27,6 +27,35 @@ The protocol optimizes for:
 - minimal hidden coupling
 - agent-ready execution contracts
 
+### 1.1 Architectural Properties Induced by APP
+
+APP defines its own architectural properties. It does not normatively adopt SOLID, DDD, Clean Architecture, or any other prior doctrine as its source of authority.
+
+External comparisons may be useful for explanation, but the normative source of truth remains this protocol.
+
+The protocol induces the following architectural properties:
+
+- **Capability Cohesion** — a `Case` MUST represent a single capability and MUST NOT mix unrelated capabilities in the same semantic unit.
+- **Semantic Ownership** — each `Case` MUST own the semantics, contracts, and surfaces of its capability inside its own folder.
+- **Explicit Surface Contracts** — every execution or interaction boundary MUST be expressed through canonical surfaces (`domain`, `api`, `ui`, `stream`, `agentic`) instead of ad hoc file conventions.
+- **Pure Domain Core** — `domain.case.ts` MUST remain free of I/O, persistence, transport concerns, and arbitrary side effects.
+- **Protocol Dependency Inversion** — Cases depend on `core/` contracts; runtime implementations are selected by host apps.
+- **Host-Owned Composition Root** — `apps/` own registry assembly, provider binding, package exposure, runtime configuration, and deployment concerns.
+- **Explicit Orchestration Boundary** — cross-case composition MUST happen through explicit capability boundaries resolved by the app runtime (`ctx.cases`), never through direct imports between Case folders.
+- **Declarative Operational Contracts** — operational behavior that must be legible to tooling or hosts SHOULD be declared as metadata contracts when the protocol provides such a slot (`router()`, `subscribe()`, `recoveryPolicy()`, `tool()`, `mcp()`).
+- **Structural Toolability** — shared shapes used by hosts, tooling, and agents (`AppSchema`, `AppResult`, `AppError`, `StreamFailureEnvelope`, registry contracts) MUST remain structurally explicit and stable.
+- **Low-Context Navigability** — a capability SHOULD be understandable with minimal navigation; the protocol favors local reasoning over layer scattering.
+
+### 1.2 Conformance Interpretation
+
+APP architectural conformance operates at three levels:
+
+- **Static conformance** — rules that can be checked from filesystem structure, imports, and declarations
+- **Review-level conformance** — rules that require architectural judgment, such as capability cohesion
+- **Runtime conformance** — rules that must be validated by the host app at bootstrap or execution time
+
+Supporting guidance may expand these levels in project documentation and tooling, but no supporting document overrides the normative statements in this spec.
+
 ## 2. Canonical Unit: Case
 
 A `Case` is the canonical unit of organization in APP.
@@ -47,24 +76,32 @@ Examples:
 
 ## 3. Canonical Structure
 
-An APP project has three canonical layers:
+An APP project has four canonical layers:
 
+- `packages/` — shared project code resolved by hosts and exposed to contextual Cases through `ctx.packages`
 - `core/` — protocol contracts (base classes, shared types, infrastructure interfaces, host contracts)
 - `cases/` — capabilities (the shared source of truth for all business logic)
-- `apps/` — hosts (each app consumes only the Cases and surfaces it needs)
+- `apps/` — hosts (each app consumes only the Cases and surfaces it needs and acts as the composition root)
 
 ### 3.1 Layer responsibilities
+
+`packages/` is the shared project code layer. It contains project-specific libraries, utilities, design systems, wrappers, and reusable implementation modules. In APP v1, Cases do not import `packages/` directly. Contextual surfaces consume app-selected packages through `ctx.packages`, and the host app decides what is exposed there.
 
 `core/` is the protocol layer. It contains base classes for all surfaces (`domain.case.ts`, `api.case.ts`, `ui.case.ts`, `stream.case.ts`, `agentic.case.ts`) and shared contracts in `core/shared/` (contexts, infrastructure interfaces, structural types, host contracts). No business logic lives here. Every project uses the same contracts; implementations live in `cases/`.
 
 `cases/` is the capability layer. It is shared across all apps. Cases are organized by domain folder (`users/`) and each Case has its own folder (`user_validate/`, `user_register/`). No app owns Cases — apps consume them.
 
-`apps/` is the host layer. Each app is a separate runtime — a backend server, a frontend portal, a set of lambda functions. Each app has its own `app.ts` (bootstrap) and `registry.ts` (which Cases and surfaces to load). The protocol defines that `apps/` exists but does not dictate the internal structure of each app.
+`apps/` is the host layer. Each app is a separate runtime — a backend server, a frontend portal, a set of lambda functions. Each app has its own `app.ts` (bootstrap) and `registry.ts` (which Cases, providers, and packages to load). The protocol defines that `apps/` exists but does not dictate the internal structure of each app.
 
 ### 3.2 Directory layout
 
 ```text
 project/
+├── packages/
+│   ├── design-system/
+│   ├── date-utils/
+│   └── http-fetch/
+│
 ├── core/
 │   ├── domain.case.ts
 │   ├── api.case.ts
@@ -108,9 +145,83 @@ project/
 
 Not every Case needs every surface. A Case implements only the surfaces relevant to its capability.
 
-Each app in `apps/` is a host — it has its own `registry.ts` that imports only the specific Case surfaces it needs. The backend imports `.api.case` and `.stream.case` files. The portal imports `.ui.case` files. An agentic host would import `.agentic.case` files. No app is forced to load surfaces it does not use.
+Each app in `apps/` is a host — it has its own `registry.ts` that imports only the specific resources it needs. `_cases` imports Case surfaces, `_providers` binds runtime implementations, and `_packages` exposes shared libraries through context. No app is forced to load surfaces or packages it does not use.
 
 > A centralized `cases/cases.ts` is not required at runtime. A project may optionally maintain one for tooling, documentation, or agent discovery, but no app imports it. Similarly, Case manifest files (`<case>.ts`) and domain aggregators (`<domain>.ts`) are optional convenience — the protocol does not require them.
+
+### 3.3 Canonical Architectural Diagrams
+
+The following diagrams are canonical visual summaries of APP. They illustrate the protocol's own architectural grammar and are normative at the semantic level.
+
+Mermaid source is the canonical textual representation. Any stylized renderings in `docs/` are editorial presentations of the same semantics and do not override the protocol.
+
+#### Four Canonical Layers
+
+```mermaid
+flowchart TB
+  packages[packages/]:::pkg
+  core[core/]:::core
+  cases[cases/]:::cases
+  apps[apps/]:::apps
+
+  cases -->|imports contracts from| core
+  apps -->|registers and instantiates| cases
+  apps -->|binds runtime to| core
+  apps -->|selects and exposes| packages
+  apps -.->|injects via context, not direct import| cases
+
+  classDef pkg fill:#efe7d2,stroke:#8a6d1d,color:#2f2508;
+  classDef core fill:#dbe9ff,stroke:#2b6cb0,color:#0b2545;
+  classDef cases fill:#dff3e4,stroke:#2f855a,color:#0f2f1f;
+  classDef apps fill:#ffe2d5,stroke:#c05621,color:#4a1f10;
+```
+
+#### A Case as a Capability Unit
+
+```mermaid
+flowchart LR
+  subgraph Case["Case Folder"]
+    domain["domain.case.ts"]:::domain
+    api["api.case.ts"]:::surface
+    ui["ui.case.ts"]:::surface
+    stream["stream.case.ts"]:::surface
+    agentic["agentic.case.ts"]:::surface
+  end
+
+  domain -->|semantic source of truth| api
+  domain -->|semantic source of truth| ui
+  domain -->|semantic source of truth| stream
+  domain -->|optional derivation| agentic
+
+  classDef domain fill:#fff4cc,stroke:#b7791f,color:#4a3410;
+  classDef surface fill:#edf2f7,stroke:#4a5568,color:#1a202c;
+```
+
+#### App Registry and Context Materialization
+
+```mermaid
+flowchart LR
+  subgraph Registry["apps/<app>/registry.ts"]
+    casesSlot["_cases"]:::cases
+    providersSlot["_providers"]:::core
+    packagesSlot["_packages"]:::pkg
+  end
+
+  bootstrap["apps/<app>/app.ts"]:::apps
+  contexts["Per-surface ctx"]:::core
+  casesRuntime["Case instances"]:::cases
+
+  casesSlot --> bootstrap
+  providersSlot --> bootstrap
+  packagesSlot --> bootstrap
+  bootstrap --> contexts
+  contexts --> casesRuntime
+
+  classDef pkg fill:#efe7d2,stroke:#8a6d1d,color:#2f2508;
+  classDef core fill:#dbe9ff,stroke:#2b6cb0,color:#0b2545;
+  classDef cases fill:#dff3e4,stroke:#2f855a,color:#0f2f1f;
+  classDef apps fill:#ffe2d5,stroke:#c05621,color:#4a1f10;
+```
 
 ## 4. Core Types
 
@@ -119,7 +230,7 @@ APP defines the following shared types in `core/`:
 - `Dict<T>` — generic key/value map (`Record<string, T>`)
 - `AppSchema` — structural schema type. `AppSchema` is a **compatible subset of JSON Schema (Draft 2020-12)**. Every `AppSchema` value is a valid JSON Schema document — the keywords `type`, `description`, `properties`, `items`, `required`, `enum`, and `additionalProperties` are all standard JSON Schema keywords used with their standard semantics. However, not every JSON Schema is a valid `AppSchema`: the protocol recognizes only the keywords listed above. Additional JSON Schema keywords (e.g., `format`, `minimum`, `pattern`, `oneOf`, `$ref`) are permitted in host extensions but are not guaranteed to be understood by canonical APP tooling. This controlled subset keeps the protocol simple, avoids coupling to a JSON Schema runtime, and ensures that MCP tool schemas can be derived from `AppSchema` without transformation.
 - `AppBaseContext` — shared base context for all surfaces. Contains only genuinely cross-cutting concerns: `correlationId` (required — the identity of the context, analogous to OpenTelemetry's traceId), `executionId?` (step-level identity within an operation), `tenantId?`, `userId?`, `logger` (required), `config?`. Defined in `core/shared/app_base_context.ts`.
-- Per-surface contexts extend `AppBaseContext` with surface-specific infrastructure: `ApiContext` (httpClient, db, auth, storage, cache, cases), `UiContext` (renderer, router, store, api), `StreamContext` (eventBus, queue, db, cache, cases), `AgenticContext` (cases, mcp). `BaseDomainCase` receives no context (pure by definition). Each surface defines its own canonical grammar — see Section 5.
+- Per-surface contexts extend `AppBaseContext` with surface-specific infrastructure: `ApiContext` (httpClient, db, auth, storage, cache, cases, packages), `UiContext` (renderer, router, store, api, packages), `StreamContext` (eventBus, queue, db, cache, cases, packages), `AgenticContext` (cases, packages, mcp). `BaseDomainCase` receives no context (pure by definition). Each surface defines its own canonical grammar — see Section 5.
 - `ValueObject<TProps>` — base class for immutable, value-comparable, serializable domain objects. Uses `Object.freeze` internally.
 - `DomainExample<TInput, TOutput>` — typed semantic example for domain surfaces.
 
@@ -147,6 +258,7 @@ APP defines canonical data shapes in `core/shared/app_structural_contracts.ts` t
 - `AppError` — `code: string`, `message: string`, `details?: unknown` (structured error interface)
 - `AppCaseError` — throwable error class that extends `Error` and implements `AppError`. Surfaces should throw `AppCaseError` for business errors (validation, authorization, composition failures). Common codes: `VALIDATION_FAILED`, `UNAUTHORIZED`, `NOT_FOUND`, `CONFLICT`, `COMPOSITION_FAILED`, `INTERNAL`
 - `AppResult<T>` — `success: boolean`, `data?: T`, `error?: AppError` (canonical result wrapper)
+- `StreamFailureEnvelope<T>` — canonical dead-letter failure shape for stream runtimes (`caseName`, `surface`, `originalEvent`, `lastError`, `attempts`, timestamps, `correlationId`)
 - `AppPaginationParams` — `page?: number`, `limit?: number`, `cursor?: string` (pagination input; supports both offset and cursor strategies)
 - `AppPaginatedResult<T>` — `items: T[]`, `total?`, `page?`, `limit?`, `cursor?`, `hasMore?` (paginated result wrapper)
 
@@ -157,10 +269,16 @@ Error handling pattern: surfaces throw `AppCaseError` for business errors. The `
 APP defines minimal host contracts in `core/shared/app_host_contracts.ts` for registry and typing:
 
 - `AppCaseSurfaces` — describes the surfaces available for a Case within a registry. Each key is a canonical surface name (`domain`, `api`, `ui`, `stream`, `agentic`) and the value is a constructor. Only surfaces the app needs are present.
-- `AppRegistry` — the shape of a per-app registry: `Dict<Dict<AppCaseSurfaces>>` (nested map: `domain → case → surfaces`). This same shape feeds `ctx.cases` for cross-case composition.
-- `InferCasesMap` — utility type that derives an instance map from a registry. Converts constructors to their instance types, preserving the literal key structure for full autocomplete in `_composition`.
+- `AppRegistry` — the unified per-app registry interface with three canonical slots: `_cases`, `_providers`, `_packages`.
+- `InferCasesMap` — utility type that derives an instance map from `registry._cases`. Converts constructors to their instance types, preserving the literal key structure for full autocomplete in `_composition`.
 
-> Registries export constructors (classes), not instances. The host instantiates on demand, passing the appropriate context. This is compatible with all deployment models.
+Normative slot semantics:
+
+- `_cases` contains only Case surfaces imported from `cases/`.
+- `_providers` contains host-mounted providers or adapters that are injected into direct context properties.
+- `_packages` contains app-selected shared libraries from `packages/`, exposed to contextual surfaces via `ctx.packages`.
+
+> Registries export constructors for `_cases`, not instances. The host instantiates on demand, passing the appropriate context. This is compatible with all deployment models.
 
 ## 5. Surfaces
 
@@ -249,7 +367,7 @@ Base contract: `BaseApiCase<TInput, TOutput>`
 Required members:
 
 - `handler(input)` — capability entrypoint, returns `ApiResponse<TOutput>`
-- `test(input)` — internal test of the capability (mandatory)
+- `test()` — internal test of the capability (mandatory)
 
 Optional members:
 
@@ -316,7 +434,7 @@ Purpose:
 
 - event consumption
 - publication
-- retries
+- declarative recovery
 - idempotency
 - pipelines
 
@@ -327,11 +445,12 @@ Base contract: `BaseStreamCase<TInput, TOutput>`
 Required members:
 
 - `handler(event)` — capability entrypoint, receives `StreamEvent<TInput>`
-- `test(event)` — internal test of the capability (mandatory)
+- `test()` — internal test of the capability (mandatory)
 
 Optional members:
 
 - `subscribe()` — transport bindings (topic subscriptions, queue listeners)
+- `recoveryPolicy()` — declarative recovery metadata (`AppStreamRecoveryPolicy`)
 
 Protected hooks:
 
@@ -340,11 +459,87 @@ Protected hooks:
 - `_service(input)` — atomic business logic (Case atômico)
 - `_composition(event)` — cross-case orchestration via `ctx.cases` (Case composto)
 - `_publish(output)` — result publication
-- `_retry(event, error)` — retry policy
 
 > `handler` is the capability entrypoint for stream — it receives business events and processes them. Transport bindings (topic subscriptions, queue listeners) live in `subscribe()` or in the adapter/host.
 >
 > `_service` and `_composition` are mutually exclusive as the primary execution slot. The atomic pipeline flows: `_consume → _service → _publish`. When `_composition` is defined, the pipeline delegates to it directly.
+>
+> `recoveryPolicy()` is a contract declaration, not an implementation hook. It expresses the intended recovery semantics of the capability; the host app validates and materializes those semantics in the chosen runtime.
+>
+> The default pipeline in `BaseStreamCase` must not implement production-grade retry, delay scheduling, or dead-letter delivery. When recovery is declared, failure handling belongs to the host/runtime.
+
+Declarative recovery contract:
+
+```ts
+export interface AppStreamRecoveryPolicy {
+  retry?: {
+    maxAttempts: number;
+    backoffMs?: number;
+    multiplier?: number;
+    maxBackoffMs?: number;
+    jitter?: boolean;
+    retryableErrors?: string[];
+  };
+
+  deadLetter?: {
+    destination: string;
+    includeFailureMetadata?: boolean;
+  };
+}
+```
+
+Dead-letter structural contract:
+
+```ts
+export interface StreamFailureEnvelope<T = unknown> {
+  caseName: string;
+  surface: "stream";
+  originalEvent: StreamEvent<T>;
+  lastError: { message: string; code?: string; stack?: string };
+  attempts: number;
+  firstAttemptAt: string;
+  lastAttemptAt: string;
+  correlationId: string;
+}
+```
+
+Normative recovery rules:
+
+- `BaseStreamCase` MAY declare `recoveryPolicy(): AppStreamRecoveryPolicy`.
+- `recoveryPolicy()` MUST return deterministic, serializable, side-effect-free data and MUST NOT depend on event payload.
+- `recoveryPolicy()` MUST NOT perform I/O and MUST NOT contain callbacks or runtime-bound closures.
+- `retry.maxAttempts` MUST mean the total number of execution attempts, including the first one. `maxAttempts: 1` means fail-fast.
+- `retryableErrors`, when declared, MUST contain logical, stable error codes. Hosts and apps MUST NOT decide retryability from free-form error messages.
+- When `retryableErrors` is declared, only matching extracted error codes MAY be treated as retryable. Errors without a matching code MUST be treated as non-retryable.
+- `deadLetter.destination` MUST be a logical identifier, not a vendor-specific infrastructure address.
+- Logical dead-letter destinations MUST be bound by the app host, not by the Case and not by `core/`.
+- If a Stream Case does not declare `recoveryPolicy()`, the protocol defines no recovery guarantee for that Case. Any retry, redelivery, or dead-letter behavior is implementation-defined unless declared elsewhere by the app/runtime.
+- If a Stream Case declares `recoveryPolicy()`, the declared recovery semantics become part of the Case contract.
+- The app, as composition root, MUST validate at bootstrap that its chosen runtime can honor the declared recovery semantics before registering the stream surface.
+- The runtime MAY translate the declared policy to platform-specific configuration, but it MUST NOT weaken or discard the declared semantics.
+- If the runtime cannot satisfy the declared semantics, the app MUST refuse to register that stream surface.
+- `StreamFailureEnvelope` is the minimum structural dead-letter shape when failure metadata is emitted.
+- Circuit breaker is outside the canonical `BaseStreamCase` contract in v1. Hosts, providers, or adapters may implement it separately.
+
+Recovery flow overview:
+
+```mermaid
+flowchart LR
+  broker["Broker / Event Source"]:::apps --> host["App Runtime"]:::apps
+  host --> handler["handler(event)"]:::surface
+  handler --> pipeline["pipeline"]:::surface
+  pipeline --> service["_service or _composition"]:::cases
+  service -->|success| done["ack / complete"]:::core
+  service -->|failure| policy{"recoveryPolicy()?"}:::core
+  policy -->|no| fail["runtime-defined failure path"]:::apps
+  policy -->|yes| runtime["runtime executes retry / dead-letter semantics"]:::apps
+  runtime --> done
+
+  classDef surface fill:#edf2f7,stroke:#4a5568,color:#1a202c;
+  classDef core fill:#dbe9ff,stroke:#2b6cb0,color:#0b2545;
+  classDef cases fill:#dff3e4,stroke:#2f855a,color:#0f2f1f;
+  classDef apps fill:#ffe2d5,stroke:#c05621,color:#4a1f10;
+```
 
 ### 5.5 Agentic Surface
 
@@ -469,7 +664,7 @@ Canonical internal slots per execution surface:
 
 Composition is permitted in execution surfaces: `api.case.ts` and `stream.case.ts`. Direct orchestration from `ui.case.ts` is discouraged. `domain.case.ts` remains isolated from cross-case orchestration. `agentic.case.ts` delegates execution to `tool.execute()` which points to the canonical surface — it does not carry `_service` or `_composition` slots.
 
-Per-surface contexts that support composition (`ApiContext`, `StreamContext`) expose `cases?: Dict` for registry-based capability resolution. `AgenticContext` also exposes `cases?: Dict` for tool resolution, but the agentic surface does not use canonical execution slots.
+Per-surface contexts that support composition (`ApiContext`, `StreamContext`) expose `cases?: Dict` for registry-based capability resolution. `AgenticContext` also exposes `cases?: Dict` for tool resolution, but the agentic surface does not use canonical execution slots. Contextual surfaces (`ApiContext`, `UiContext`, `StreamContext`, `AgenticContext`) may also expose `packages?: Dict`, populated by the host from `registry._packages`.
 
 ## 7. Apps and Registry
 
@@ -488,59 +683,71 @@ A project typically has multiple apps. Common examples: `backend` (server or API
 
 ### 7.2 Registry
 
-Each app has its own `registry.ts` that imports only the Case surfaces it needs. This is the runtime registry — the source of truth for what that app loads and exposes.
+Each app has its own `registry.ts` that acts as the runtime composition root declaration. The canonical shape is:
 
 ```ts
-// apps/backend/registry.ts — imports only API + Stream
-import { UserValidateApi } from "../../cases/users/user_validate/user_validate.api.case";
-import { UserRegisterApi } from "../../cases/users/user_register/user_register.api.case";
-import { UserRegisterStream } from "../../cases/users/user_register/user_register.stream.case";
+export function createRegistry(config) {
+  return {
+    _cases: {
+      users: {
+        user_validate: { api: UserValidateApi },
+        user_register: { api: UserRegisterApi, stream: UserRegisterStream },
+      },
+    },
 
-export const registry = {
-  users: {
-    user_validate: { api: UserValidateApi },
-    user_register: { api: UserRegisterApi, stream: UserRegisterStream },
-  },
-};
+    _providers: {
+      httpClient: new AxiosHttpAdapter(new AxiosClient(config.http)),
+    },
+
+    _packages: {
+      dateUtils: DateUtils,
+      designSystem: DesignSystem,
+    },
+  } as const;
+}
 ```
 
-```ts
-// apps/portal/registry.ts — imports only UI
-import { UserValidateUi } from "../../cases/users/user_validate/user_validate.ui.case";
-import { UserRegisterUi } from "../../cases/users/user_register/user_register.ui.case";
+Normative import rules for `registry.ts`:
 
-export const registry = {
-  users: {
-    user_validate: { ui: UserValidateUi },
-    user_register: { ui: UserRegisterUi },
-  },
-};
-```
+- `_cases` imports only from `cases/`
+- `_providers` is the only slot that binds runtime implementations to context properties
+- `_packages` imports only from `packages/`
 
-The registry exports constructors (classes), not instances. The host instantiates on demand, passing the appropriate context. This is compatible with all deployment models.
-
-The registry shape is a nested map: `domain → case → surface → constructor`. This same shape feeds `ctx.cases` for cross-case composition.
+The `_cases` shape remains `domain → case → surfaces`. This same shape feeds `ctx.cases` for cross-case composition.
 
 > Runtime registration belongs to each host app. No global `cases/cases.ts` is required for runtime. A project may optionally maintain a `cases/cases.ts` for tooling, documentation, or agent discovery, but no app imports it at runtime.
 >
 > This per-app design ensures zero cross-surface coupling: the backend never loads UI dependencies, the portal never loads API or Stream dependencies. Each app's import graph contains only what it needs.
+>
+> Runtime bindings for stream recovery also belong here. If a Stream Case declares a logical `deadLetter.destination`, the app host is responsible for mapping that logical identifier to the physical destination supported by its runtime.
 
-### 7.3 Context and `ctx.cases`
+### 7.3 Context, `ctx.cases`, and `ctx.packages`
 
-The host is responsible for creating per-surface contexts. When creating contexts for execution surfaces that support composition (`ApiContext`, `StreamContext`), the host populates `ctx.cases` from its own registry.
+The host is responsible for creating per-surface contexts. When creating contextual surfaces, the host maps the unified registry into the context:
 
 ```ts
-// The host builds ctx.cases from its registry
 function createApiContext(): ApiContext {
   return {
     correlationId: generateId(),
     logger,
-    cases: buildCasesFromRegistry(registry),
+    cases: buildCasesFromRegistry(registry._cases),
+    httpClient: registry._providers.httpClient,
+    packages: registry._packages,
   };
 }
 ```
 
-This means `ctx.cases` contains only the Cases and surfaces registered in that specific app. A backend's `ctx.cases` has API and Stream instances. A portal's `ctx.cases` has UI instances. Composition resolves only within the app's boundary.
+Normative rules:
+
+- `ctx.cases` is derived from `registry._cases`
+- direct context properties (`ctx.httpClient`, `ctx.cache`, etc.) are derived from `registry._providers`
+- `ctx.packages` is derived from `registry._packages`
+- `cases/` MUST NOT import `packages/` directly
+- contextual Case surfaces MUST consume shared project libraries through `ctx.packages`
+
+This means `ctx.cases` contains only the Cases and surfaces registered in that specific app, and `ctx.packages` contains only the packages that app chose to expose. A backend can expose API and Stream composition plus selected packages. A portal can expose UI cases plus a design system package. Composition resolves only within the app's boundary.
+
+`domain.case.ts` remains outside this runtime flow because it receives no context. Package consumption via context is a rule for contextual surfaces, not for pure domain code.
 
 ### 7.4 Deployment models
 
@@ -554,7 +761,7 @@ A single process loads all Cases from the registry, collects transport bindings 
 // apps/backend/app.ts — monolith
 import { registry } from "./registry";
 
-for (const [domain, cases] of Object.entries(registry)) {
+for (const [domain, cases] of Object.entries(registry._cases)) {
   for (const [caseName, surfaces] of Object.entries(cases)) {
     if (surfaces.api) {
       const ctx = createApiContext();
@@ -761,7 +968,7 @@ APP does not currently define:
 - a framework-specific implementation
 - a package manager model
 - a production-ready MCP server format
-- an SDK or importable library — APP is a protocol, not a framework. Base classes in `core/` are illustrative reference implementations, not runtime dependencies. Projects adopt the protocol by following the canonical structure, not by importing a package.
+- an importable runtime library — APP is a protocol, not a framework. Base classes in `core/` are illustrative reference implementations, not runtime dependencies. Projects adopt the protocol by following the canonical structure, not by importing a package.
 - a CLI or scaffold tool — Case generation is delegated to AI-powered tooling (skill `/app`, planned for v0.0.4+), which adapts to the project's language and context. Static templates cannot match this flexibility.
 - lifecycle hooks (`onInit`, `onDestroy`, etc.) — Case lifecycle is managed by the host, not by the protocol. Lambda hosts have no lifecycle; monolith hosts may implement lifecycle management as host-specific infrastructure. The protocol intentionally does not prescribe lifecycle contracts to avoid coupling Cases to a specific hosting model.
 
@@ -776,23 +983,30 @@ This distinction is useful because the philosophy may grow beyond the current sp
 
 ## 11. Open Work
 
-### v0.0.4 — Validation and Completeness
+### Closed in v0.0.4
 
-- Validate `apps/chatbot/` consuming agentic surfaces end-to-end with MCP SDK
-- Standalone example in `examples/typescript/`
-- Automated test runner for illustrative code (`test()` invocation per Case)
-- Document error recovery patterns for stream (DLQ, circuit breaker, retry)
-- Document cross-surface composition (API + Stream coordination, event emission)
-- Define `packages/` as fourth canonical layer (design system, adapters, utils, plugins)
+- ~~Standalone example in `examples/typescript/`~~ — Task Manager project with 4 Cases, 5 surfaces each, 3 app hosts, `run.ts` with 18 passing tests
+- ~~Automated test runner for illustrative code~~ — `examples/typescript/run.ts` boots all hosts, runs full scenario, invokes `test()` on all 18 surfaces
+- ~~Validate stream recovery conformance~~ — `recoveryPolicy()` declarative contract (Q10), `StreamFailureEnvelope` structural shape, bootstrap compatibility validation, host-level dead-letter binding, rejection, and failure-envelope emission are now illustrated in `src/` and `examples/typescript/`
+- ~~Document cross-surface composition~~ — covered by `_composition` (Q6) + `_publish`/`subscribe` (core). Saga/outbox patterns are host-level implementation, not protocol scope
+- ~~Define `packages/` layer~~ — four canonical layers `packages/ → core/ → cases/ → apps/` (Q9), `AppRegistry` with `_cases`, `_providers`, `_packages`, `ctx.packages` in all contexts, plus initial static boundary validation via `npm run validate:boundaries`
+- ~~Validate `apps/chatbot/` consuming agentic surfaces end-to-end~~ — chatbot hosts now register agentic surfaces and resolve canonical API execution through `ctx.cases` using the same registry contract as other apps
+- ~~Document APP-induced architectural properties~~ — canonical architectural properties, diagrams, and conformance levels are now formalized in `spec.md`, `docs/architectural-properties.md`, `docs/architecture.md`, and `docs/conformance.md`
 
-### v0.0.4/v0.0.5 — Skill `/app`
+### Open for v0.0.5
+
+- Strengthen static conformance tooling beyond the initial boundary validator (`validate:boundaries`) with deeper registry and import-graph checks
+- Add another non-TypeScript reference implementation to validate protocol portability
+
+### v0.0.5+ — Skill `/app`
 
 - AI-powered skill for APP development: conformance validation, Case scaffold, guided development cycle, refactoring — language-agnostic by design
 - Replaces traditional linter (infeasible across languages) and CLI scaffold (APP is protocol, not framework)
+- Can subsume and extend `packages/` dependency enforcement (import direction, registry slot validation, contextual package exposure)
 
-### v0.0.5+ — Operational Platform
+### v0.0.6+ — Operational Platform
 
 - APP project → MCP server adapter (automatic tool exposure from agentic registry)
 - Multi-language reference implementations (Python, Go, .NET) generated and maintained by skill `/app`
 - Migration guide for existing projects
-- Explicit documentation of architectural principles (SOLID, clean code, design patterns) that APP induces
+- Case-Oriented Software Manifesto: ontology, composition rules, evolution model, developer mental model

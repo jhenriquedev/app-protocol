@@ -24,6 +24,8 @@ Examples:
 - changes to dependency rules
 - schema changes
 - conformance rules
+- architectural properties
+- canonical diagrams or visual grammar
 - new registry behavior
 
 Substantive changes should start with an issue.
@@ -45,7 +47,7 @@ A release snapshots the current accepted spec into `versions/`.
 1. Open an issue for the problem or proposal.
 2. If the change affects protocol semantics, structure, schema, or governance, create an RFC in `rfcs/`.
 3. Update `spec.md`.
-4. Update supporting docs in `docs/`.
+4. Update supporting docs in `docs/` when the change affects philosophy, architecture, conformance, or visual explanation.
 5. If accepted and release-worthy, publish a new version snapshot in `versions/`.
 6. Update `CHANGELOG.md`.
 
@@ -54,6 +56,7 @@ A release snapshots the current accepted spec into `versions/`.
 - `spec.md` is the living draft.
 - `versions/` contains historical snapshots.
 - `docs/` explains the model but does not override the spec.
+- architectural explanations in `docs/` must remain aligned with the current working draft and must not introduce alternative semantics
 - `examples/` should demonstrate conformance once implementations exist.
 - `i18n/pt-br/` preserves native-language backup copies of Portuguese materials.
 
@@ -74,3 +77,4 @@ Planned process upgrades:
 - semantic versioning policy for the spec
 - conformance checklist for releases
 - automated validation of examples
+- stronger validation around architectural conformance and diagram drift

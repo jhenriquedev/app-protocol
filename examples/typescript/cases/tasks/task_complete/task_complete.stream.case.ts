@@ -10,6 +10,7 @@ import {
   BaseStreamCase,
   StreamContext,
   StreamEvent,
+  AppStreamRecoveryPolicy,
 } from "../../../core/stream.case";
 import { ApiResponse } from "../../../core/api.case";
 import { TaskCompleteOutput } from "./task_complete.domain.case";
@@ -57,6 +58,22 @@ export class TaskCompleteStream extends BaseStreamCase<
       topic: "task.completed",
       handler: (event: StreamEvent<TaskCompleteOutput>) =>
         this.handler(event),
+    };
+  }
+
+  public recoveryPolicy(): AppStreamRecoveryPolicy {
+    return {
+      retry: {
+        maxAttempts: 5,
+        backoffMs: 1000,
+        multiplier: 2,
+        maxBackoffMs: 30000,
+        jitter: true,
+      },
+      deadLetter: {
+        destination: "tasks.task_complete.stream.dlq",
+        includeFailureMetadata: true,
+      },
     };
   }
 

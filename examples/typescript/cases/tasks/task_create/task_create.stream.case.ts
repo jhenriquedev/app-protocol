@@ -10,6 +10,7 @@ import {
   BaseStreamCase,
   StreamContext,
   StreamEvent,
+  AppStreamRecoveryPolicy,
 } from "../../../core/stream.case";
 import { ApiResponse } from "../../../core/api.case";
 import { TaskCreateOutput } from "./task_create.domain.case";
@@ -57,6 +58,22 @@ export class TaskCreateStream extends BaseStreamCase<
       topic: "task.created",
       handler: (event: StreamEvent<TaskCreateOutput>) =>
         this.handler(event),
+    };
+  }
+
+  public recoveryPolicy(): AppStreamRecoveryPolicy {
+    return {
+      retry: {
+        maxAttempts: 5,
+        backoffMs: 1000,
+        multiplier: 2,
+        maxBackoffMs: 30000,
+        jitter: true,
+      },
+      deadLetter: {
+        destination: "tasks.task_create.stream.dlq",
+        includeFailureMetadata: true,
+      },
     };
   }
 

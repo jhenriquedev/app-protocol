@@ -9,9 +9,9 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v0.0.2`](./versions/v0.0.2.md)
+- Latest released snapshot: [`v0.0.4`](./versions/v0.0.4.md)
 - Working draft: [`spec.md`](./spec.md)
-- Maturity: conceptual, pre-reference-implementation
+- Maturity: working protocol with TypeScript reference implementation
 
 Language policy:
 
@@ -29,15 +29,26 @@ APP exists to make codebases easier to understand, extend, and operate with AI a
 - low semantic coupling between capabilities
 - agent-ready discovery and execution contracts
 
+Canonical project layers:
+
+- `packages/` — shared project code exposed to contextual Cases through host-managed context
+- `core/` — protocol contracts
+- `cases/` — business capabilities
+- `apps/` — composition roots and runtimes
+
 ## Repository Map
 
 - [`spec.md`](./spec.md): current working draft of the specification
 - [`versions/`](./versions): versioned snapshots of released specs
 - [`docs/philosophy.md`](./docs/philosophy.md): conceptual framing behind AI-first programming
+- [`docs/architectural-properties.md`](./docs/architectural-properties.md): APP-native architectural properties and how to interpret them
+- [`docs/architecture.md`](./docs/architecture.md): canonical architectural diagrams and explanatory walkthroughs
 - [`docs/agentic.md`](./docs/agentic.md): deeper notes on the agentic surface
+- [`docs/conformance.md`](./docs/conformance.md): conformance levels and validation criteria
 - [`docs/development-flow.md`](./docs/development-flow.md): how the spec evolves
+- [`scripts/validate-boundaries.mjs`](./scripts/validate-boundaries.mjs): initial static boundary validator for `cases/`, `packages/`, and `registry.ts`
 - [`rfcs/`](./rfcs): proposal process for substantive changes
-- [`examples/`](./examples): planned reference implementations and ecosystem examples
+- [`examples/`](./examples): executable TypeScript reference implementation and future ecosystem examples
 - [`i18n/pt-br/`](./i18n/pt-br/): backup copies of native Portuguese materials
 
 ## Core Model
@@ -49,7 +60,7 @@ Each Case:
 - represents a single capability
 - lives in its own folder
 - may expose one or more execution surfaces
-- depends only on `core`, `core/shared`, and its own local domain
+- depends on protocol contracts and receives host-selected shared packages through context
 
 Canonical surfaces:
 
@@ -61,8 +72,25 @@ Canonical surfaces:
 
 Not every Case needs every surface.
 
+`stream.case.ts` now uses a declarative `recoveryPolicy()` contract for retry and dead-letter semantics. The Case declares recovery intent; the app host validates and binds that policy to the concrete runtime during bootstrap.
+
 For now, `agentic.case.ts` is optional.
 If a Case exposes it, it must follow the APP agentic protocol.
+
+## Architectural Properties
+
+APP is not a relabeling of SOLID, DDD, or Clean Architecture.
+
+It defines its own native architectural properties around:
+
+- capability cohesion
+- semantic ownership
+- explicit surface contracts
+- host-owned composition roots
+- protocol-first dependency inversion
+- low-context navigability for humans and AI
+
+The normative version of these properties lives in [`spec.md`](./spec.md). Explanatory mappings and visual diagrams live in [`docs/architectural-properties.md`](./docs/architectural-properties.md) and [`docs/architecture.md`](./docs/architecture.md).
 
 ## Naming Decision
 
@@ -107,7 +135,7 @@ The next major steps for APP are:
 1. formalize the `agentic.case.ts` schema
 2. define a machine-validatable conformance model
 3. ship at least two reference implementations
-4. provide tooling for linting and scaffolding Cases
+4. expand tooling for linting and scaffolding Cases
 
 See [`ROADMAP.md`](./ROADMAP.md).
 

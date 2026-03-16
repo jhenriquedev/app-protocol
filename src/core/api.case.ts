@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.3
+ * APP v0.0.4
  * core/api.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface de API no APP.
@@ -91,6 +91,17 @@ export interface ApiContext extends AppBaseContext {
    * Exemplo: ctx.cases?.users?.user_validate?.api?.handler(input)
    */
   cases?: Dict;
+
+  /**
+   * Packages de biblioteca registrados pelo host.
+   *
+   * Expostos via registry._packages.
+   * Bibliotecas puras (Money, DateUtils, Validators) de packages/
+   * que o app disponibiliza para seus Cases.
+   *
+   * O tipo concreto é derivado do registry de cada app.
+   */
+  packages?: Dict;
 
   /**
    * Espaço de extensão livre para o host do projeto.

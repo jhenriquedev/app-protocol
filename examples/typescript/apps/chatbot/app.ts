@@ -1,22 +1,18 @@
 /* ========================================================================== *
  * Chatbot App — Bootstrap
  * --------------------------------------------------------------------------
- * Agentic host: collects full definitions from all agentic surfaces.
- *
- * Uses definition() as the canonical contract — this includes all facets:
- * discovery, context, prompt, tool, mcp, rag, policy, examples.
+ * Agentic host: registra definitions agentic e resolve execução canônica via
+ * ctx.cases apontando para surfaces de API do próprio registry.
  * ========================================================================== */
 
 import {
   AgenticContext,
   AgenticDefinition,
 } from "../../core/agentic.case";
+import { ApiContext } from "../../core/api.case";
 import { AppLogger } from "../../core/shared/app_base_context";
-import { registry } from "./registry";
-
-/* --------------------------------------------------------------------------
- * Logger
- * ------------------------------------------------------------------------ */
+import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
+import { createRegistry } from "./registry";
 
 const logger: AppLogger = {
   debug: (msg, meta) => console.log("[DEBUG]", msg, meta),
@@ -25,25 +21,18 @@ const logger: AppLogger = {
   error: (msg, meta) => console.error("[ERROR]", msg, meta),
 };
 
-/* --------------------------------------------------------------------------
- * Context factory
- * ------------------------------------------------------------------------ */
-
-function createAgenticContext(cases?: unknown): AgenticContext {
-  return {
-    correlationId: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
-    logger,
-    cases: cases as Record<string, unknown> | undefined,
-  };
+function generateId(): string {
+  return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
 
-/* --------------------------------------------------------------------------
- * Bootstrap — collects full definitions from all agentic surfaces
- * --------------------------------------------------------------------------
- * Uses definition() as the single canonical entrypoint.
- * This ensures all facets (discovery, context, prompt, tool, mcp, rag,
- * policy, examples) are collected and available to the agent runtime.
- * ------------------------------------------------------------------------ */
+type CasesMap = Record<string, Record<string, Record<string, unknown>>>;
+
+interface ParentExecutionContext {
+  correlationId: string;
+  tenantId?: string;
+  userId?: string;
+  config?: Record<string, unknown>;
+}
 
 interface RegisteredCase {
   domain: string;
@@ -53,52 +42,130 @@ interface RegisteredCase {
   requiresConfirmation: boolean;
 }
 
-async function startChatbot(cases?: unknown): Promise<{
-  registeredCases: RegisteredCase[];
-}> {
-  const registeredCases: RegisteredCase[] = [];
+export function bootstrap() {
+  const registry = createRegistry();
+  const db = registry._providers.db;
 
-  for (const [domain, domainCases] of Object.entries(registry)) {
-    for (const [caseName, surfaces] of Object.entries(domainCases)) {
-      if (surfaces.agentic) {
-        const ctx = createAgenticContext(cases);
-        const instance = new surfaces.agentic(ctx);
+  function createCasesMap(parent: ParentExecutionContext): CasesMap {
+    const cases: CasesMap = {};
 
-        const definition = (instance as {
-          definition(): AgenticDefinition;
-          isMcpEnabled(): boolean;
-          requiresConfirmation(): boolean;
-        });
+    for (const [domain, domainCases] of Object.entries(registry._cases)) {
+      cases[domain] = {};
 
-        const def = definition.definition();
+      for (const [caseName, surfaces] of Object.entries(domainCases)) {
+        const entry: Record<string, unknown> = {};
+        const typedSurfaces = surfaces as AppCaseSurfaces;
 
-        registeredCases.push({
-          domain,
-          caseName,
-          definition: def,
-          isMcpEnabled: definition.isMcpEnabled(),
-          requiresConfirmation: definition.requiresConfirmation(),
-        });
+        if (typedSurfaces.api) {
+          const ApiClass = typedSurfaces.api;
+          entry.api = {
+            handler: async (input: unknown) => {
+              const ctx = createApiContext(parent);
+              const instance = new ApiClass(ctx) as {
+                handler(payload: unknown): Promise<unknown>;
+              };
+              return instance.handler(input);
+            },
+          };
+        }
 
-        logger.info(`Registered agentic: ${domain}/${caseName}`, {
-          tool: def.tool.name,
-          mcp: def.mcp?.enabled ? def.mcp.name : "disabled",
-          rag: def.rag?.mode ?? "none",
-          policy: def.policy?.riskLevel ?? "unset",
-          examples: def.examples?.length ?? 0,
-        });
+        cases[domain][caseName] = entry;
       }
     }
+
+    return cases;
   }
 
-  logger.info("Chatbot started", {
-    tools: registeredCases.length,
-    mcpEnabled: registeredCases.filter((c) => c.isMcpEnabled).length,
-    mutating: registeredCases.filter((c) => c.definition.tool.isMutating).length,
-    requireConfirmation: registeredCases.filter((c) => c.requiresConfirmation).length,
-  });
+  function createApiContext(parent?: Partial<ParentExecutionContext>): ApiContext {
+    const ctx: ApiContext = {
+      correlationId: parent?.correlationId ?? generateId(),
+      executionId: generateId(),
+      tenantId: parent?.tenantId,
+      userId: parent?.userId,
+      config: parent?.config,
+      logger,
+      db,
+      packages: registry._packages,
+    };
 
-  return { registeredCases };
+    ctx.cases = createCasesMap(ctx);
+    return ctx;
+  }
+
+  function createAgenticContext(
+    parent?: Partial<ParentExecutionContext>
+  ): AgenticContext {
+    const ctx: AgenticContext = {
+      correlationId: parent?.correlationId ?? generateId(),
+      executionId: generateId(),
+      tenantId: parent?.tenantId,
+      userId: parent?.userId,
+      config: parent?.config,
+      logger,
+      packages: registry._packages,
+      mcp: {
+        serverName: "task-manager-chatbot",
+        version: "0.0.4",
+      },
+    };
+
+    ctx.cases = createCasesMap(ctx);
+    return ctx;
+  }
+
+  async function startChatbot(): Promise<{ registeredCases: RegisteredCase[] }> {
+    const registeredCases: RegisteredCase[] = [];
+
+    for (const [domain, domainCases] of Object.entries(registry._cases)) {
+      for (const [caseName, surfaces] of Object.entries(domainCases)) {
+        if (surfaces.agentic) {
+          const ctx = createAgenticContext();
+          const instance = new surfaces.agentic(ctx);
+
+          const definition = instance as {
+            definition(): AgenticDefinition;
+            isMcpEnabled(): boolean;
+            requiresConfirmation(): boolean;
+          };
+
+          const def = definition.definition();
+
+          registeredCases.push({
+            domain,
+            caseName,
+            definition: def,
+            isMcpEnabled: definition.isMcpEnabled(),
+            requiresConfirmation: definition.requiresConfirmation(),
+          });
+
+          logger.info(`Registered agentic: ${domain}/${caseName}`, {
+            tool: def.tool.name,
+            mcp: def.mcp?.enabled ? def.mcp.name ?? def.tool.name : "disabled",
+            rag: def.rag?.mode ?? "none",
+            policy: def.policy?.riskLevel ?? "unset",
+            examples: def.examples?.length ?? 0,
+          });
+        }
+      }
+    }
+
+    logger.info("Chatbot started", {
+      tools: registeredCases.length,
+      mcpEnabled: registeredCases.filter((c) => c.isMcpEnabled).length,
+      mutating: registeredCases.filter((c) => c.definition.tool.isMutating).length,
+      requireConfirmation: registeredCases.filter((c) => c.requiresConfirmation).length,
+    });
+
+    return { registeredCases };
+  }
+
+  return { registry, db, createApiContext, createAgenticContext, startChatbot };
 }
 
-export { registry, createAgenticContext, startChatbot };
+const app = bootstrap();
+
+export const registry = app.registry;
+export const db = app.db;
+export const createApiContext = app.createApiContext;
+export const createAgenticContext = app.createAgenticContext;
+export const startChatbot = app.startChatbot;

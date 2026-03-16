@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.3
+ * APP v0.0.4
  * core/agentic.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface agentic no APP.
@@ -54,6 +54,14 @@ export interface AgenticContext extends AppBaseContext {
    * ctx.cases?.users?.user_validate?.api?.handler(input)
    */
   cases?: Dict;
+
+  /**
+   * Packages de biblioteca registrados pelo host.
+   *
+   * Expostos via registry._packages.
+   * Bibliotecas puras de packages/ que o app disponibiliza.
+   */
+  packages?: Dict;
 
   /**
    * Informações do runtime MCP, quando disponível.

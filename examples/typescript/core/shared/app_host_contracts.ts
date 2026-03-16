@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.3
+ * APP v0.0.4
  * core/shared/app_host_contracts.ts
  * ----------------------------------------------------------------------------
  * Contratos de registry do APP.
@@ -54,26 +54,49 @@ export interface AppCaseSurfaces {
 /* ==========================================================================
  * AppRegistry
  * --------------------------------------------------------------------------
- * Catálogo de Cases registrados por um app.
+ * Interface unificada de registro de um app.
  *
- * Estrutura: domínio → case → surfaces
+ * Três slots canônicos:
  *
- * Exemplo:
- *   {
- *     users: {
- *       user_validate: { api: UserValidateApi },
- *       user_register: { api: UserRegisterApi, stream: UserRegisterStream },
- *     },
+ * - _cases:     Cases ativos neste app (domínio → case → surfaces).
+ *               Cada entry é um construtor de surface importado de cases/.
+ *
+ * - _providers: Providers e adapters montados pelo host.
+ *               Podem satisfazer contratos de core/shared/app_infra_contracts
+ *               ou expor providers específicos do projeto.
+ *
+ * - _packages:  Bibliotecas puras compartilhadas de packages/.
+ *               Expostas aos Cases via ctx.packages.
+ *
+ * Nenhum slot é obrigatório além de _cases.
+ *
+ * Uso:
+ *   export function createRegistry(config) {
+ *     return { _cases: {...}, _providers: {...}, _packages: {...} } as const;
  *   }
+ *   export type MyAppRegistry = ReturnType<typeof createRegistry>;
  *
- * O registry exporta construtores (classes), não instâncias.
- * O host instancia sob demanda, passando o contexto apropriado.
- * Isso é compatível com qualquer modelo de deploy.
- *
- * O mesmo shape alimenta ctx.cases para composição cross-case.
+ * O registry unifica num único arquivo tudo que o app precisa registrar.
  * ========================================================================== */
 
-export type AppRegistry = Dict<Dict<AppCaseSurfaces>>;
+export interface AppRegistry {
+  /**
+   * Cases ativos neste app.
+   * Shape: domínio → case → surfaces (construtores).
+   */
+  _cases: Dict<Dict<AppCaseSurfaces>>;
+
+  /**
+   * Providers e adapters montados pelo host.
+   */
+  _providers?: Dict;
+
+  /**
+   * Packages de biblioteca.
+   * Código compartilhado puro exposto aos Cases via ctx.packages.
+   */
+  _packages?: Dict;
+}
 
 /* ==========================================================================
  * InferCasesMap
@@ -111,4 +134,3 @@ export type InferCasesMap<
     [CaseName in keyof R[Domain]]: InferSurfaceInstances<R[Domain][CaseName]>;
   };
 };
-

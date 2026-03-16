@@ -16,7 +16,10 @@ Status: current
 - freeze terminology
 - formalize `agentic.case.ts`
 - formalize `apps/<app>/registry.ts` as the canonical runtime entry point
+- formalize APP-induced architectural properties as protocol semantics
+- formalize canonical architectural diagrams and visual grammar
 - define conformance invariants
+- define architectural conformance levels (static, review-level, runtime)
 - align documentation around English-first canonical materials
 
 ## Phase 3: Reference Implementations

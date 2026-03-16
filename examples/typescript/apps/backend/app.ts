@@ -3,26 +3,30 @@
  * --------------------------------------------------------------------------
  * Monolith host: API routes + stream subscriptions.
  *
- * Creates in-memory stores and injects them via ctx.db.
+ * Consome o registry unificado:
+ * - registry._cases     → ctx.cases
+ * - registry._providers → ctx.db
+ * - registry._packages  → ctx.packages
  *
- * Composition model:
- * ctx.cases contains factory wrappers, not singleton instances.
- * Each call to handler() creates a fresh instance with a per-execution
- * context (unique correlationId), preserving AppBaseContext semantics.
- * The casesMap structure is built once at boot; only the instances
- * inside are per-call.
+ * Importante:
+ * ctx.cases é ligado ao contexto da execução atual. Cada salto de composição
+ * cria uma nova instância do Case, mas preserva o correlationId da operação.
  * ========================================================================== */
 
 import { ApiContext } from "../../core/api.case";
-import { StreamContext } from "../../core/stream.case";
+import {
+  AppStreamRecoveryPolicy,
+  computeStreamRetryDelayMs,
+  createStreamFailureEnvelope,
+  isStreamErrorRetryable,
+  StreamContext,
+  StreamEvent,
+  validateStreamRecoveryPolicy,
+  validateStreamRuntimeCompatibility,
+} from "../../core/stream.case";
 import { AppLogger } from "../../core/shared/app_base_context";
-import { Task } from "../../cases/tasks/task_create/task_create.domain.case";
-import { Notification } from "../../cases/notifications/notification_send/notification_send.domain.case";
-import { registry, BackendCasesMap } from "./registry";
-
-/* --------------------------------------------------------------------------
- * Logger
- * ------------------------------------------------------------------------ */
+import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
+import { createRegistry } from "./registry";
 
 const logger: AppLogger = {
   debug: (msg, meta) => console.log("[DEBUG]", msg, meta),
@@ -31,155 +35,251 @@ const logger: AppLogger = {
   error: (msg, meta) => console.error("[ERROR]", msg, meta),
 };
 
-/* --------------------------------------------------------------------------
- * In-memory stores (injected as infrastructure via ctx.db)
- * ------------------------------------------------------------------------ */
-
-const db = {
-  tasks: new Map<string, Task>(),
-  notifications: [] as Notification[],
-};
-
-/* --------------------------------------------------------------------------
- * ID generator
- * ------------------------------------------------------------------------ */
-
 function generateId(): string {
   return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
 
-/* --------------------------------------------------------------------------
- * Boot — build cases map with per-call factory wrappers
- * --------------------------------------------------------------------------
- * The casesMap is a stable structure built once at boot.
- * Each surface entry is a thin wrapper that creates a fresh instance
- * with a per-execution context on every handler() call.
- *
- * This preserves AppBaseContext semantics:
- * - Each execution gets its own correlationId
- * - Composition calls inherit fresh context, not stale boot context
- * - The casesMap itself is shared (no per-request rebuild)
- * ------------------------------------------------------------------------ */
+function sleep(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 type CasesMap = Record<string, Record<string, Record<string, unknown>>>;
 
-function buildCasesMap(): CasesMap {
-  const cases: CasesMap = {};
+interface ParentExecutionContext {
+  correlationId: string;
+  tenantId?: string;
+  userId?: string;
+  config?: Record<string, unknown>;
+}
 
-  for (const [domain, domainCases] of Object.entries(registry)) {
-    cases[domain] = {};
-    for (const [caseName, surfaces] of Object.entries(domainCases)) {
-      const entry: Record<string, unknown> = {};
+export function bootstrap() {
+  const registry = createRegistry();
+  const db = registry._providers.db;
+  const streamRuntime = registry._providers.streamRuntime;
 
-      if (surfaces.api) {
-        const ApiClass = surfaces.api;
-        entry.api = {
-          handler: async (input: unknown) => {
-            const ctx: ApiContext = {
-              correlationId: generateId(),
-              logger,
-              db,
-              cases,
-            };
-            const instance = new ApiClass(ctx);
-            return (instance as { handler(input: unknown): Promise<unknown> }).handler(input);
-          },
-        };
+  function createCasesMap(parent: ParentExecutionContext): CasesMap {
+    const cases: CasesMap = {};
+
+    for (const [domain, domainCases] of Object.entries(registry._cases)) {
+      cases[domain] = {};
+
+      for (const [caseName, surfaces] of Object.entries(domainCases)) {
+        const entry: Record<string, unknown> = {};
+        const typedSurfaces = surfaces as AppCaseSurfaces;
+
+        if (typedSurfaces.api) {
+          const ApiClass = typedSurfaces.api;
+          entry.api = {
+            handler: async (input: unknown) => {
+              const ctx = createApiContext(parent);
+              const instance = new ApiClass(ctx) as {
+                handler(payload: unknown): Promise<unknown>;
+              };
+              return instance.handler(input);
+            },
+          };
+        }
+
+        if (typedSurfaces.stream) {
+          const StreamClass = typedSurfaces.stream;
+          entry.stream = {
+            handler: async (event: unknown) => {
+              const ctx = createStreamContext(parent);
+              const instance = new StreamClass(ctx) as {
+                handler(payload: unknown): Promise<void>;
+              };
+              return instance.handler(event);
+            },
+          };
+        }
+
+        cases[domain][caseName] = entry;
       }
+    }
 
-      if (surfaces.stream) {
-        const StreamClass = surfaces.stream;
-        entry.stream = {
-          handler: async (event: unknown) => {
-            const ctx: StreamContext = {
-              correlationId: generateId(),
-              logger,
-              db,
-              cases,
-            };
-            const instance = new StreamClass(ctx);
-            return (instance as { handler(event: unknown): Promise<void> }).handler(event);
-          },
-        };
+    return cases;
+  }
+
+  function createApiContext(parent?: Partial<ParentExecutionContext>): ApiContext {
+    const ctx: ApiContext = {
+      correlationId: parent?.correlationId ?? generateId(),
+      executionId: generateId(),
+      tenantId: parent?.tenantId,
+      userId: parent?.userId,
+      config: parent?.config,
+      logger,
+      db,
+      packages: registry._packages,
+    };
+
+    ctx.cases = createCasesMap(ctx);
+    return ctx;
+  }
+
+  function createStreamContext(
+    parent?: Partial<ParentExecutionContext>
+  ): StreamContext {
+    const ctx: StreamContext = {
+      correlationId: parent?.correlationId ?? generateId(),
+      executionId: generateId(),
+      tenantId: parent?.tenantId,
+      userId: parent?.userId,
+      config: parent?.config,
+      logger,
+      db,
+      packages: registry._packages,
+    };
+
+    ctx.cases = createCasesMap(ctx);
+    return ctx;
+  }
+
+  async function startBackend(): Promise<void> {
+    const routes: unknown[] = [];
+    const subscriptions: unknown[] = [];
+
+    for (const [domain, domainCases] of Object.entries(registry._cases)) {
+      for (const [caseName, surfaces] of Object.entries(domainCases)) {
+        if (surfaces.api) {
+          const instance = new surfaces.api(createApiContext()) as {
+            router?(): unknown;
+          };
+
+          if (instance.router) {
+            const route = instance.router();
+            routes.push(route);
+            logger.info(`Mounted API: ${domain}/${caseName}`, { route });
+          }
+        }
+
+        if (surfaces.stream) {
+          const instance = new surfaces.stream(createStreamContext()) as {
+            subscribe?(): unknown;
+            recoveryPolicy?(): AppStreamRecoveryPolicy;
+          };
+
+          const label = `${domain}/${caseName}.stream`;
+          const policy = instance.recoveryPolicy?.();
+          validateStreamRecoveryPolicy(label, policy);
+          validateStreamRuntimeCompatibility(label, policy, streamRuntime);
+
+          if (policy) {
+            logger.info(`${label}: recovery policy declared`, {
+              retry: !!policy.retry,
+              deadLetter: !!policy.deadLetter,
+              maxAttempts: policy.retry?.maxAttempts,
+              destination: policy.deadLetter?.destination,
+            });
+          }
+
+          if (instance.subscribe) {
+            const sub = instance.subscribe();
+            subscriptions.push(sub);
+            logger.info(`Mounted Stream: ${domain}/${caseName}`, { sub });
+          }
+        }
       }
+    }
 
-      cases[domain]![caseName] = entry;
+    logger.info("Backend started", {
+      routes: routes.length,
+      subscriptions: subscriptions.length,
+    });
+  }
+
+  async function dispatchStream<TEvent>(
+    domain: string,
+    caseName: string,
+    event: StreamEvent<TEvent>,
+    parent?: Partial<ParentExecutionContext>
+  ): Promise<void> {
+    const registeredCases = registry._cases as Record<
+      string,
+      Record<string, AppCaseSurfaces>
+    >;
+    const surfaces = registeredCases[domain]?.[caseName];
+    if (!surfaces?.stream) {
+      throw new Error(`No stream surface registered for ${domain}/${caseName}`);
+    }
+
+    const label = `${domain}/${caseName}.stream`;
+    const correlationId = parent?.correlationId ?? generateId();
+    const firstAttemptAt = new Date().toISOString();
+    let attempts = 0;
+
+    while (true) {
+      attempts += 1;
+      const ctx = createStreamContext({
+        ...parent,
+        correlationId,
+      });
+      const instance = new surfaces.stream(ctx) as {
+        handler(payload: StreamEvent<TEvent>): Promise<void>;
+        recoveryPolicy?(): AppStreamRecoveryPolicy;
+      };
+      const policy = instance.recoveryPolicy?.();
+      validateStreamRecoveryPolicy(label, policy);
+      validateStreamRuntimeCompatibility(label, policy, streamRuntime);
+
+      try {
+        await instance.handler(event);
+        return;
+      } catch (error) {
+        const retry = policy?.retry;
+        const canRetry =
+          !!retry &&
+          attempts < retry.maxAttempts &&
+          isStreamErrorRetryable(error, retry.retryableErrors);
+
+        if (canRetry) {
+          const delayMs = computeStreamRetryDelayMs(retry, attempts);
+          logger.warn(`${label}: retry scheduled`, {
+            attempts,
+            delayMs,
+            correlationId,
+          });
+          await sleep(delayMs);
+          continue;
+        }
+
+        if (policy?.deadLetter) {
+          const binding = streamRuntime.deadLetters?.[policy.deadLetter.destination];
+          if (binding) {
+            await binding.publish(
+              createStreamFailureEnvelope(
+                `${domain}/${caseName}`,
+                event,
+                error,
+                attempts,
+                correlationId,
+                firstAttemptAt,
+                new Date().toISOString()
+              )
+            );
+          }
+        }
+
+        throw error;
+      }
     }
   }
 
-  return cases;
-}
-
-const casesMap = buildCasesMap();
-
-/* --------------------------------------------------------------------------
- * Request context factories
- * --------------------------------------------------------------------------
- * Used by route handlers and stream listeners for the top-level entry.
- * Composition inside Cases uses the factory wrappers in casesMap,
- * so each composed call gets its own fresh context automatically.
- * ------------------------------------------------------------------------ */
-
-function createApiContext(): ApiContext {
   return {
-    correlationId: generateId(),
-    logger,
+    registry,
     db,
-    cases: casesMap,
+    createApiContext,
+    createStreamContext,
+    dispatchStream,
+    startBackend,
   };
 }
 
-function createStreamContext(): StreamContext {
-  return {
-    correlationId: generateId(),
-    logger,
-    db,
-    cases: casesMap,
-  };
-}
+const app = bootstrap();
 
-/* --------------------------------------------------------------------------
- * Monolith bootstrap
- * --------------------------------------------------------------------------
- * Route/subscription collection uses temporary instances (boot-time only).
- * These are discarded after collecting router()/subscribe() metadata.
- * Request-time instances are created fresh per call.
- * ------------------------------------------------------------------------ */
-
-async function startBackend(): Promise<void> {
-  const routes: unknown[] = [];
-  const subscriptions: unknown[] = [];
-
-  for (const [domain, domainCases] of Object.entries(registry)) {
-    for (const [caseName, surfaces] of Object.entries(domainCases)) {
-      if (surfaces.api) {
-        const bootCtx: ApiContext = { correlationId: "boot", logger, db };
-        const instance = new surfaces.api(bootCtx) as { router?(): unknown };
-
-        if (instance.router) {
-          const route = instance.router();
-          routes.push(route);
-          logger.info(`Mounted API: ${domain}/${caseName}`, { route });
-        }
-      }
-
-      if (surfaces.stream) {
-        const bootCtx: StreamContext = { correlationId: "boot", logger, db };
-        const instance = new surfaces.stream(bootCtx) as { subscribe?(): unknown };
-
-        if (instance.subscribe) {
-          const sub = instance.subscribe();
-          subscriptions.push(sub);
-          logger.info(`Mounted Stream: ${domain}/${caseName}`, { sub });
-        }
-      }
-    }
-  }
-
-  logger.info("Backend started", {
-    routes: routes.length,
-    subscriptions: subscriptions.length,
-  });
-}
-
-export { registry, db, casesMap, createApiContext, createStreamContext, startBackend };
+export const registry = app.registry;
+export const db = app.db;
+export const createApiContext = app.createApiContext;
+export const createStreamContext = app.createStreamContext;
+export const dispatchStream = app.dispatchStream;
+export const startBackend = app.startBackend;

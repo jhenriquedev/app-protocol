@@ -23,15 +23,11 @@
  * ========================================================================== */
 
 import { AgenticContext, BaseAgenticCase } from "../../core/agentic.case";
-import { ApiContext, ApiResponse } from "../../core/api.case";
+import { ApiContext } from "../../core/api.case";
 import { AppLogger } from "../../core/shared/app_base_context";
 import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
 import { AppError, AppResult } from "../../core/shared/app_structural_contracts";
 import { registry } from "./registry";
-
-// API surfaces for canonical execution — agentic tools delegate to these
-import { UserValidateApi } from "../../cases/users/user_validate/user_validate.api.case";
-import { UserRegisterApi } from "../../cases/users/user_register/user_register.api.case";
 
 /* --------------------------------------------------------------------------
  * Logger (minimal example)
@@ -69,17 +65,25 @@ type CasesMap = Record<string, Record<string, Record<string, unknown>>>;
 function buildCasesMap(): CasesMap {
   const cases: CasesMap = {};
 
-  const bootCtx: ApiContext = {
-    correlationId: "boot",
-    logger,
-    cases,
-  };
+  for (const [domain, domainCases] of Object.entries(registry._cases)) {
+    cases[domain] = {};
 
-  // Load API surfaces for canonical execution
-  cases.users = {
-    user_validate: { api: new UserValidateApi(bootCtx) },
-    user_register: { api: new UserRegisterApi(bootCtx) },
-  };
+    for (const [caseName, surfaces] of Object.entries(domainCases)) {
+      const typedSurfaces = surfaces as AppCaseSurfaces;
+      const entry: Record<string, unknown> = {};
+
+      if (typedSurfaces.api) {
+        const bootCtx: ApiContext = {
+          correlationId: "boot",
+          logger,
+          cases,
+        };
+        entry.api = new typedSurfaces.api(bootCtx);
+      }
+
+      cases[domain][caseName] = entry;
+    }
+  }
 
   return cases;
 }
@@ -99,7 +103,7 @@ function createAgenticContext(): AgenticContext {
       // MCP server info — host-specific, not protocol-mandated.
       // In practice: server name, version, transport config.
       serverName: "chatbot",
-      version: "0.0.3",
+      version: "0.0.4",
     },
   };
 }
@@ -129,7 +133,7 @@ interface DiscoveredTool {
 function discoverTools(): Map<string, DiscoveredTool> {
   const tools = new Map<string, DiscoveredTool>();
 
-  for (const [domain, domainCases] of Object.entries(registry)) {
+  for (const [domain, domainCases] of Object.entries(registry._cases)) {
     for (const [caseName, _surfaces] of Object.entries(domainCases)) {
       const surfaces = _surfaces as AppCaseSurfaces;
 
