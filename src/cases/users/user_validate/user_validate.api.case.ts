@@ -3,6 +3,7 @@
  * ========================================================================== */
 
 import { ApiContext, ApiResponse, BaseApiCase } from "../../../core/api.case";
+import { AppCaseError } from "../../../core/shared/app_structural_contracts";
 import { UserValidateInput, UserValidateOutput } from "./user_validate.domain.case";
 
 /* --------------------------------------------------------------------------
@@ -49,10 +50,27 @@ export class UserValidateApi extends BaseApiCase<
    * Public — test
    * ===================================================================== */
 
-  public async test(
-    input: UserValidateInput
-  ): Promise<ApiResponse<UserValidateOutput>> {
-    return this.handler(input);
+  public async test(): Promise<void> {
+    // Phase 1 — Slot availability
+    if (!this._service) {
+      throw new Error("test: _service must be implemented (atomic Case)");
+    }
+
+    // Phase 2 — Validation behavior
+    await this._validate!({ email: "test@example.com", name: "Test User" });
+
+    let threw = false;
+    try { await this._validate!({ email: "", name: "" }); } catch { threw = true; }
+    if (!threw) throw new Error("test: _validate should reject empty fields");
+
+    // Phase 3 — Integrated execution
+    const result = await this.handler({
+      email: "test@example.com",
+      name: "Test User",
+      age: 25,
+    });
+    if (!result.success) throw new Error("test: handler returned failure");
+    if (result.data?.valid !== true) throw new Error("test: valid input should return valid=true");
   }
 
   /* =======================================================================
@@ -60,8 +78,12 @@ export class UserValidateApi extends BaseApiCase<
    * ===================================================================== */
 
   protected async _validate(input: UserValidateInput): Promise<void> {
-    if (!input.email) throw new Error("email is required");
-    if (!input.name) throw new Error("name is required");
+    const errors: string[] = [];
+    if (!input.email) errors.push("email is required");
+    if (!input.name) errors.push("name is required");
+    if (errors.length > 0) {
+      throw new AppCaseError("VALIDATION_FAILED", errors.join("; "), { errors });
+    }
   }
 
   protected async _service(

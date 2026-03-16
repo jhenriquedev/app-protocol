@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    /* ----------------------------------------------------------------
+     * Objetivo: type-check do código ilustrativo — sem emitir JS.
+     * O protocolo é uma spec, não um pacote distribuível.
+     * ---------------------------------------------------------------- */
+
+    /* Language & modules */
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+
+    /* Type checking — strict */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Emit — disabled (spec repo, not a build) */
+    "noEmit": true,
+
+    /* Interop */
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "examples"]
+}

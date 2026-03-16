@@ -9,7 +9,7 @@
  * - ctx.cases for cross-case composition
  * ========================================================================== */
 
-import { AppRegistry } from "../../core/shared/app_host_contracts";
+import { AppCaseSurfaces, InferCasesMap } from "../../core/shared/app_host_contracts";
 
 // Cases — only the surfaces this app needs
 import { UserValidateApi } from "../../cases/users/user_validate/user_validate.api.case";
@@ -18,11 +18,22 @@ import { UserRegisterStream } from "../../cases/users/user_register/user_registe
 
 /* --------------------------------------------------------------------------
  * Registry
+ * --------------------------------------------------------------------------
+ * Usa `satisfies` em vez de `: AppRegistry` para preservar a estrutura
+ * literal de tipos. Isso permite que InferCasesMap derive o mapa de
+ * instâncias com autocomplete completo.
  * ------------------------------------------------------------------------ */
 
-export const registry: AppRegistry = {
+export const registry = {
   users: {
     user_validate: { api: UserValidateApi },
     user_register: { api: UserRegisterApi, stream: UserRegisterStream },
   },
-};
+} satisfies Record<string, Record<string, AppCaseSurfaces>>;
+
+/**
+ * Mapa tipado de instâncias para este app.
+ *
+ * Uso em _composition: `const cases = this.ctx.cases as BackendCasesMap`
+ */
+export type BackendCasesMap = InferCasesMap<typeof registry>;

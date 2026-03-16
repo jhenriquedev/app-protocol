@@ -43,7 +43,7 @@ const apiClient: AppHttpClient = {
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    const result = await response.json();
+    const result = (await response.json()) as { data: unknown };
     return result.data;
   },
 };
@@ -75,10 +75,9 @@ async function startPortal(): Promise<void> {
     for (const [caseName, surfaces] of Object.entries(domainCases)) {
       if (surfaces.ui) {
         const ctx = createUiContext();
-        const instance = new (surfaces.ui as new (
-          ctx: UiContext,
-          ...args: unknown[]
-        ) => { view(): unknown })(ctx, {});
+        const instance = new surfaces.ui(ctx) as {
+          view(): unknown;
+        };
 
         views.push({
           domain,
@@ -95,6 +94,3 @@ async function startPortal(): Promise<void> {
 }
 
 export { registry, createUiContext };
-
-// Uncomment to start:
-// startPortal();

@@ -15,7 +15,7 @@ Status: current
 
 - freeze terminology
 - formalize `agentic.case.ts`
-- formalize `cases.ts`
+- formalize `apps/<app>/registry.ts` as the canonical runtime entry point
 - define conformance invariants
 - align documentation around English-first canonical materials
 

@@ -1,6 +1,6 @@
 # RFC 0001: Agentic Protocol for APP Cases
 
-Status: Draft
+Status: Accepted (implemented in v0.0.3)
 
 ## Summary
 
@@ -49,99 +49,139 @@ The Agentic surface does not implement business logic. Instead, it **describes a
 
 The Agentic surface is canonical but optional. A Case remains valid without it unless a future APP version explicitly requires agentic operability for a given class of Cases or runtime.
 
-### Canonical Structure
+### Base Contract
 
-Conceptual example:
+All agentic surfaces extend `BaseAgenticCase<TInput, TOutput>`:
 
 ```ts
-export const userValidateAgenticCase = {
-  discovery: {
-    name: "user_validate",
-    description: "Validate a user document and classify its status.",
-    tags: ["user", "validation"],
-    capabilities: ["validation"],
-    aliases: ["validate_user_document"]
-  },
+export class UserValidateAgenticCase extends BaseAgenticCase<
+  UserValidateInput,
+  UserValidateOutput
+> {
+  public discovery(): AgenticDiscovery {
+    return {
+      name: "user_validate",
+      description: "Validate a user document and classify its status.",
+      tags: ["user", "validation"],
+      capabilities: ["validation"],
+      aliases: ["validate_user_document"],
+    };
+  }
 
-  context: {
-    requiresAuth: true,
-    tenantScoped: true,
-    dependencies: ["user_validate.api"]
-  },
+  public context(): AgenticExecutionContext {
+    return {
+      requiresAuth: true,
+      requiresTenant: true,
+      dependencies: ["user_validate.api"],
+    };
+  }
 
-  prompt: {
-    purpose: "Validate a user document and determine its status.",
-    whenToUse: [
-      "When a document must be verified before creating a user"
-    ],
-    constraints: [
-      "Use only the defined tool for execution",
-      "Do not infer validation rules beyond domain logic"
-    ]
-  },
+  public prompt(): AgenticPrompt {
+    return {
+      purpose: "Validate a user document and determine its status.",
+      whenToUse: [
+        "When a document must be verified before creating a user",
+      ],
+      constraints: [
+        "Use only the defined tool for execution",
+        "Do not infer validation rules beyond domain logic",
+      ],
+    };
+  }
 
-  tool: {
-    name: "user_validate",
-    description: "Validate a user document",
-    inputSchema: {
-      document: "string"
-    },
-    outputSchema: {
-      status: "string",
-      reasons: "string[]"
-    },
-    execute: async (input, ctx) => {
-      return ctx.cases.users.user_validate.api.handler(input)
-    }
-  },
+  public tool(): AgenticToolContract<UserValidateInput, UserValidateOutput> {
+    return {
+      name: "user_validate",
+      description: "Validate a user document",
+      inputSchema: { type: "object", properties: { document: { type: "string" } } },
+      outputSchema: { type: "object", properties: { status: { type: "string" }, reasons: { type: "array" } } },
+      execute: async (input, ctx) => {
+        return ctx.cases?.users?.user_validate?.api?.handler(input);
+      },
+    };
+  }
 
-  mcp: {
-    tool: "user_validate",
-    title: "User Validate",
-    description: "Validate user documents via APP Case capability."
-  },
+  public async test(): Promise<void> {
+    const def = this.definition();
+    this.validateDefinition();
+    const result = await this.execute({ document: "123456789" });
+    if (!result) throw new Error("test: execute returned no result");
+  }
 
-  rag: {
-    sources: ["validation_rules"],
-    hints: [
-      "Prefer official document validation sources"
-    ]
-  },
+  public mcp(): AgenticMcpContract {
+    return {
+      enabled: true,
+      name: "user_validate",
+      title: "User Validate",
+      description: "Validate user documents via APP Case capability.",
+    };
+  }
 
-  policy: {
-    requireConfirmation: false,
-    rateLimit: "standard"
-  },
+  public rag(): AgenticRagContract {
+    return {
+      topics: ["validation_rules"],
+      resources: [
+        { kind: "file", ref: "docs/validation-rules.md", description: "Official validation rules" },
+      ],
+      hints: ["Prefer official document validation sources"],
+      scope: "project",
+      mode: "optional",
+    };
+  }
 
-  examples: [
-    {
-      input: { document: "123456789" },
-      output: { status: "invalid", reasons: ["invalid_format"] }
-    }
-  ]
+  public policy(): AgenticPolicy {
+    return {
+      requireConfirmation: false,
+      riskLevel: "low",
+      executionMode: "direct-execution",
+    };
+  }
+
+  public examples(): AgenticExample<UserValidateInput, UserValidateOutput>[] {
+    return [
+      {
+        name: "invalid_document",
+        input: { document: "123456789" },
+        output: { status: "invalid", reasons: ["invalid_format"] },
+      },
+    ];
+  }
 }
 ```
 
 ### Agentic Sections
 
-The Agentic Protocol may include the following sections:
+The Agentic Protocol includes the following sections:
 
-| Section | Purpose |
-| --- | --- |
-| `discovery` | Metadata for capability discovery |
-| `context` | Execution requirements and constraints |
-| `prompt` | Structured guidance for agent reasoning |
-| `tool` | Contract for executable capability |
-| `mcp` | Integration adapter for MCP runtimes |
-| `rag` | Retrieval hints for contextual knowledge |
-| `policy` | Guardrails and operational limits |
-| `examples` | Deterministic usage examples |
+| Section | Status | Purpose |
+| --- | --- | --- |
+| `discovery()` | Required | Metadata for capability discovery |
+| `context()` | Required | Execution requirements and constraints |
+| `prompt()` | Required | Structured guidance for agent reasoning |
+| `tool()` | Required | Contract for executable capability |
+| `test()` | Required | Validates definition integrity and tool execution |
+| `mcp()` | Optional | MCP exposure configuration with normative fallback to `tool` |
+| `rag()` | Optional | Retrieval hints with semantic and reference layers |
+| `policy()` | Optional | Guardrails and operational limits |
+| `examples()` | Optional | Deterministic usage examples |
+
+### Contract Field Reference
+
+**`AgenticExecutionContext`**: Uses `requiresAuth`, `requiresTenant` (not `tenantScoped`), `dependencies`, `preconditions`, `constraints`.
+
+**`AgenticMcpContract`**: Uses `enabled`, `name` (not `tool`), `title`, `description`, `metadata`. All schemas and execution always fall back to `tool()`.
+
+**`AgenticRagContract`**: Uses two layers — semantic (`topics`, `hints`, `scope`, `mode`) and reference (`resources` with `kind` + `ref`). The original `sources` field was replaced by this two-layer design.
 
 ### Execution Model
 
 The source of truth for execution remains the canonical Case surfaces such as `api` and `stream`.
 
 The `tool` section must reference canonical execution logic and must not duplicate business rules.
+
+### Domain Derivation
+
+The agentic surface supports an optional connection to `domain.case.ts` via the protected `domain()` method. When provided, description, schemas, and examples can be derived from the domain instead of being defined manually. This reduces semantic duplication and prevents drift.
 
 ### Architectural Rule
 
@@ -156,6 +196,7 @@ The Agentic surface must not:
 - re-implement the capability logic
 - become a parallel source of truth
 - bypass Case policies or canonical execution paths
+- carry execution slots (`_repository`, `_service`, `_composition`)
 
 ### Updated Case Structure
 
@@ -245,7 +286,7 @@ Migration path:
 2. Agentic support can be added incrementally.
 3. Systems can adopt the Agentic surface only for Cases intended to be operated by agents.
 
-This RFC is intended to remain compatible with the `v0.0.1` Case model by treating `agentic` as an additive optional surface.
+This RFC is compatible with the `v0.0.1` Case model by treating `agentic` as an additive optional surface.
 
 ## Open Questions
 
@@ -254,7 +295,7 @@ Several questions remain open for future RFCs:
 - Should the Agentic Protocol support versioned prompts?
 - Should the tool schema follow a standardized format such as JSON Schema?
 - Should Cases automatically register their Agentic metadata in a discovery registry?
-- How should RAG sources be defined across multiple Cases?
+- How should RAG resources be scoped across multiple Cases?
 - Should agentic policies support capability-level authorization models?
 - What tooling should validate that `tool.execute` references canonical Case logic?
 

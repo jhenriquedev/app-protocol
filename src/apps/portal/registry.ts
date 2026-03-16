@@ -5,7 +5,7 @@
  * The portal never loads API, Stream, or Agentic surfaces.
  * ========================================================================== */
 
-import { AppRegistry } from "../../core/shared/app_host_contracts";
+import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
 
 // Cases — only UI surfaces
 import { UserValidateUi } from "../../cases/users/user_validate/user_validate.ui.case";
@@ -13,11 +13,15 @@ import { UserRegisterUi } from "../../cases/users/user_register/user_register.ui
 
 /* --------------------------------------------------------------------------
  * Registry
+ * --------------------------------------------------------------------------
+ * Usa `satisfies` em vez de `: AppRegistry` para preservar a estrutura
+ * literal de tipos. Isso permite que InferCasesMap derive o mapa de
+ * instâncias com autocomplete completo.
  * ------------------------------------------------------------------------ */
 
-export const registry: AppRegistry = {
+export const registry = {
   users: {
     user_validate: { ui: UserValidateUi },
     user_register: { ui: UserRegisterUi },
   },
-};
+} satisfies Record<string, Record<string, AppCaseSurfaces>>;

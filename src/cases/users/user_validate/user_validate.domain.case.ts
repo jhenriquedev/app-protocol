@@ -91,4 +91,31 @@ export class UserValidateDomain extends BaseDomainCase<
       },
     ];
   }
+
+  async test(): Promise<void> {
+    // Phase 1 — Definition integrity
+    const def = this.definition();
+    if (!def.caseName) throw new Error("test: caseName is empty");
+    if (!def.description) throw new Error("test: description is empty");
+    if (!def.inputSchema.properties) throw new Error("test: inputSchema has no properties");
+    if (!def.outputSchema.properties) throw new Error("test: outputSchema has no properties");
+
+    // Phase 2 — Validation behavior
+    this.validate!({ email: "test@example.com", name: "Test User" });
+
+    let threw = false;
+    try { this.validate!({ email: "", name: "" } as UserValidateInput); } catch { threw = true; }
+    if (!threw) throw new Error("test: validate should reject empty fields");
+
+    // Phase 3 — Examples consistency
+    const examples = this.examples();
+    if (!examples || examples.length === 0) throw new Error("test: no examples defined");
+    for (const ex of examples) {
+      const output = ex.output as UserValidateOutput | undefined;
+      if (output?.valid) {
+        // Valid examples should pass validation without throwing
+        this.validate!(ex.input);
+      }
+    }
+  }
 }

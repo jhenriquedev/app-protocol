@@ -7,8 +7,7 @@
  * A lambda resolve qual Case executar via path matching.
  *
  * Exemplo de deploy:
- *   /users/*   → lambda "users"  (user_validate + user_register)
- *   /billing/* → lambda "billing" (invoice_pay + balance_check)
+ *   /users/* → lambda "users" (user_validate + user_register)
  *
  * Cada feature lambda:
  * 1. Recebe o evento do API Gateway / Function URL
@@ -38,34 +37,77 @@ const logger: AppLogger = {
 };
 
 /* --------------------------------------------------------------------------
- * Context factories
+ * ID generator
+ * ------------------------------------------------------------------------ */
+
+function generateId(): string {
+  return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
+}
+
+/* --------------------------------------------------------------------------
+ * Boot — build cases map per feature (once per cold start)
+ * --------------------------------------------------------------------------
+ * Cada feature constrói seu mapa de Cases uma vez no cold start.
+ * O mapa é compartilhado entre todas as invocações da lambda.
+ *
+ * Fase 1: cria o container vazio e instancia cada Case com um contexto
+ *         de bootstrap que aponta para o container compartilhado.
+ * Fase 2: quando o loop termina, o container está completo.
+ *
+ * Não há recursão nem referência circular problemática.
+ * ------------------------------------------------------------------------ */
+
+type FeatureCasesMap = Record<string, Record<string, Record<string, unknown>>>;
+
+const featureCasesCache = new Map<string, FeatureCasesMap>();
+
+function buildFeatureCasesMap(featureName: string): FeatureCasesMap {
+  const cached = featureCasesCache.get(featureName);
+  if (cached) return cached;
+
+  const cases: FeatureCasesMap = {};
+  cases[featureName] = {};
+
+  const featureCases = getFeature(featureName);
+
+  const bootCtx: ApiContext = {
+    correlationId: "boot",
+    logger,
+    cases,
+  };
+
+  for (const [caseName, surfaces] of Object.entries(featureCases)) {
+    const entry: Record<string, unknown> = {};
+
+    if (surfaces.api) {
+      entry.api = new surfaces.api(bootCtx);
+    }
+
+    if (surfaces.stream) {
+      const streamCtx: StreamContext = { correlationId: "boot", logger, cases };
+      entry.stream = new surfaces.stream(streamCtx);
+    }
+
+    cases[featureName][caseName] = entry;
+  }
+
+  featureCasesCache.set(featureName, cases);
+  return cases;
+}
+
+/* --------------------------------------------------------------------------
+ * Request context factories
+ * --------------------------------------------------------------------------
+ * Cada invocação recebe um contexto fresco com:
+ * - correlationId único (rastreabilidade da operação)
+ * - cases: o mapa pré-construído no cold start (compartilhado)
  * ------------------------------------------------------------------------ */
 
 function createApiContext(feature: string): ApiContext {
-  // ctx.cases carrega apenas os Cases da feature atual + dependências
-  const featureCases = getFeature(feature);
-  const casesInstances: Record<string, Record<string, unknown>> = {};
-
-  // Instancia os Cases da feature para composição interna
-  casesInstances[feature] = {};
-  for (const [caseName, surfaces] of Object.entries(featureCases)) {
-    if (surfaces.api) {
-      // Lazy: cria instância para composição
-      const ctx: ApiContext = {
-        correlationId: generateId(),
-        logger,
-        cases: casesInstances, // referência circular intencional
-      };
-      casesInstances[feature][caseName] = {
-        api: new (surfaces.api as new (ctx: ApiContext) => unknown)(ctx),
-      };
-    }
-  }
-
   return {
     correlationId: generateId(),
     logger,
-    cases: casesInstances,
+    cases: buildFeatureCasesMap(feature),
   };
 }
 
@@ -73,12 +115,8 @@ function createStreamContext(feature: string): StreamContext {
   return {
     correlationId: generateId(),
     logger,
-    cases: {}, // stream normalmente não precisa de composição
+    cases: buildFeatureCasesMap(feature),
   };
-}
-
-function generateId(): string {
-  return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
 
 /* ==========================================================================
@@ -88,8 +126,7 @@ function generateId(): string {
  * Resolve o Case pelo path e delega para handler().
  *
  * Deploy:
- *   Lambda "users"   → rota /users/*
- *   Lambda "billing"  → rota /billing/*
+ *   Lambda "users" → rota /users/*
  * ========================================================================== */
 
 interface LambdaHttpEvent {
@@ -135,9 +172,9 @@ export function createFeatureHttpHandler(featureName: string) {
 
     try {
       const ctx = createApiContext(featureName);
-      const instance = new (route.CaseClass as new (ctx: ApiContext) => {
+      const instance = new (route.CaseClass as new (ctx: ApiContext) => unknown)(ctx) as {
         handler(input: unknown): Promise<unknown>;
-      })(ctx);
+      };
 
       const input = body ? JSON.parse(body) : {};
       const result = await instance.handler(input);
@@ -187,9 +224,9 @@ function buildRouteTable(
 
     // Instancia temporariamente para coletar router()
     const tempCtx: ApiContext = { correlationId: "boot", logger };
-    const instance = new (surfaces.api as new (ctx: ApiContext) => {
+    const instance = new surfaces.api(tempCtx) as {
       router?(): unknown;
-    })(tempCtx);
+    };
 
     if (instance.router) {
       const routeDef = instance.router() as {
@@ -257,9 +294,9 @@ export function createFeatureStreamHandler(featureName: string) {
       }
 
       const ctx = createStreamContext(featureName);
-      const instance = new (entry.CaseClass as new (ctx: StreamContext) => {
+      const instance = new (entry.CaseClass as new (ctx: StreamContext) => unknown)(ctx) as {
         handler(event: StreamEvent): Promise<void>;
-      })(ctx);
+      };
 
       await instance.handler(parsed);
     }
@@ -276,9 +313,9 @@ function buildSubscriptionMap(
     if (!surfaces.stream) continue;
 
     const tempCtx: StreamContext = { correlationId: "boot", logger };
-    const instance = new (surfaces.stream as new (ctx: StreamContext) => {
+    const instance = new surfaces.stream(tempCtx) as {
       subscribe?(): unknown;
-    })(tempCtx);
+    };
 
     if (instance.subscribe) {
       const sub = instance.subscribe() as { topic: string };
@@ -317,8 +354,3 @@ export const usersHttp = createFeatureHttpHandler("users");
 // Feature: users — Stream
 export const usersStream = createFeatureStreamHandler("users");
 
-// Feature: billing — HTTP
-// export const billingHttp = createFeatureHttpHandler("billing");
-
-// Feature: billing — Stream
-// export const billingStream = createFeatureStreamHandler("billing");

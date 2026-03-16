@@ -6,42 +6,36 @@
  *
  * Exemplo:
  *   feature "users" → 1 lambda com user_validate + user_register
- *   feature "billing" → 1 lambda com invoice_pay + balance_check
  *
  * O registry importa apenas surfaces de API e Stream (backend).
  * Cada lambda resolve internamente qual Case executar via rota ou evento.
  * ========================================================================== */
 
-import { AppRegistry } from "../../core/shared/app_host_contracts";
+import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
 
 // Feature: users
 import { UserValidateApi } from "../../cases/users/user_validate/user_validate.api.case";
 import { UserRegisterApi } from "../../cases/users/user_register/user_register.api.case";
 import { UserRegisterStream } from "../../cases/users/user_register/user_register.stream.case";
 
-// Feature: billing (example — files not created yet)
-// import { InvoicePayApi } from "../../cases/billing/invoice_pay/invoice_pay.api.case";
-// import { BalanceCheckApi } from "../../cases/billing/balance_check/balance_check.api.case";
-
 /* --------------------------------------------------------------------------
  * Registry
  * --------------------------------------------------------------------------
  * Shape: domain → case → surface → constructor
  *
- * Cada chave de primeiro nível (users, billing) corresponde a uma lambda.
+ * Cada chave de primeiro nível (ex: users) corresponde a uma lambda.
  * A lambda recebe todas as rotas/eventos daquele domínio.
+ *
+ * Usa `satisfies` para preservar tipos literais (InferCasesMap).
  * ------------------------------------------------------------------------ */
 
-export const registry: AppRegistry = {
+export const registry = {
   users: {
     user_validate: { api: UserValidateApi },
     user_register: { api: UserRegisterApi, stream: UserRegisterStream },
   },
-  // billing: {
-  //   invoice_pay: { api: InvoicePayApi },
-  //   balance_check: { api: BalanceCheckApi },
-  // },
-};
+} satisfies Record<string, Record<string, AppCaseSurfaces>>;
+
 
 /* --------------------------------------------------------------------------
  * Feature helpers
@@ -51,7 +45,7 @@ export const registry: AppRegistry = {
  * ------------------------------------------------------------------------ */
 
 export function getFeature(featureName: string) {
-  return registry[featureName] ?? {};
+  return (registry as Record<string, Record<string, AppCaseSurfaces>>)[featureName] ?? {};
 }
 
 export function getFeatureNames(): string[] {

@@ -1,114 +1,172 @@
 # Agentic Surface
 
-The `agentic.case.ts` surface is the main addition introduced in APP `v0.0.2`.
+The `agentic.case.ts` surface was introduced in APP `v0.0.2` and consolidated in `v0.0.3`.
 
 It exists to make a Case discoverable, understandable, and executable by AI agents without breaking the core APP rule that execution must remain tied to the canonical implementation.
 
-For now, `agentic.case.ts` is optional.
-
-If a Case exposes this surface, it must follow the APP agentic protocol and must not diverge from canonical execution behavior.
+The agentic surface is optional. If a Case exposes this surface, it must follow the APP agentic protocol and must not diverge from canonical execution behavior.
 
 ## Goals
 
-- expose a Case as a tool
+- expose a Case as a tool for AI agents
 - make agent intent resolution less ambiguous
 - define minimum execution context
 - attach policy and safety constraints close to the capability
 - improve retrieval quality for agentic runtimes
+- provide MCP-compatible exposure
 
-## Proposed Shape
+## Base Contract
 
-The current shape is conceptual, not frozen:
+All agentic surfaces extend `BaseAgenticCase<TInput, TOutput>`:
 
 ```ts
-export const userValidateAgenticCase = {
-  discovery: {},
-  context: {},
-  prompt: {},
-  tool: {},
-  mcp: {},
-  rag: {},
-  policy: {},
-  examples: []
+import { BaseAgenticCase } from "../../core/agentic.case";
+
+export class UserValidateAgenticCase extends BaseAgenticCase<
+  UserValidateInput,
+  UserValidateOutput
+> {
+  // Required — 4 abstract methods + test
+  public discovery(): AgenticDiscovery { ... }
+  public context(): AgenticExecutionContext { ... }
+  public prompt(): AgenticPrompt { ... }
+  public tool(): AgenticToolContract<UserValidateInput, UserValidateOutput> { ... }
+  public async test(): Promise<void> { ... }
+
+  // Optional — have defaults in base class
+  public mcp(): AgenticMcpContract | undefined { ... }
+  public rag(): AgenticRagContract | undefined { ... }
+  public policy(): AgenticPolicy | undefined { ... }
+  public examples(): AgenticExample[] { ... }
+}
+```
+
+### Required Members
+
+| Method | Returns | Purpose |
+|---|---|---|
+| `discovery()` | `AgenticDiscovery` | name, description, category, tags, aliases, capabilities, intents |
+| `context()` | `AgenticExecutionContext` | auth, tenant, dependencies, preconditions, constraints |
+| `prompt()` | `AgenticPrompt` | purpose, whenToUse, whenNotToUse, constraints, reasoningHints, expectedOutcome |
+| `tool()` | `AgenticToolContract` | name, description, inputSchema, outputSchema, isMutating, requiresConfirmation, execute |
+| `test()` | `Promise<void>` | validates definition integrity, tool execution, contract consistency |
+
+### Optional Members
+
+| Method | Returns | Purpose |
+|---|---|---|
+| `mcp()` | `AgenticMcpContract \| undefined` | MCP exposure config with normative fallback to `tool` |
+| `rag()` | `AgenticRagContract \| undefined` | topics, resources, hints, scope, mode |
+| `policy()` | `AgenticPolicy \| undefined` | requireConfirmation, requireAuth, requireTenant, riskLevel, executionMode, limits |
+| `examples()` | `AgenticExample[]` | name, description, input, output, notes |
+
+### Utility Methods (inherited from base)
+
+| Method | Purpose |
+|---|---|
+| `definition()` | Returns the consolidated `AgenticDefinition` object |
+| `execute(input)` | Shortcut for `tool().execute(input, ctx)` |
+| `isMcpEnabled()` | Checks MCP readiness |
+| `requiresConfirmation()` | Checks both policy and tool contract |
+| `caseName()` | Resolved from discovery or domain fallback |
+| `validateDefinition()` | Validates structural integrity of the definition |
+
+## Domain Derivation
+
+The agentic surface supports an optional connection to `domain.case.ts` via the protected `domain()` method. When provided, the following can be derived instead of being defined manually:
+
+| Helper | Derives from |
+|---|---|
+| `domainDescription()` | `domain.description()` |
+| `domainCaseName()` | `domain.caseName()` |
+| `domainInputSchema()` | `domain.inputSchema()` |
+| `domainOutputSchema()` | `domain.outputSchema()` |
+| `domainExamples()` | `domain.examples()` (only those with defined output) |
+
+This reduces semantic duplication and prevents drift between the domain source of truth and the agentic tool contract.
+
+```ts
+export class UserValidateAgenticCase extends BaseAgenticCase<
+  UserValidateInput,
+  UserValidateOutput
+> {
+  // Connect to the domain to derive schemas and examples
+  protected domain() {
+    return new UserValidateDomainCase();
+  }
+
+  public discovery(): AgenticDiscovery {
+    return {
+      name: this.domainCaseName() ?? "user_validate",
+      description: this.domainDescription() ?? "Validates user data",
+      category: "users",
+    };
+  }
+
+  public tool(): AgenticToolContract<UserValidateInput, UserValidateOutput> {
+    return {
+      name: "user_validate",
+      description: "Validates user input data",
+      inputSchema: this.domainInputSchema()!,
+      outputSchema: this.domainOutputSchema()!,
+      execute: async (input, ctx) => {
+        return ctx.cases?.users?.user_validate?.api?.handler(input);
+      },
+    };
+  }
+
+  // ...
 }
 ```
 
 ## Invariants
 
-The following rules should remain stable even if the schema changes:
+The following rules are stable and normative:
 
-1. `tool` must map to the canonical runtime implementation.
-2. `prompt` should be structured metadata, not arbitrary hidden prose.
-3. `policy` must be evaluated before execution.
-4. `context` should declare the minimum information required for safe execution.
+1. `tool.execute()` must map to the canonical runtime implementation — never a shadow implementation.
+2. `prompt` is structured metadata, not arbitrary hidden prose.
+3. `policy` is declarative. Enforcement belongs to the runtime/adapter, not to agent cooperation alone.
+4. `context` declares the minimum information required for safe execution.
 5. `examples` should be deterministic and minimal.
+6. The agentic surface has its own descriptive grammar (`discovery`, `context`, `prompt`, `tool`, `mcp`, `rag`, `policy`, `examples`). It does NOT carry execution slots (`_repository`, `_service`, `_composition`).
+7. When domain derivation is used, the agentic surface consumes from the domain but never overrides canonical execution paths.
 
-The presence of the surface is optional for now.
-Its behavior is not optional once the surface exists.
+## MCP Exposure
 
-## Recommended Sections
+`tool` is the canonical contract for agent execution. `mcp` is an optional exposure configuration for MCP publication.
 
-### discovery
+Fallback rules (normative — adapters must follow):
 
-Describes how an agent finds the Case:
+| Field | Resolution |
+|---|---|
+| `name` | `mcp.name` if provided, otherwise `tool.name` |
+| `description` | `mcp.description` if provided, otherwise `tool.description` |
+| `title` | `mcp.title` if provided, otherwise adapter may derive from `tool.name` |
+| `inputSchema` | Always from `tool` |
+| `outputSchema` | Always from `tool` |
+| `execute` | Always delegates to `tool.execute()` |
 
-- `name`
-- `description`
-- `aliases`
-- `tags`
-- `capabilities`
-- `category`
+`mcp` controls presence and presentation. It never redefines schemas or execution paths.
 
-### context
+## Execution Policy
 
-Describes execution prerequisites:
+`executionMode` is a declarative execution policy defined by the Case:
 
-- auth requirements
-- tenant or workspace scope
-- dependencies
-- preconditions
-- limitations
+| Mode | Semantics |
+|---|---|
+| `suggest-only` | May be suggested or prepared, but execution must not proceed automatically |
+| `manual-approval` | Requires explicit approval before proceeding |
+| `direct-execution` | May proceed without additional approval, subject to other policies |
 
-### prompt
+Policy precedence: when multiple policy fields apply, the more restrictive interpretation prevails.
 
-Describes how an agent should reason about the Case:
+## RAG Contract
 
-- goal
-- when to use
-- when not to use
-- required input shape
-- expected output shape
+The RAG contract operates in two layers:
 
-### tool
+1. **Semantic layer** — `topics`, `hints`, `scope`, `mode`: defines retrieval intent.
+2. **Reference layer** — `resources` with `kind` + `ref`: concrete references to APP-native or project-native artifacts.
 
-Describes tool exposure:
+APP does not define a RAG engine, retrieval mechanism, ranking, embedding, or search pipeline. Those responsibilities belong to the runtime.
 
-- canonical name
-- description
-- input schema
-- output schema
-- execution mapping
-
-### mcp
-
-Describes how the Case is exported into an MCP-compatible runtime.
-
-### rag
-
-Describes allowed or preferred retrieval sources and semantic hints.
-
-### policy
-
-Describes guardrails:
-
-- confirmation requirements
-- scope restrictions
-- safety constraints
-- rate or cost limits
-
-## Open Questions
-
-- Should `agentic.case.ts` be purely declarative?
-- Which schema format should be canonical: TypeScript types, JSON Schema, or both?
-- How much of MCP registration belongs in the Case versus in runtime adapters?
-- How should conformance be validated automatically?
+Recognized resource kinds: `"case"` (reference to another Case) and `"file"` (reference to a project file). New kinds may be standardized only after reference implementations demonstrate stable semantics.

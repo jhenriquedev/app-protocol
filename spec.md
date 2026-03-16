@@ -41,7 +41,7 @@ A Case:
 Examples:
 
 - `user_validate`
-- `invoice_pay`
+- `user_register`
 - `theme_toggle`
 - `ticket_assign`
 
@@ -57,9 +57,9 @@ An APP project has three canonical layers:
 
 `core/` is the protocol layer. It contains base classes for all surfaces (`domain.case.ts`, `api.case.ts`, `ui.case.ts`, `stream.case.ts`, `agentic.case.ts`) and shared contracts in `core/shared/` (contexts, infrastructure interfaces, structural types, host contracts). No business logic lives here. Every project uses the same contracts; implementations live in `cases/`.
 
-`cases/` is the capability layer. It is shared across all apps. Cases are organized by domain folder (`users/`, `billing/`) and each Case has its own folder (`user_validate/`, `invoice_pay/`). No app owns Cases — apps consume them.
+`cases/` is the capability layer. It is shared across all apps. Cases are organized by domain folder (`users/`) and each Case has its own folder (`user_validate/`, `user_register/`). No app owns Cases — apps consume them.
 
-`apps/` is the host layer. Each app is a separate runtime — a backend server, a frontend portal, a chatbot, a set of lambda functions. Each app has its own `app.ts` (bootstrap) and `registry.ts` (which Cases and surfaces to load). The protocol defines that `apps/` exists but does not dictate the internal structure of each app.
+`apps/` is the host layer. Each app is a separate runtime — a backend server, a frontend portal, a set of lambda functions. Each app has its own `app.ts` (bootstrap) and `registry.ts` (which Cases and surfaces to load). The protocol defines that `apps/` exists but does not dictate the internal structure of each app.
 
 ### 3.2 Directory layout
 
@@ -82,17 +82,14 @@ project/
 │   │   ├── user_validate/
 │   │   │   ├── user_validate.domain.case.ts
 │   │   │   ├── user_validate.api.case.ts
-│   │   │   └── user_validate.ui.case.ts
+│   │   │   ├── user_validate.ui.case.ts
+│   │   │   └── user_validate.agentic.case.ts
 │   │   └── user_register/
 │   │       ├── user_register.domain.case.ts
 │   │       ├── user_register.api.case.ts
 │   │       ├── user_register.ui.case.ts
-│   │       └── user_register.stream.case.ts
-│   └── billing/
-│       └── invoice_pay/
-│           ├── invoice_pay.domain.case.ts
-│           ├── invoice_pay.api.case.ts
-│           └── invoice_pay.stream.case.ts
+│   │       ├── user_register.stream.case.ts
+│   │       └── user_register.agentic.case.ts
 │
 └── apps/
     ├── backend/
@@ -111,7 +108,7 @@ project/
 
 Not every Case needs every surface. A Case implements only the surfaces relevant to its capability.
 
-Each app in `apps/` is a host — it has its own `registry.ts` that imports only the specific Case surfaces it needs. The backend imports `.api.case` and `.stream.case` files. The portal imports `.ui.case` files. The chatbot imports `.agentic.case` files. No app is forced to load surfaces it does not use.
+Each app in `apps/` is a host — it has its own `registry.ts` that imports only the specific Case surfaces it needs. The backend imports `.api.case` and `.stream.case` files. The portal imports `.ui.case` files. An agentic host would import `.agentic.case` files. No app is forced to load surfaces it does not use.
 
 > A centralized `cases/cases.ts` is not required at runtime. A project may optionally maintain one for tooling, documentation, or agent discovery, but no app imports it. Similarly, Case manifest files (`<case>.ts`) and domain aggregators (`<domain>.ts`) are optional convenience — the protocol does not require them.
 
@@ -120,7 +117,7 @@ Each app in `apps/` is a host — it has its own `registry.ts` that imports only
 APP defines the following shared types in `core/`:
 
 - `Dict<T>` — generic key/value map (`Record<string, T>`)
-- `AppSchema` — structural schema type, intentionally simple and runtime-neutral. May evolve toward JSON Schema in the future, but the base does not depend on any specific format.
+- `AppSchema` — structural schema type. `AppSchema` is a **compatible subset of JSON Schema (Draft 2020-12)**. Every `AppSchema` value is a valid JSON Schema document — the keywords `type`, `description`, `properties`, `items`, `required`, `enum`, and `additionalProperties` are all standard JSON Schema keywords used with their standard semantics. However, not every JSON Schema is a valid `AppSchema`: the protocol recognizes only the keywords listed above. Additional JSON Schema keywords (e.g., `format`, `minimum`, `pattern`, `oneOf`, `$ref`) are permitted in host extensions but are not guaranteed to be understood by canonical APP tooling. This controlled subset keeps the protocol simple, avoids coupling to a JSON Schema runtime, and ensures that MCP tool schemas can be derived from `AppSchema` without transformation.
 - `AppBaseContext` — shared base context for all surfaces. Contains only genuinely cross-cutting concerns: `correlationId` (required — the identity of the context, analogous to OpenTelemetry's traceId), `executionId?` (step-level identity within an operation), `tenantId?`, `userId?`, `logger` (required), `config?`. Defined in `core/shared/app_base_context.ts`.
 - Per-surface contexts extend `AppBaseContext` with surface-specific infrastructure: `ApiContext` (httpClient, db, auth, storage, cache, cases), `UiContext` (renderer, router, store, api), `StreamContext` (eventBus, queue, db, cache, cases), `AgenticContext` (cases, mcp). `BaseDomainCase` receives no context (pure by definition). Each surface defines its own canonical grammar — see Section 5.
 - `ValueObject<TProps>` — base class for immutable, value-comparable, serializable domain objects. Uses `Object.freeze` internally.
@@ -147,18 +144,21 @@ Capabilities kept as `unknown` pending semantic stabilization: `auth`, `db`, `qu
 
 APP defines canonical data shapes in `core/shared/app_structural_contracts.ts` that cross all surfaces:
 
-- `AppError` — `code: string`, `message: string`, `details?: unknown` (structured error)
+- `AppError` — `code: string`, `message: string`, `details?: unknown` (structured error interface)
+- `AppCaseError` — throwable error class that extends `Error` and implements `AppError`. Surfaces should throw `AppCaseError` for business errors (validation, authorization, composition failures). Common codes: `VALIDATION_FAILED`, `UNAUTHORIZED`, `NOT_FOUND`, `CONFLICT`, `COMPOSITION_FAILED`, `INTERNAL`
 - `AppResult<T>` — `success: boolean`, `data?: T`, `error?: AppError` (canonical result wrapper)
 - `AppPaginationParams` — `page?: number`, `limit?: number`, `cursor?: string` (pagination input; supports both offset and cursor strategies)
 - `AppPaginatedResult<T>` — `items: T[]`, `total?`, `page?`, `limit?`, `cursor?`, `hasMore?` (paginated result wrapper)
 
+Error handling pattern: surfaces throw `AppCaseError` for business errors. The `BaseApiCase.execute()` pipeline catches `AppCaseError` and returns `{ success: false, error }` as a structured `ApiResponse`. Unexpected runtime errors (not `AppCaseError`) re-throw — the host/adapter decides how to handle them. This separation allows consumers (hosts, agents, adapters) to distinguish between expected failures and unexpected crashes without parsing error messages.
+
 ### 4.3 Host Contracts
 
-APP defines minimal host contracts in `core/shared/app_host_contracts.ts` for registry and app bootstrap:
+APP defines minimal host contracts in `core/shared/app_host_contracts.ts` for registry and typing:
 
 - `AppCaseSurfaces` — describes the surfaces available for a Case within a registry. Each key is a canonical surface name (`domain`, `api`, `ui`, `stream`, `agentic`) and the value is a constructor. Only surfaces the app needs are present.
 - `AppRegistry` — the shape of a per-app registry: `Dict<Dict<AppCaseSurfaces>>` (nested map: `domain → case → surfaces`). This same shape feeds `ctx.cases` for cross-case composition.
-- `AppHost` — minimal interface for app bootstrap: `registry()` returns the app's registry, `start()` initializes the runtime. The protocol does not dictate how `start()` works internally.
+- `InferCasesMap` — utility type that derives an instance map from a registry. Converts constructors to their instance types, preserving the literal key structure for full autocomplete in `_composition`.
 
 > Registries export constructors (classes), not instances. The host instantiates on demand, passing the appropriate context. This is compatible with all deployment models.
 
@@ -201,6 +201,7 @@ Required members:
 - `description()` — semantic description of the capability
 - `inputSchema()` — structural input contract (`AppSchema`)
 - `outputSchema()` — structural output contract (`AppSchema`)
+- `test()` — validates schemas, invariants, and examples internally
 
 Optional members:
 
@@ -213,6 +214,10 @@ Optional members:
 Utility:
 
 - `definition()` — returns consolidated domain metadata for tooling and derivation
+
+Integration model:
+
+> The domain surface is consumed **manually** by other surfaces. The protocol does not auto-wire `domain.validate()` into the API pipeline or any other surface pipeline. This is by design: the domain is a semantic source of truth for humans, agents, and tooling — not a runtime middleware. Each surface decides if and how to consume domain artifacts. The `agentic` surface demonstrates derived consumption via `domain()` method.
 
 Forbidden:
 
@@ -250,18 +255,17 @@ Optional members:
 
 - `router()` — transport bindings (HTTP routes, gRPC definitions, CLI commands)
 
-Protected hooks:
+Protected hooks (all optional):
 
 - `_validate(input)` — input validation before execution
 - `_authorize(input)` — authorization check
 - `_repository()` — canonical persistence/integration slot (no cross-case calls)
-- `_service(input)` — atomic business logic (Case atômico)
-- `_composition(input)` — cross-case orchestration via `ctx.cases` (Case composto)
-- `_present(output)` — output transformation
+- `_service(input)` — atomic business logic (Case atômico; optional hook)
+- `_composition(input)` — cross-case orchestration via `ctx.cases` (Case composto; optional hook)
 
 > `handler` is the capability entrypoint — it receives business input and returns business result. It is not an HTTP endpoint. Transport bindings (HTTP routes, gRPC, CLI) live in `router()` or in the adapter/host. The `router()` delegates to `handler()` and never contains business logic.
 >
-> `_service` and `_composition` are mutually exclusive as the primary execution slot. Atomic Cases implement `_service`; composed Cases implement `_composition`. The `execute()` pipeline resolves: if `_composition` exists, it is used; otherwise `_service`.
+> `_service` and `_composition` are mutually exclusive as the primary execution slot. Atomic Cases implement `_service`; composed Cases implement `_composition`. Both hooks are optional individually, but the `execute()` pipeline requires that at least one of them exist. If `_composition` exists, it is used; otherwise `_service`.
 
 ### 5.3 UI Surface
 
@@ -316,6 +320,8 @@ Purpose:
 - idempotency
 - pipelines
 
+Canonical event shape: `StreamEvent<T>` — `type` (required), `payload` (required), `idempotencyKey?` (optional — deduplication key for at-least-once brokers such as SQS, Kafka, EventBridge), `metadata?` (optional).
+
 Base contract: `BaseStreamCase<TInput, TOutput>`
 
 Required members:
@@ -366,6 +372,7 @@ Required members:
 - `context()` — `AgenticExecutionContext` (auth, tenant, dependencies, preconditions, constraints)
 - `prompt()` — `AgenticPrompt` (purpose, whenToUse, whenNotToUse, constraints, reasoningHints, expectedOutcome)
 - `tool()` — `AgenticToolContract` (name, description, inputSchema, outputSchema, isMutating, requiresConfirmation, execute)
+- `test()` — validates the agentic surface (definition integrity, tool execution, contract consistency)
 
 Optional members:
 
@@ -477,7 +484,7 @@ Each app in `apps/` is a host that consumes Cases. A host is responsible for:
 
 The protocol defines that `apps/` exists and that each app has an `app.ts` (bootstrap) and a `registry.ts` (Case registration). The protocol does not dictate the internal structure of each app — framework choice, function organization, routing strategy, and deployment model are project decisions.
 
-A project typically has multiple apps. Common examples: `backend` (server or API functions), `portal` (customer-facing frontend), `admin` (internal management frontend), `chatbot` (agentic interface), `lambdas` (serverless functions), `worker` (background job processor).
+A project typically has multiple apps. Common examples: `backend` (server or API functions), `portal` (customer-facing frontend), `admin` (internal management frontend), `lambdas` (serverless functions), `worker` (background job processor), `chatbot` (agentic host — AI agent interface exposing tools via MCP or direct invocation).
 
 ### 7.2 Registry
 
@@ -562,7 +569,7 @@ for (const [domain, cases] of Object.entries(registry)) {
 
 Each feature (domain) becomes a single lambda function containing all Cases of that domain. The lambda resolves which Case to execute based on the incoming route or event type.
 
-A feature is a domain group (e.g. `users`, `billing`). The lambda "users" contains `user_validate` + `user_register`. On cold start, the lambda builds a route table from the `router()` of each Case in that feature. On invocation, it matches the path and delegates to the correct `handler()`.
+A feature is a domain group (e.g. `users`). The lambda "users" contains `user_validate` + `user_register`. On cold start, the lambda builds a route table from the `router()` of each Case in that feature. On invocation, it matches the path and delegates to the correct `handler()`.
 
 ```ts
 // apps/lambdas/app.ts — one lambda per feature
@@ -582,7 +589,6 @@ export function createFeatureHttpHandler(featureName: string) {
 
 // Each export becomes a lambda in the deploy config
 export const usersHttp = createFeatureHttpHandler("users");
-export const billingHttp = createFeatureHttpHandler("billing");
 ```
 
 For stream events, the same model applies: the lambda builds a subscription map from `subscribe()` of each stream Case, and dispatches by event type.
@@ -647,9 +653,105 @@ An implementation is APP-aligned when it preserves these invariants:
 3. Domain semantics stay pure.
 4. Cross-case coupling remains explicit and minimal.
 5. Agentic execution maps back to canonical code paths.
-6. Every surface that implements a base contract provides a `test()` method.
+6. Every surface that implements a base contract provides a `test(): Promise<void>` method. The canonical signature takes no arguments and returns `Promise<void>` — tests create their own inputs internally and assert results. See §8.1 for the canonical test model.
 
 Formal conformance tooling is planned, but not yet defined.
+
+### 8.1 Canonical Test Model
+
+The `test()` method is the Case's self-contained proof of correctness. It is not a unit test in the xUnit sense — it is a **conformance test** that validates the surface contract from inside the Case itself.
+
+**Principle:** the test belongs to the Case, not to the test runner. A Case that passes `test()` is asserting that its own contract is internally consistent and that its public capabilities produce expected results for known inputs. The protocol does not mandate a test runner, assertion library, or isolation framework — `test()` throws on failure, returns on success.
+
+**Canonical structure — phased, integrated, single method.**
+
+A `test()` method is organized in sequential phases. Each phase validates a layer of the Case. All phases run inside the same `test()` call. There is no separate test file — the test lives inside the surface class.
+
+The phases follow the surface's own layering: structural integrity first, then individual slot behavior, then integrated execution. The exact phases depend on the surface type, but the pattern is consistent:
+
+**Domain surface phases:**
+
+```
+Phase 1 — Definition integrity
+  definition() returns valid caseName, description, inputSchema, outputSchema
+
+Phase 2 — Validation behavior
+  validate() accepts known-valid input without throwing
+  validate() rejects known-invalid input (throws)
+
+Phase 3 — Examples consistency
+  examples() entries with valid=true pass validate()
+  examples() entries with errors have expected output shape
+```
+
+**API surface phases:**
+
+```
+Phase 1 — Slot availability
+  At least one of _service or _composition is implemented
+  _validate and _authorize are callable (if present)
+
+Phase 2 — Validation and authorization
+  _validate() accepts valid input without throwing
+  _validate() rejects invalid input (throws)
+  _authorize() completes without error (if present)
+
+Phase 3 — Integrated execution
+  handler() with known-valid input returns { success: true, data }
+  data has expected shape
+```
+
+**Stream surface phases:**
+
+```
+Phase 1 — Subscription shape
+  subscribe() returns expected topic/binding
+
+Phase 2 — Pipeline slots
+  _consume() extracts payload correctly (if present)
+  _service() processes extracted data (if present)
+
+Phase 3 — Integrated execution
+  handler() with synthetic event completes without error
+```
+
+**UI surface phases:**
+
+```
+Phase 1 — View renders
+  view() returns a non-null result
+
+Phase 2 — Slot behavior
+  _viewmodel() produces a valid presentation model (if present)
+  _service() performs expected state transformations (if present)
+
+Phase 3 — Integrated round-trip
+  setState() + view() produces updated output
+```
+
+**Agentic surface phases:**
+
+```
+Phase 1 — Definition integrity
+  validateDefinition() passes (discovery, tool, prompt are consistent)
+
+Phase 2 — Contract consistency
+  tool.inputSchema matches expected shape
+  prompt.purpose is non-empty
+  mcp, if enabled, has valid name
+
+Phase 3 — Tool execution
+  tool.execute() with known input produces expected output
+```
+
+**Key constraints:**
+
+- `test()` creates its own data internally — no external fixtures or dependency injection.
+- `test()` uses `throw` for assertion — no dependency on assertion libraries.
+- `test()` validates the surface as a whole — phases are conceptual organization, not separate methods.
+- `test()` is synchronous in intent: phases run sequentially, each building on the previous.
+- A Case with multiple layers (e.g., API with `_validate`, `_authorize`, `_composition`) tests all layers in a single `test()` call. This is the "phased but integrated" model.
+- The protocol does not prescribe mocking. If a slot needs infrastructure (e.g., `_repository` needs a DB), the test may skip that slot or use a minimal in-memory substitute. The goal is contract verification, not full integration testing.
 
 ## 9. Non-Goals
 
@@ -659,6 +761,9 @@ APP does not currently define:
 - a framework-specific implementation
 - a package manager model
 - a production-ready MCP server format
+- an SDK or importable library — APP is a protocol, not a framework. Base classes in `core/` are illustrative reference implementations, not runtime dependencies. Projects adopt the protocol by following the canonical structure, not by importing a package.
+- a CLI or scaffold tool — Case generation is delegated to AI-powered tooling (skill `/app`, planned for v0.0.4+), which adapts to the project's language and context. Static templates cannot match this flexibility.
+- lifecycle hooks (`onInit`, `onDestroy`, etc.) — Case lifecycle is managed by the host, not by the protocol. Lambda hosts have no lifecycle; monolith hosts may implement lifecycle management as host-specific infrastructure. The protocol intentionally does not prescribe lifecycle contracts to avoid coupling Cases to a specific hosting model.
 
 ## 10. Naming
 
@@ -671,10 +776,23 @@ This distinction is useful because the philosophy may grow beyond the current sp
 
 ## 11. Open Work
 
-The highest-priority gaps are:
+### v0.0.4 — Validation and Completeness
 
-1. reference implementations
-2. conformance tests and lint rules
-3. versioning and release discipline for the spec itself
+- Validate `apps/chatbot/` consuming agentic surfaces end-to-end with MCP SDK
+- Standalone example in `examples/typescript/`
+- Automated test runner for illustrative code (`test()` invocation per Case)
+- Document error recovery patterns for stream (DLQ, circuit breaker, retry)
+- Document cross-surface composition (API + Stream coordination, event emission)
+- Define `packages/` as fourth canonical layer (design system, adapters, utils, plugins)
 
-Recommended versus optional versus required protocol details will be frozen after clearer practical examples exist across multiple languages and ecosystems.
+### v0.0.4/v0.0.5 — Skill `/app`
+
+- AI-powered skill for APP development: conformance validation, Case scaffold, guided development cycle, refactoring — language-agnostic by design
+- Replaces traditional linter (infeasible across languages) and CLI scaffold (APP is protocol, not framework)
+
+### v0.0.5+ — Operational Platform
+
+- APP project → MCP server adapter (automatic tool exposure from agentic registry)
+- Multi-language reference implementations (Python, Go, .NET) generated and maintained by skill `/app`
+- Migration guide for existing projects
+- Explicit documentation of architectural principles (SOLID, clean code, design patterns) that APP induces

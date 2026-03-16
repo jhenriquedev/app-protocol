@@ -52,9 +52,28 @@ export class UserRegisterStream extends BaseStreamCase<
    * Public — test
    * ===================================================================== */
 
-  public async test(
-    event: StreamEvent<UserRegisterOutput>
-  ): Promise<void> {
+  public async test(): Promise<void> {
+    // Phase 1 — Subscription shape
+    const sub = this.subscribe() as { topic?: string } | undefined;
+    if (!sub?.topic) throw new Error("test: subscribe() must return a topic");
+
+    // Phase 2 — Pipeline slots
+    const event: StreamEvent<UserRegisterOutput> = {
+      type: "user_registered",
+      payload: {
+        id: "test-id",
+        email: "test@example.com",
+        name: "Test User",
+        createdAt: new Date().toISOString(),
+      },
+    };
+
+    if (this._consume) {
+      const consumed = await this._consume(event);
+      if (!consumed.id) throw new Error("test: _consume should return payload with id");
+    }
+
+    // Phase 3 — Integrated execution
     await this.handler(event);
   }
 
