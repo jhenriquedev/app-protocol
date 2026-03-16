@@ -44,7 +44,7 @@ export class UserValidateAgenticCase extends BaseAgenticCase<
 ### Required Members
 
 | Method | Returns | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `discovery()` | `AgenticDiscovery` | name, description, category, tags, aliases, capabilities, intents |
 | `context()` | `AgenticExecutionContext` | auth, tenant, dependencies, preconditions, constraints |
 | `prompt()` | `AgenticPrompt` | purpose, whenToUse, whenNotToUse, constraints, reasoningHints, expectedOutcome |
@@ -54,7 +54,7 @@ export class UserValidateAgenticCase extends BaseAgenticCase<
 ### Optional Members
 
 | Method | Returns | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `mcp()` | `AgenticMcpContract \| undefined` | MCP exposure config with normative fallback to `tool` |
 | `rag()` | `AgenticRagContract \| undefined` | topics, resources, hints, scope, mode |
 | `policy()` | `AgenticPolicy \| undefined` | requireConfirmation, requireAuth, requireTenant, riskLevel, executionMode, limits |
@@ -63,7 +63,7 @@ export class UserValidateAgenticCase extends BaseAgenticCase<
 ### Utility Methods (inherited from base)
 
 | Method | Purpose |
-|---|---|
+| --- | --- |
 | `definition()` | Returns the consolidated `AgenticDefinition` object |
 | `execute(input)` | Shortcut for `tool().execute(input, ctx)` |
 | `isMcpEnabled()` | Checks MCP readiness |
@@ -76,7 +76,7 @@ export class UserValidateAgenticCase extends BaseAgenticCase<
 The agentic surface supports an optional connection to `domain.case.ts` via the protected `domain()` method. When provided, the following can be derived instead of being defined manually:
 
 | Helper | Derives from |
-|---|---|
+| --- | --- |
 | `domainDescription()` | `domain.description()` |
 | `domainCaseName()` | `domain.caseName()` |
 | `domainInputSchema()` | `domain.inputSchema()` |
@@ -138,7 +138,7 @@ The following rules are stable and normative:
 Fallback rules (normative — adapters must follow):
 
 | Field | Resolution |
-|---|---|
+| --- | --- |
 | `name` | `mcp.name` if provided, otherwise `tool.name` |
 | `description` | `mcp.description` if provided, otherwise `tool.description` |
 | `title` | `mcp.title` if provided, otherwise adapter may derive from `tool.name` |
@@ -153,7 +153,7 @@ Fallback rules (normative — adapters must follow):
 `executionMode` is a declarative execution policy defined by the Case:
 
 | Mode | Semantics |
-|---|---|
+| --- | --- |
 | `suggest-only` | May be suggested or prepared, but execution must not proceed automatically |
 | `manual-approval` | Requires explicit approval before proceeding |
 | `direct-execution` | May proceed without additional approval, subject to other policies |

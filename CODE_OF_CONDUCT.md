@@ -59,4 +59,4 @@ possible. Public issues should not be used for personal safety reports.
 ## Attribution
 
 This Code of Conduct is adapted from the Contributor Covenant, version 2.1:
-https://www.contributor-covenant.org/version/2/1/code_of_conduct.html
+[Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct.html)

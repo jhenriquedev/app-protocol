@@ -609,6 +609,7 @@ Execution policy:
 > `executionMode` is a declarative execution policy defined by the Case. Agents may consume this field for planning, UX, and interaction flow. However, enforcement must not depend solely on agent cooperation. The primary enforcement responsibility belongs to the runtime, adapter, gateway, or other host execution layer that mediates tool execution. APP does not mandate a specific enforcement mechanism, but implementations must ensure that the declared policy is respected before execution proceeds.
 >
 > Mode semantics:
+>
 > - `suggest-only`: the capability may be suggested or prepared, but execution must not proceed automatically
 > - `manual-approval`: execution requires explicit approval before proceeding
 > - `direct-execution`: execution may proceed without an additional approval step, subject to other policies
@@ -620,6 +621,7 @@ MCP exposure:
 > `tool` is the canonical contract for agent execution. `mcp` is an optional MCP exposure configuration with normative fallback to `tool`.
 >
 > When `mcp` is defined, the MCP adapter constructs the exposed contract as follows:
+>
 > - `name`: uses `mcp.name` if provided, otherwise falls back to `tool.name`
 > - `description`: uses `mcp.description` if provided, otherwise falls back to `tool.description`
 > - `title`: uses `mcp.title` if provided; otherwise the adapter may derive a display title from `tool.name`
@@ -878,7 +880,7 @@ The phases follow the surface's own layering: structural integrity first, then i
 
 **Domain surface phases:**
 
-```
+```text
 Phase 1 — Definition integrity
   definition() returns valid caseName, description, inputSchema, outputSchema
 
@@ -893,7 +895,7 @@ Phase 3 — Examples consistency
 
 **API surface phases:**
 
-```
+```text
 Phase 1 — Slot availability
   At least one of _service or _composition is implemented
   _validate and _authorize are callable (if present)
@@ -910,7 +912,7 @@ Phase 3 — Integrated execution
 
 **Stream surface phases:**
 
-```
+```text
 Phase 1 — Subscription shape
   subscribe() returns expected topic/binding
 
@@ -924,7 +926,7 @@ Phase 3 — Integrated execution
 
 **UI surface phases:**
 
-```
+```text
 Phase 1 — View renders
   view() returns a non-null result
 
@@ -938,7 +940,7 @@ Phase 3 — Integrated round-trip
 
 **Agentic surface phases:**
 
-```
+```text
 Phase 1 — Definition integrity
   validateDefinition() passes (discovery, tool, prompt are consistent)
 
