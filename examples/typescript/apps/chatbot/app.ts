@@ -105,7 +105,7 @@ export function bootstrap() {
       packages: registry._packages,
       mcp: {
         serverName: "task-manager-chatbot",
-        version: "1.0.0",
+        version: "1.0.1",
       },
     };
 

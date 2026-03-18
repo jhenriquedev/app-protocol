@@ -1,46 +1,46 @@
 /* ========================================================================== *
- * APP v1.0.0
+ * APP v1.0.1
  * core/domain.case.ts
  * ----------------------------------------------------------------------------
- * Contrato base da surface de domínio no APP.
+ * Base contract for the APP domain surface.
  *
- * Papel desta surface:
- * - representar a fonte de verdade semântica de um Case
- * - definir estruturas, invariantes e validações puras
- * - expor contratos estruturais de entrada e saída
+ * Role of this surface:
+ * - represent the semantic source of truth for a Case
+ * - define pure structures, invariants, and validations
+ * - expose structural input and output contracts
  *
- * O domínio NÃO deve:
- * - acessar infraestrutura
- * - executar side effects
- * - conhecer HTTP, banco, filas ou UI
+ * The domain MUST NOT:
+ * - access infrastructure
+ * - perform side effects
+ * - know about HTTP, databases, queues, or UI
  *
- * O domínio PODE:
- * - expor value objects
- * - expor enums
- * - validar entrada semanticamente
- * - expor inputSchema/outputSchema
- * - expor exemplos semânticos
+ * The domain MAY:
+ * - expose value objects
+ * - expose enums
+ * - validate input semantically
+ * - expose inputSchema/outputSchema
+ * - expose semantic examples
  * ========================================================================== */
 
 /**
- * Estrutura genérica de mapa chave/valor.
+ * Generic key/value map structure.
  */
 export type Dict<T = unknown> = Record<string, T>;
 
 /**
- * Schema estrutural do APP — subconjunto compatível de JSON Schema (Draft 2020-12).
+ * APP structural schema — compatible subset of JSON Schema (Draft 2020-12).
  *
- * Todo AppSchema é um JSON Schema válido. As keywords reconhecidas pelo
- * protocolo são: type, description, properties, items, required, enum,
- * additionalProperties. Essas keywords usam a mesma semântica do JSON Schema.
+ * Every AppSchema is a valid JSON Schema. The keywords recognized by the
+ * protocol are: type, description, properties, items, required, enum,
+ * additionalProperties. These keywords use the same semantics as JSON Schema.
  *
- * Keywords adicionais (format, minimum, pattern, oneOf, $ref, etc.) são
- * permitidas em extensões do host mas não são garantidas pelo tooling canônico.
+ * Additional keywords (format, minimum, pattern, oneOf, $ref, etc.) are
+ * allowed in host extensions but are not guaranteed by canonical tooling.
  *
- * Isso permite que:
- * - MCP tool schemas sejam derivados de AppSchema sem transformação
- * - Validadores JSON Schema (Ajv, etc.) validem inputs diretamente
- * - O protocolo mantenha controle sobre o que o tooling precisa suportar
+ * This allows:
+ * - MCP tool schemas to be derived from AppSchema without transformation
+ * - JSON Schema validators (Ajv, etc.) to validate inputs directly
+ * - the protocol to keep control over what tooling needs to support
  */
 export type AppSchema = {
   type: string;
@@ -53,47 +53,47 @@ export type AppSchema = {
 };
 
 /**
- * Exemplo semântico do domínio.
+ * Semantic domain example.
  *
- * Pode ser usado por:
- * - documentação
+ * It may be used for:
+ * - documentation
  * - tooling
  * - agentic.case.ts
  */
 export interface DomainExample<TInput = unknown, TOutput = unknown> {
   /**
-   * Nome curto do cenário.
+   * Short scenario name.
    */
   name: string;
 
   /**
-   * Descrição opcional do cenário.
+   * Optional scenario description.
    */
   description?: string;
 
   /**
-   * Entrada do cenário.
+   * Scenario input.
    */
   input: TInput;
 
   /**
-   * Saída esperada, quando aplicável.
+   * Expected output, when applicable.
    */
   output?: TOutput;
 
   /**
-   * Observações adicionais.
+   * Additional notes.
    */
   notes?: string[];
 }
 
 /**
- * Classe base para Value Objects.
+ * Base class for Value Objects.
  *
- * Características:
- * - imutável
- * - comparável por valor
- * - serializável
+ * Characteristics:
+ * - immutable
+ * - comparable by value
+ * - serializable
  */
 export abstract class ValueObject<TProps> {
   protected readonly props: Readonly<TProps>;
@@ -103,18 +103,18 @@ export abstract class ValueObject<TProps> {
   }
 
   /**
-   * Retorna representação serializável do objeto.
+   * Returns a serializable representation of the object.
    */
   public toJSON(): TProps {
     return this.props as TProps;
   }
 
   /**
-   * Compara dois value objects por valor.
+   * Compares two value objects by value.
    *
-   * Observação:
-   * Esta implementação usa serialização simples.
-   * Em domínios mais sensíveis, pode ser sobrescrita.
+   * Note:
+   * This implementation uses simple serialization.
+   * In more sensitive domains, it may be overridden.
    */
   public equals(other?: ValueObject<TProps>): boolean {
     if (!other) return false;
@@ -123,89 +123,89 @@ export abstract class ValueObject<TProps> {
 }
 
 /**
- * Contrato base da surface de domínio.
+ * Base contract for the domain surface.
  *
- * Esta classe existe para:
- * - padronizar a semântica do Case
- * - permitir introspecção por tooling
- * - permitir derivação controlada pela surface agentic
+ * This class exists to:
+ * - standardize Case semantics
+ * - allow introspection by tooling
+ * - allow controlled derivation by the agentic surface
  */
 export abstract class BaseDomainCase<TInput = unknown, TOutput = unknown> {
   /* ========================================================================
-   * Metadados semânticos obrigatórios
+   * Required semantic metadata
    * ====================================================================== */
 
   /**
-   * Nome canônico do Case.
+   * Canonical Case name.
    *
-   * Exemplo:
+   * Example:
    * - "user_validate"
    * - "invoice_pay"
    */
   public abstract caseName(): string;
 
   /**
-   * Descrição semântica da capacidade.
+   * Semantic description of the capability.
    *
-   * Deve explicar o que a capacidade faz em termos de domínio,
-   * e não em termos de infraestrutura.
+   * It must explain what the capability does in domain terms,
+   * not in infrastructure terms.
    */
   public abstract description(): string;
 
   /**
-   * Schema semântico de entrada.
+   * Semantic input schema.
    *
-   * Este schema deve representar a estrutura conceitual esperada
-   * pela capacidade, e não necessariamente o envelope técnico de transporte.
+   * This schema must represent the conceptual structure expected
+   * by the capability, not necessarily the technical transport envelope.
    */
   public abstract inputSchema(): AppSchema;
 
   /**
-   * Schema semântico de saída.
+   * Semantic output schema.
    *
-   * Deve descrever o resultado conceitual da capacidade.
+   * It must describe the conceptual result of the capability.
    */
   public abstract outputSchema(): AppSchema;
 
   /* ========================================================================
-   * Seções opcionais
+   * Optional sections
    * ====================================================================== */
 
   /**
-   * Validação pura da entrada.
+   * Pure input validation.
    *
-   * Deve lançar erro se a entrada for inválida do ponto de vista do domínio.
+   * It must throw if the input is invalid from a domain perspective.
    *
-   * Importante:
-   * - sem side effects
-   * - sem acesso a infraestrutura
+   * Important:
+   * - no side effects
+   * - no infrastructure access
    */
   public validate?(input: TInput): void;
 
   /**
-   * Lista de invariantes do domínio.
+   * List of domain invariants.
    *
-   * Útil para:
-   * - documentação
-   * - agentes
-   * - lint futuro do protocolo
+   * Useful for:
+   * - documentation
+   * - agents
+   * - future protocol linting
    */
   public invariants?(): string[];
 
   /**
-   * Value objects expostos por este domínio.
+   * Value objects exposed by this domain.
    *
-   * Retornar um mapa com nome -> implementação.
+   * Return a name -> implementation map.
    */
   public valueObjects?(): Dict<unknown>;
 
   /**
-   * Enums expostos por este domínio.
+   * Enums exposed by this domain.
    */
   public enums?(): Dict<unknown>;
 
   /**
-   * Exemplos semânticos do domínio.
+   * Semantic domain examples.
    */
   public examples?(): DomainExample<TInput, TOutput>[];
 
@@ -214,27 +214,27 @@ export abstract class BaseDomainCase<TInput = unknown, TOutput = unknown> {
    * ====================================================================== */
 
   /**
-   * Teste interno da surface de domínio.
+   * Internal test for the domain surface.
    *
-   * Boa prática recomendada no APP — surfaces idealmente expõem um
-   * método test() para validação autocontida do contrato.
+   * Recommended APP practice — surfaces should ideally expose a
+   * test() method for self-contained contract validation.
    *
-   * Assinatura canônica: test(): Promise<void>
-   * O teste valida schemas, invariantes e exemplos internamente.
+   * Canonical signature: test(): Promise<void>
+   * The test validates schemas, invariants, and examples internally.
    */
   public async test(): Promise<void> {}
 
   /* ========================================================================
-   * Métodos utilitários públicos
+   * Public utility methods
    * ====================================================================== */
 
   /**
-   * Retorna a definição consolidada do domínio.
+   * Returns the consolidated domain definition.
    *
-   * Útil para:
+   * Useful for:
    * - tooling
-   * - documentação
-   * - derivação agentic
+   * - documentation
+   * - agentic derivation
    */
   public definition() {
     return {

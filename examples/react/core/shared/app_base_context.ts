@@ -1,37 +1,37 @@
 /* ========================================================================== *
- * APP v1.0.0
+ * APP v1.0.1
  * core/shared/app_base_context.ts
  * ----------------------------------------------------------------------------
- * Contexto base compartilhado do APP.
+ * Shared APP base context.
  *
- * Este contrato define o mínimo que qualquer surface pode precisar:
- * identidade da execução, identidade do usuário e observabilidade.
+ * This contract defines the minimum any surface may need:
+ * execution identity, user identity, and observability.
  *
- * Cada surface estende este contexto com suas necessidades específicas:
+ * Each surface extends this context with its specific needs:
  * - ApiContext   → http, db, auth
  * - UiContext    → framework renderer, client router, store
  * - StreamContext → eventBus, queue adapters, retry
  * - AgenticContext → cases registry, MCP runtime
  *
- * O domain.case.ts não recebe contexto — ele é puro por definição.
+ * domain.case.ts does not receive context — it is pure by definition.
  *
- * Decisões de design:
+ * Design decisions:
  *
- * 1. correlationId é a identidade da operação completa.
- *    Uma request que entra pela API, dispara um evento no stream,
- *    aciona um agente que chama outro Case — tudo carrega o mesmo
- *    correlationId. Equivale ao traceId no OpenTelemetry.
- *    Se não fornecido pelo caller, deve ser gerado automaticamente.
+ * 1. correlationId is the identity of the full operation.
+ *    A request entering through the API, emitting an event to the stream,
+ *    triggering an agent that calls another Case — all of it carries the same
+ *    correlationId. It is equivalent to traceId in OpenTelemetry.
+ *    If not provided by the caller, it must be generated automatically.
  *
- * 2. executionId é a identidade de cada etapa dentro da operação.
- *    Quando a API valida input, isso é uma execução. Quando o stream
- *    consome o evento resultante, é outra execução. Todos compartilham
- *    o mesmo correlationId, mas cada um tem seu próprio executionId.
- *    É opcional — nem toda execução precisa de granularidade de etapa.
+ * 2. executionId is the identity of each step within the operation.
+ *    When the API validates input, that is one execution. When the stream
+ *    consumes the resulting event, that is another execution. All executions
+ *    share the same correlationId, but each has its own executionId.
+ *    It is optional — not every execution needs step-level granularity.
  *
- * 3. Apenas informações cross-cutting vivem aqui.
- *    Infraestrutura específica (http, db, eventBus, renderer)
- *    pertence ao contexto de cada surface.
+ * 3. Only cross-cutting information lives here.
+ *    Specific infrastructure (http, db, eventBus, renderer)
+ *    belongs in each surface's own context.
  * ========================================================================== */
 
 import { Dict } from "../domain.case";
@@ -39,14 +39,14 @@ import { Dict } from "../domain.case";
 /* ==========================================================================
  * Logger contract
  * --------------------------------------------------------------------------
- * Contrato mínimo de observabilidade.
+ * Minimum observability contract.
  *
- * Todo logger no APP deve implementar esta interface.
- * Implementações concretas podem estender com níveis adicionais,
- * structured logging, ou integração com plataformas de observabilidade.
+ * Every logger in APP must implement this interface.
+ * Concrete implementations may extend it with additional levels,
+ * structured logging, or integration with observability platforms.
  *
- * O meta aceita Dict para permitir campos contextuais como:
- * - correlationId (injetado automaticamente pelo runtime)
+ * meta accepts Dict to allow contextual fields such as:
+ * - correlationId (automatically injected by the runtime)
  * - executionId
  * - caseName
  * - surface
@@ -62,73 +62,73 @@ export interface AppLogger {
 /* ==========================================================================
  * AppBaseContext
  * --------------------------------------------------------------------------
- * Contexto base compartilhado por todas as surfaces que recebem contexto.
+ * Base context shared by all surfaces that receive context.
  *
- * Este contrato é intencionalmente enxuto.
- * Ele carrega apenas o que é genuinamente transversal:
- * - rastreabilidade (correlationId, executionId)
- * - identidade (tenantId, userId)
- * - observabilidade (logger)
- * - configuração (config)
+ * This contract is intentionally lean.
+ * It carries only what is genuinely cross-cutting:
+ * - traceability (correlationId, executionId)
+ * - identity (tenantId, userId)
+ * - observability (logger)
+ * - configuration (config)
  *
- * Tudo que é específico de infraestrutura pertence ao contexto
- * da surface correspondente (ApiContext, UiContext, etc.).
+ * Everything infrastructure-specific belongs to the context
+ * of the corresponding surface (ApiContext, UiContext, etc.).
  * ========================================================================== */
 
 export interface AppBaseContext {
   /**
-   * Identidade da operação completa.
+   * Identity of the full operation.
    *
-   * Todas as surfaces, Cases e boundaries que participam da mesma
-   * operação devem compartilhar o mesmo correlationId.
+   * All surfaces, Cases, and boundaries participating in the same
+   * operation must share the same correlationId.
    *
    * Equivalente ao traceId no OpenTelemetry.
    *
-   * Se não fornecido pelo caller, o runtime deve gerar automaticamente
-   * (UUID v4 ou formato equivalente).
+   * If not provided by the caller, the runtime must generate it automatically
+   * (UUID v4 or an equivalent format).
    */
   correlationId: string;
 
   /**
-   * Identidade da etapa atual dentro da operação.
+   * Identity of the current step within the operation.
    *
-   * Cada surface ou passo de execução pode gerar seu próprio executionId
-   * para permitir rastreio granular dentro de uma mesma operação.
+   * Each surface or execution step may generate its own executionId
+   * to allow granular tracing within the same operation.
    *
-   * Opcional — nem toda execução precisa de granularidade de etapa.
+   * Optional — not every execution needs step-level granularity.
    */
   executionId?: string;
 
   /**
-   * Identificador do tenant.
+   * Tenant identifier.
    *
-   * Opcional — nem todo sistema é multi-tenant.
+   * Optional — not every system is multi-tenant.
    */
   tenantId?: string;
 
   /**
-   * Identificador do usuário autenticado.
+   * Authenticated user identifier.
    *
-   * Opcional — nem toda operação exige autenticação.
+   * Optional — not every operation requires authentication.
    */
   userId?: string;
 
   /**
-   * Logger canônico do APP.
+   * Canonical APP logger.
    *
-   * Obrigatório — toda surface que recebe contexto deve ter
-   * acesso a observabilidade.
+   * Required — every surface that receives context must have
+   * access to observability.
    *
-   * Implementações são incentivadas a injetar correlationId
-   * e executionId automaticamente em cada entrada de log.
+   * Implementations are encouraged to inject correlationId
+   * and executionId automatically into each log entry.
    */
   logger: AppLogger;
 
   /**
-   * Configuração do host.
+   * Host configuration.
    *
-   * Espaço livre para o projeto injetar configurações
-   * de runtime, feature flags, ou parâmetros de ambiente.
+   * Free space for the project to inject runtime configuration,
+   * feature flags, or environment parameters.
    */
   config?: Dict;
 }

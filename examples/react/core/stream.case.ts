@@ -1,25 +1,25 @@
 /* ========================================================================== *
- * APP v1.0.0
+ * APP v1.0.1
  * core/stream.case.ts
  * ----------------------------------------------------------------------------
- * Contrato base da surface de stream no APP.
+ * Base contract for the APP stream surface.
  *
- * Representa execução orientada a eventos.
+ * Represents event-driven execution.
  *
- * Responsabilidade:
- * - consumir eventos
- * - processar lógica de negócio (service) ou orquestrar (composition)
- * - produzir novos eventos ou side effects
+ * Responsibility:
+ * - consume events
+ * - process business logic (service) or orchestrate (composition)
+ * - produce new events or side effects
  *
- * Usado para:
- * - filas
+ * Used for:
+ * - queues
  * - webhooks
  * - event bus
- * - pipelines assíncronos
+ * - asynchronous pipelines
  *
- * Contexto:
- * - StreamContext estende AppBaseContext com infraestrutura de eventos
- * - cada projeto define os tipos concretos de eventBus, queue, etc.
+ * Context:
+ * - StreamContext extends AppBaseContext with event infrastructure
+ * - each project defines the concrete types for eventBus, queue, etc.
  * ========================================================================== */
 
 import { Dict } from "./domain.case";
@@ -30,16 +30,16 @@ import { AppEventPublisher, AppCache } from "./shared/app_infra_contracts";
 /* ==========================================================================
  * StreamContext
  * --------------------------------------------------------------------------
- * Contexto específico da surface de stream.
+ * Stream surface-specific context.
  *
- * Estende AppBaseContext com infraestrutura de eventos:
- * - eventBus: event publisher (publish side only — consume is in stream surface)
- * - queue: acesso a filas (unknown — precisa de nota normativa distinguindo de eventBus)
- * - db: acesso a banco (unknown — sem contrato estável)
- * - cache: cache com TTL
+ * Extends AppBaseContext with event infrastructure:
+ * - eventBus: event publisher (publish side only — consume lives in the stream surface)
+ * - queue: queue access (unknown — needs a normative note distinguishing it from eventBus)
+ * - db: database access (unknown — no stable contract)
+ * - cache: cache with TTL
  *
- * Campos com contrato mínimo usam interfaces de app_infra_contracts.ts.
- * Campos sem semântica estável permanecem unknown.
+ * Fields with a minimum contract use interfaces from app_infra_contracts.ts.
+ * Fields without stable semantics remain unknown.
  * ========================================================================== */
 
 export interface StreamContext extends AppBaseContext {
@@ -49,55 +49,55 @@ export interface StreamContext extends AppBaseContext {
    * Covers the publish side of event-driven communication.
    * The consume/subscribe side is modeled by BaseStreamCase.subscribe().
    *
-   * Exemplos: Kafka producer, RabbitMQ channel, Redis Pub/Sub publisher.
+   * Examples: Kafka producer, RabbitMQ channel, Redis Pub/Sub publisher.
    */
   eventBus?: AppEventPublisher;
 
   /**
-   * Acesso a filas.
+   * Queue access.
    *
-   * Mantido como unknown — próximo demais de eventBus, precisa de
-   * nota normativa distinguindo antes de receber contrato mínimo.
+   * Kept as unknown — it is too close to eventBus and needs
+   * a normative note distinguishing it before receiving a minimum contract.
    *
-   * Exemplos: SQS client, BullMQ queue, Cloud Tasks.
+   * Examples: SQS client, BullMQ queue, Cloud Tasks.
    */
   queue?: unknown;
 
   /**
-   * Acesso a banco de dados.
+   * Database access.
    *
-   * Mantido como unknown — sem contrato estável.
-   * Útil para: idempotência, checkpoints, estado de pipeline.
+   * Kept as unknown — no stable contract.
+   * Useful for: idempotency, checkpoints, pipeline state.
    */
   db?: unknown;
 
   /**
-   * Cache com TTL opcional.
+   * Cache with optional TTL.
    *
-   * Útil para: deduplicação, controle de retry, janelas de processamento.
+   * Useful for: deduplication, retry control, processing windows.
    */
   cache?: AppCache;
 
   /**
-   * Registro de Cases carregados pelo runtime.
+   * Registry of Cases loaded by the runtime.
    *
-   * Permite composição cross-case via registry boundary.
-   * Usado por `_composition` para resolver capabilities de outros Cases.
+   * Allows cross-case composition through the registry boundary.
+   * Used by `_composition` to resolve capabilities from other Cases.
    *
-   * Exemplo: ctx.cases?.users?.user_validate?.api?.handler(input)
+   * Example: ctx.cases?.users?.user_validate?.api?.handler(input)
    */
   cases?: Dict;
 
   /**
-   * Packages de biblioteca registrados pelo host.
+   * Library packages registered by the host.
    *
-   * Expostos via registry._packages.
-   * Bibliotecas puras de packages/ que o app disponibiliza.
+   * Exposed through registry._packages.
+   * Pure libraries from packages/ that the app makes available.
    */
   packages?: Dict;
 
   /**
-   * Espaço de extensão livre para o host do projeto.
+   * Free extension space for the project host.
    */
   extra?: Dict;
 }
@@ -107,22 +107,22 @@ export interface StreamContext extends AppBaseContext {
  * ========================================================================== */
 
 /**
- * Estrutura genérica de evento.
+ * Generic event structure.
  */
 export interface StreamEvent<T = unknown> {
   type: string;
   payload: T;
 
   /**
-   * Chave de idempotência do evento.
+   * Event idempotency key.
    *
-   * Permite que consumers detectem e descartem eventos duplicados.
-   * Essencial para produção com brokers que garantem at-least-once
+   * Allows consumers to detect and discard duplicate events.
+   * Essential for production with brokers that guarantee at-least-once
    * delivery (SQS, Kafka, RabbitMQ, EventBridge).
    *
-   * O protocolo não dita o formato — pode ser UUID, hash do payload,
-   * ou chave de negócio composta. A responsabilidade de gerar e
-   * verificar a chave é do producer e do consumer respectivamente.
+   * The protocol does not dictate the format — it may be a UUID, payload hash,
+   * or composed business key. Responsibility for generating and
+   * verifying the key belongs to the producer and consumer respectively.
    */
   idempotencyKey?: string;
 
@@ -360,7 +360,7 @@ function extractStreamErrorCode(error: unknown): string | undefined {
  * ========================================================================== */
 
 /**
- * Classe base para execução orientada a eventos.
+ * Base class for event-driven execution.
  */
 export abstract class BaseStreamCase<TInput = unknown, TOutput = unknown> {
   protected readonly ctx: StreamContext;
@@ -370,106 +370,106 @@ export abstract class BaseStreamCase<TInput = unknown, TOutput = unknown> {
   }
 
   /* =======================================================================
-   * Métodos obrigatórios
+   * Required methods
    * ===================================================================== */
 
   /**
-   * Handler principal do evento.
+   * Primary event handler.
    *
-   * handler é o entrypoint público da capability de stream.
-   * Recebe um evento de negócio e processa.
+   * handler is the public entrypoint of the stream capability.
+   * It receives a business event and processes it.
    *
-   * Bindings de transporte (topic subscriptions, queue listeners)
-   * vivem em subscribe() ou no adapter/host.
+   * Transport bindings (topic subscriptions, queue listeners)
+   * live in subscribe() or in the adapter/host.
    */
   public abstract handler(event: StreamEvent<TInput>): Promise<void>;
 
   /**
-   * Registro de subscription.
+   * Subscription registration.
    */
   public subscribe?(): unknown;
 
   /**
-   * Declaração contratual de recovery.
+   * Contractual recovery declaration.
    *
-   * O retorno deve ser metadata pura:
-   * - determinística
-   * - serializável
-   * - sem callbacks
-   * - independente do payload do evento
+   * The return value must be pure metadata:
+   * - deterministic
+   * - serializable
+   * - without callbacks
+   * - independent from the event payload
    *
-   * O app host valida e traduz essa policy para o runtime real.
+   * The app host validates and translates this policy to the real runtime.
    */
   public recoveryPolicy?(): AppStreamRecoveryPolicy;
 
   /**
-   * Teste interno da capacidade.
+   * Internal capability test.
    *
-   * Boa prática recomendada no APP — surfaces idealmente expõem um
-   * método test() para validação autocontida do contrato.
+   * Recommended APP practice — surfaces should ideally expose a
+   * test() method for self-contained contract validation.
    *
-   * Assinatura canônica: test(): Promise<void>
-   * O teste cria eventos internamente e invoca handler()/pipeline().
-   * Não recebe input — é validação interna.
+   * Canonical signature: test(): Promise<void>
+   * The test creates events internally and invokes handler()/pipeline().
+   * It receives no input — it is internal validation.
    */
   public async test(): Promise<void> {}
 
   /* =======================================================================
-   * Slots canônicos internos
+   * Internal canonical slots
    * ===================================================================== */
 
   /**
-   * Acesso a persistência e integrations locais do Case.
+   * Access to persistence and local integrations for the Case.
    *
-   * Slot canônico para idempotência, checkpoints, estado de pipeline.
+   * Canonical slot for idempotency, checkpoints, and pipeline state.
    *
-   * Regra: _repository não realiza composição cross-case.
+   * Rule: _repository must not perform cross-case composition.
    */
   protected _repository?(): unknown;
 
   /**
-   * Orquestração cross-case via registry (Case composto).
+   * Cross-case orchestration via the registry (composed Case).
    *
-   * Slot canônico para stream Cases que precisam invocar outros Cases.
-   * Resolve capabilities via ctx.cases, nunca por import direto.
+   * Canonical slot for stream Cases that need to invoke other Cases.
+   * Resolves capabilities through ctx.cases, never through direct imports.
    *
-   * Quando presente, o pipeline deve usar _composition como centro principal.
+   * When present, the pipeline must use _composition as the main center.
    */
   protected async _composition?(event: StreamEvent<TInput>): Promise<void>;
 
   /* =======================================================================
-   * Hooks internos
+   * Internal hooks
    * ===================================================================== */
 
   /**
-   * Consumo inicial do evento.
+   * Initial event consumption.
    */
   protected async _consume?(event: StreamEvent<TInput>): Promise<TInput>;
 
   /**
-   * Lógica atômica de negócio da stream (Case atômico).
+   * Atomic stream business logic (atomic Case).
    *
-   * Slot canônico para processamento do evento consumido.
-   * Recebe input, processa, produz output.
+   * Canonical slot for processing the consumed event.
+   * It receives input, processes it, and produces output.
    *
-   * Mutuamente exclusivo com _composition como centro de execução principal.
+   * Mutually exclusive with _composition as the main execution center.
    */
   protected async _service?(input: TInput): Promise<TOutput>;
 
   /**
-   * Publicação de evento resultante.
+   * Resulting event publication.
    */
   protected async _publish?(output: TOutput): Promise<void>;
 
   /**
-   * Pipeline padrão de execução.
+   * Standard execution pipeline.
    *
-   * Se _composition estiver definido, delega para ele (Case composto).
-   * Caso contrário, orquestra o fluxo atômico: consume → service → publish.
+   * If _composition is defined, it delegates to it (composed Case).
+   * Otherwise, it orchestrates the atomic flow: consume → service → publish.
    *
-   * O pipeline default não implementa retry, backoff nem dead-letter.
-   * Recovery é responsabilidade do app host/runtime quando recoveryPolicy()
-   * estiver declarada.
+   * The default pipeline does not implement retry, backoff, or dead-letter.
+   * Recovery is the responsibility of the app host/runtime when recoveryPolicy()
+   * is declared.
    */
   protected async pipeline(event: StreamEvent<TInput>): Promise<void> {
     if (this._composition) {

@@ -131,9 +131,16 @@ In that scenario:
 - logical dead-letter destinations are bound before registration
 - hosts refuse to register capabilities whose declared semantics cannot be honored
 - `apps/agent/` derives published tools from registered `agentic` surfaces
+- `apps/agent/` projects the complete `AgenticDefinition` automatically from `AgenticRegistry`
 - tool names are unique after MCP fallback resolution
 - `requireConfirmation` and `executionMode` are enforced by the host/runtime
 - `AgenticContext` is materialized per execution rather than shared globally
+- the host global prompt is assembled automatically from registered tool prompt fragments and runtime policy
+- `apps/agent/` exposes an HTTP boundary plus at least one real MCP boundary when it claims app-level agentic conformance
+- plain host REST routes do not count as remote MCP publication
+- when both local and remote MCP are present, they are bound explicitly in `_providers` rather than hidden in `core/shared/`
+- MCP lifecycle, resource publication, and tool operations are validated end-to-end (`initialize`, `tools/list`, `resources/list`, `resources/read`, `tools/call`)
+- HTTP and MCP publication derive from the same catalog and canonical execution path
 
 ## Evidence Model
 

@@ -66,6 +66,9 @@ Expected output rules:
 - `task_create.ui.case.ts`
   - drives the create-task modal submit action
   - sends the creation request to the backend API
+- `task_create.agentic.case.ts`
+  - exposes task creation as a discoverable tool for `apps/agent`
+  - delegates execution to `task_create.api`
 
 ## Composition
 
@@ -89,6 +92,7 @@ Expected output rules:
   - reads current task collection
   - appends the new task
   - writes the updated collection to `tasks.json`
+  - serializes writes safely when `apps/backend` and `apps/agent` share the same store
 - `packages/design_system`
   - `CreateTaskButton`
   - `TaskFormModal`
@@ -97,7 +101,10 @@ Expected output rules:
 
 - no `stream` surface in v1
 - no retries or dead-letter policy in v1
-- no agentic exposure in v1
+- `task_create.agentic` is exposed as tool `task_create`
+- the same tool is published through HTTP and MCP by `apps/agent`
+- agentic execution mode: `direct-execution`
+- confirmation is not required for this mutation in v1
 
 ## Validation Scenarios
 
@@ -121,10 +128,19 @@ Expected output rules:
 3. Given invalid input, the UI keeps the user in the create flow and surfaces the failure state.
 4. Given repeated submit actions while a request is already in flight, the UI dispatches at most one create request.
 
+### Agentic
+
+1. The agentic surface exposes discovery, context, prompt, tool, MCP, and policy metadata.
+2. Tool execution delegates to `task_create.api` through `ctx.cases`.
+3. The tool returns the created task payload rather than a shadow response shape.
+4. Structured API validation failures propagate as `AppCaseError` instead of degrading to generic agent runtime errors.
+5. MCP `tools/call` preserves the same structured validation failure contract as the HTTP agent host.
+
 ### Integration
 
 1. Portal create action -> backend `POST /tasks` -> `packages/data` write -> board reload shows the new card.
 2. Restarting the backend after a successful create preserves the card because persistence is local and durable.
+3. Concurrent create requests from `apps/backend` and `apps/agent` preserve every task without corrupting `tasks.json`.
 
 ## Open Questions
 
@@ -133,4 +149,4 @@ Expected output rules:
 ## Status
 
 - specified
-- ready for implementation
+- implemented and validated

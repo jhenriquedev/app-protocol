@@ -9,7 +9,7 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v1.0.0`](./versions/v1.0.0.md)
+- Latest released snapshot: [`v1.0.1`](./versions/v1.0.1.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: stable protocol baseline with TypeScript reference implementation
 
@@ -76,9 +76,12 @@ npx @app-protocol/skill-app validate
 Quick example run:
 
 ```bash
-npm --prefix examples/typescript ci
-npm --prefix examples/typescript run start
+npm --prefix examples/react ci
+npm --prefix examples/react run smoke
 ```
+
+The React example is the active cross-client agentic reference: agent HTTP,
+MCP `stdio`, and remote MCP over HTTP all come from the same host runtime.
 
 ## Repository Map
 
@@ -213,8 +216,8 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`GOVERNANCE.md`](./GOVERNANCE.md
 
 The next major steps for APP are:
 
-1. harden skill `/app` from HML into stable operational tooling
-2. implement Canonical Capability Adapter (APP project → external tool runtime, such as an MCP server)
+1. harden conformance tooling beyond the initial static boundary validator
+2. generalize the reference MCP-capable agent host into reusable capability-adapter tooling
 3. end-to-end agentic proof-of-concept with real agents
 4. multi-language reference implementations (Python, Go, .NET)
 

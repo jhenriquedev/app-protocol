@@ -8,6 +8,7 @@
 import {
   AgenticContext,
   AgenticDiscovery,
+  AgenticExample,
   AgenticExecutionContext,
   AgenticMcpContract,
   AgenticPolicy,
@@ -18,6 +19,10 @@ import {
 } from "../../../core/agentic.case";
 import { ApiContext, ApiResponse } from "../../../core/api.case";
 import { AppLogger } from "../../../core/shared/app_base_context";
+import {
+  AppCaseError,
+  toAppCaseError,
+} from "../../../core/shared/app_structural_contracts";
 import { UserValidateApi } from "../user_validate/user_validate.api.case";
 import {
   UserValidateInput,
@@ -185,10 +190,10 @@ export class UserRegisterAgentic extends BaseAgenticCase<
         const result = await cases?.users?.user_register?.api?.handler(input);
 
         if (!result?.success || !result.data) {
-          const message =
-            result?.error?.message ??
-            "user_register API surface did not return data";
-          throw new Error(message);
+          throw toAppCaseError(
+            result?.error,
+            "user_register API surface did not return data"
+          );
         }
 
         return result.data;
@@ -199,7 +204,10 @@ export class UserRegisterAgentic extends BaseAgenticCase<
   public mcp(): AgenticMcpContract {
     return {
       enabled: true,
+      name: "user_register",
       title: "User Register",
+      description:
+        "Register a user through the canonical APP user_register API composition flow.",
       metadata: {
         category: "users",
         mutating: true,
@@ -240,11 +248,22 @@ export class UserRegisterAgentic extends BaseAgenticCase<
     };
   }
 
+  public examples(): AgenticExample<UserRegisterInput, UserRegisterOutput>[] {
+    return super.examples();
+  }
+
   public async test(): Promise<void> {
+    this.validateDefinition();
+
     const definition = this.definition();
 
     if (definition.discovery.name !== "user_register") {
       throw new Error("Agentic discovery name mismatch for user_register");
+    }
+
+    const example = this.examples()[0];
+    if (!example) {
+      throw new Error("Expected user_register to expose at least one example");
     }
 
     const testInstance = new UserRegisterAgentic(createTestContext());
@@ -256,6 +275,21 @@ export class UserRegisterAgentic extends BaseAgenticCase<
 
     if (!result.id || result.email !== "new@example.com") {
       throw new Error("Expected user_register agentic execution to create a user");
+    }
+
+    let propagatedError: unknown;
+    try {
+      await testInstance.execute({
+        email: "",
+        name: "",
+        password: "",
+      } as UserRegisterInput);
+    } catch (error: unknown) {
+      propagatedError = error;
+    }
+
+    if (!(propagatedError instanceof AppCaseError)) {
+      throw new Error("Expected user_register to propagate AppCaseError failures");
     }
   }
 }

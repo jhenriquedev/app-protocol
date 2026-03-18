@@ -13,6 +13,7 @@ Conventions:
 
 Current snapshots:
 
+- [`v1.0.1`](./v1.0.1.md)
 - [`v1.0.0`](./v1.0.0.md)
 - [`v0.0.12`](./v0.0.12.md)
 - [`v0.0.11`](./v0.0.11.md)
@@ -28,6 +29,7 @@ Current snapshots:
 
 Note:
 
+- `v1.0.1` closes the first post-stable APP refinement cycle: the `/app` skill and the working draft now normatize registry-driven projection of the complete agentic contract, host-built global prompts, and MCP semantic resources for complete `apps/agent/` publication.
 - `v1.0.0` is the first stable APP release. It packages the current protocol baseline, the formal app-level agentic host contract, aligned release tooling, and the installer/runtime version cleanup required for stable publication.
 - `v0.0.12` formalizes app-level agentic host contracts, `apps/agent/` as the canonical generic host name for agentic runtimes, and the supporting documentation alignment needed to close drift between Case-level and app-level operability.
 - `v0.0.11` adds structural APP guidance for new-project bootstrap, host-app creation, `packages/` usage, incremental adoption of existing projects, and sharper protocol boundaries around `core/` evolution.

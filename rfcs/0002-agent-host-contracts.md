@@ -1,4 +1,4 @@
-# RFC 0002: Agent Host Contracts for APP
+# RFC 0002: Agent Host and MCP Contracts for APP
 
 Status: Draft
 
@@ -6,9 +6,10 @@ Status: Draft
 
 This RFC formalizes the app-level contract for agentic APP systems. It introduces
 `AgenticRegistry` as the canonical extension of `AppRegistry`, establishes
-`apps/agent/` as the formal generic host name for agentic apps, and defines the
+`apps/agent/` as the formal generic host name for agentic apps, defines the
 minimum `app.ts` responsibilities required when an APP host claims agentic
-runtime conformance.
+runtime conformance, and closes the gap between Case-level MCP metadata and a
+real MCP transport boundary.
 
 ## Motivation
 
@@ -21,6 +22,9 @@ Today the protocol leaves several app-level responsibilities implicit:
 - how an app discovers and catalogs agentic surfaces
 - how external tool names are resolved
 - how MCP publication is filtered and normalized
+- where the abstract MCP contract belongs
+- where the concrete MCP transport implementation belongs
+- how local MCP and remote MCP should coexist without creating parallel runtime semantics
 - where execution policy is enforced
 - what an agentic `app.ts` must do beyond generic host bootstrap
 - what the generic host name should be for a non-conversational agent runtime
@@ -77,18 +81,45 @@ or clearly implement the following responsibilities:
 - `buildAgentCatalog(parent?)`
 - `resolveTool(toolName, parent?)`
 - `executeTool(toolName, input, parent?)`
+- `initializeMcp(params?, parent?)`
+- `listMcpTools(parent?)`
+- `callMcpTool(name, input, parent?)`
+- `publishMcp()`
 - `validateAgenticRuntime()`
 
 Recommended optional methods:
 
 - `buildSystemPrompt(parent?)`
 - `startAgentHost()`
-- `publishMcp()`
+- `startMcpTransport()`
 
 These are normative host responsibilities, not a required inheritance model.
 APP still does not require a `BaseAgentApp` class.
 
-### 4. Runtime rules
+### 4. MCP provider boundary
+
+APP keeps MCP split in two layers:
+
+- protocol-level MCP contracts may live in `core/shared/`
+- concrete MCP transport implementations must be bound in `registry._providers`
+
+When a host exposes more than one MCP transport, the preferred provider shape is
+an explicit named binding such as:
+
+- `_providers.mcpAdapters.stdio`
+- `_providers.mcpAdapters.http`
+
+This preserves APP semantics:
+
+- `core/shared/` defines structural contracts with cross-project meaning
+- `_providers` binds runtime-specific transport code
+- `apps/agent/app.ts` bridges host catalog semantics into the chosen transport
+
+APP still does not require a `BaseAgentApp` or a `BaseAgentRegistry`. The only
+abstract class proposed here is the MCP adapter abstraction, because transport
+binding is runtime-facing but structurally reusable across hosts.
+
+### 5. Runtime rules
 
 Agentic hosts must additionally enforce:
 
@@ -97,8 +128,14 @@ Agentic hosts must additionally enforce:
 - runtime enforcement of `requireConfirmation` and `executionMode`
 - canonical execution delegation through `ctx.cases`
 - rejection of tools whose declared semantics cannot be honored by the host
+- plain host REST routes do not count as remote MCP publication
+- local agentic conformance requires an HTTP boundary plus a local MCP transport such as `stdio`
+- remote agentic conformance requires an HTTP boundary plus a remote MCP boundary over a network transport such as Streamable HTTP
+- cross-client complete conformance requires HTTP, local MCP, and remote MCP from the same catalog and canonical execution path
+- HTTP and MCP publication must derive from the same catalog and canonical execution path
+- MCP lifecycle and core operations (`initialize`, `tools/list`, `tools/call`) must be supported by the chosen transport
 
-### 5. Scope
+### 6. Scope
 
 This RFC does not change:
 
@@ -127,6 +164,12 @@ Rejected because APP defines host responsibilities structurally, not through a
 single inheritance model. Different runtimes may implement the same semantics
 without sharing boot code or class hierarchies.
 
+### Put concrete MCP transport code in `core/shared/`
+
+Rejected because it would violate APP layer semantics. `core/shared/` may define
+the abstract MCP contract, but concrete stdio/HTTP/SSE transport code is a host
+runtime concern and must be selected in `_providers`.
+
 ### Put host-level agent metadata in external adapter files
 
 Rejected because it recreates the same fragmentation that `agentic.case.ts`
@@ -148,7 +191,8 @@ registry and registered surfaces.
 - hosts currently named `chatbot` may keep working, but generic documentation
   and future examples should move to `agent`
 - future host-contract implementations in `core/shared/` and examples will need
-  to add `AgenticRegistry` and the app-level runtime methods described here
+  to add the MCP adapter abstraction, `AgenticRegistry`, and the app-level
+  runtime methods described here
 
 ## Open Questions
 

@@ -10,7 +10,7 @@ Status: functional (scenario + 18 tests passing)
 - Shared packages via `ctx.packages` (`design-system`, `date-utils`)
 - Infrastructure injection via `ctx.db` (in-memory store mounted by the host)
 - Per-execution Case instantiation with inherited `correlationId` across composition
-- 3 apps: backend (api + stream), portal (ui), chatbot (agentic)
+- 3 apps: backend (api + stream), portal (ui), chatbot (legacy agent host name in this compact example)
 - Registry with `satisfies` pattern for typed `InferCasesMap`
 - `test()` on every surface (18 total)
 

@@ -9,13 +9,19 @@ import {
   AgenticContext,
   AgenticDiscovery,
   AgenticExecutionContext,
+  AgenticExample,
   AgenticMcpContract,
+  AgenticPolicy,
   AgenticPrompt,
   AgenticRagContract,
   AgenticToolContract,
   BaseAgenticCase,
 } from "../../../core/agentic.case";
 import { ApiResponse } from "../../../core/api.case";
+import {
+  AppCaseError,
+  toAppCaseError,
+} from "../../../core/shared/app_structural_contracts";
 import { TaskListDomain, TaskListInput, TaskListOutput } from "./task_list.domain.case";
 
 type ExpectedCasesMap = {
@@ -51,6 +57,9 @@ export class TaskListAgentic extends BaseAgenticCase<
     return {
       requiresAuth: false,
       dependencies: ["task_list.domain", "task_list.api"],
+      preconditions: ["The task collection must be readable."],
+      constraints: ["This capability is read-only."],
+      notes: ["Use task_list as a grounding step before ambiguous task mutations."],
     };
   }
 
@@ -62,6 +71,8 @@ export class TaskListAgentic extends BaseAgenticCase<
         "When searching for pending or completed tasks.",
       ],
       whenNotToUse: ["When creating or modifying tasks."],
+      constraints: ["Only the supported status filter may be applied when the user requested it."],
+      reasoningHints: ["Use listing to ground subsequent task_complete calls when the user did not provide an exact task id."],
       expectedOutcome: "An array of task objects.",
     };
   }
@@ -83,7 +94,7 @@ export class TaskListAgentic extends BaseAgenticCase<
         const cases = ctx.cases as ExpectedCasesMap | undefined;
         const result = await cases?.tasks?.task_list?.api?.handler(input);
         if (!result?.success || !result.data) {
-          throw new Error(result?.error?.message ?? "task_list API failed");
+          throw toAppCaseError(result?.error, "task_list API failed");
         }
         return result.data;
       },
@@ -95,6 +106,7 @@ export class TaskListAgentic extends BaseAgenticCase<
       enabled: true,
       name: "task_list",
       title: "List Tasks",
+      description: "List tasks through the canonical APP task_list flow.",
       metadata: { category: "tasks" },
     };
   }
@@ -112,6 +124,18 @@ export class TaskListAgentic extends BaseAgenticCase<
     };
   }
 
+  public policy(): AgenticPolicy {
+    return {
+      requireConfirmation: false,
+      riskLevel: "low",
+      executionMode: "direct-execution",
+    };
+  }
+
+  public examples(): AgenticExample<TaskListInput, TaskListOutput>[] {
+    return super.examples();
+  }
+
   public async test(): Promise<void> {
     this.validateDefinition();
 
@@ -121,6 +145,40 @@ export class TaskListAgentic extends BaseAgenticCase<
     }
     if (def.tool.isMutating !== false) {
       throw new Error("task_list should not be mutating");
+    }
+
+    const example = this.examples()[0];
+    if (!example) {
+      throw new Error("task_list should expose at least one example");
+    }
+
+    let propagatedError: unknown;
+    try {
+      await this.tool().execute(example.input, {
+        correlationId: "task-list-agentic-failure-test",
+        logger: this.ctx.logger,
+        cases: {
+          tasks: {
+            task_list: {
+              api: {
+                handler: async () => ({
+                  success: false,
+                  error: {
+                    code: "INTERNAL",
+                    message: "task store is invalid",
+                  },
+                }),
+              },
+            },
+          },
+        },
+      });
+    } catch (error: unknown) {
+      propagatedError = error;
+    }
+
+    if (!(propagatedError instanceof AppCaseError)) {
+      throw new Error("task_list must propagate structured AppCaseError failures");
     }
   }
 }

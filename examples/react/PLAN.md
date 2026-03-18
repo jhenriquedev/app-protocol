@@ -20,11 +20,13 @@ Users can:
 - hosts:
   - `apps/backend` for Node HTTP execution
   - `apps/portal` for React UI execution
+  - `apps/agent` for agentic catalog and tool execution
 - persistence: local JSON file under `packages/data/`
-- v1 surfaces:
+- implemented surfaces:
   - `domain`
   - `api`
   - `ui`
+  - `agentic`
 - v1 packages:
   - `data`
   - `design_system`
@@ -95,21 +97,21 @@ Rules:
 ### `tasks/task_create`
 
 - purpose: create a new task card
-- surfaces: `domain`, `api`, `ui`
+- surfaces: `domain`, `api`, `ui`, `agentic`
 - input: `title`, optional `description`
 - output: created `Task`
 
 ### `tasks/task_list`
 
 - purpose: load tasks for the board
-- surfaces: `domain`, `api`, `ui`
+- surfaces: `domain`, `api`, `ui`, `agentic`
 - input: no filters in v1
 - output: all tasks for rendering
 
 ### `tasks/task_move`
 
 - purpose: move a task between board columns
-- surfaces: `domain`, `api`, `ui`
+- surfaces: `domain`, `api`, `ui`, `agentic`
 - input: `taskId`, `targetStatus`
 - output: updated `Task`
 
@@ -135,8 +137,11 @@ Status:
 
 Status:
 
-- provider scaffold completed
-- task routes pending
+- completed
+- local file store implemented in `packages/data`
+- create, list, and move routes mounted in `apps/backend`
+- per-request API context materialized in the backend host
+- persistence package exposed through backend `_packages`
 
 ### Phase 3. Portal
 
@@ -148,14 +153,43 @@ Status:
 
 Status:
 
-- host bootstrap and design-system scaffold completed
-- case-driven board flow pending
+- completed
+- host bootstrap implemented in `apps/portal`
+- design-system package exposed through portal `_packages`
+- board rendering implemented through `task_list.ui`
+- create-task flow implemented through `task_create.ui`
+- move-task flow implemented through `task_move.ui`
 
 ### Phase 4. Validation
 
 - add `test()` to each created surface
 - run a local scenario: create task, list task, move task
 - verify persistence across backend restart
+
+Status:
+
+- completed
+- all implemented surfaces expose `test()`
+- `npm run typecheck`, `npm run build:portal`, and `npm run smoke` pass
+
+### Phase 5. Agentic Layer
+
+- add `*.agentic.case.ts` to the three task Cases
+- create `apps/agent` with a formal `AgenticRegistry`
+- publish the agent catalog and tool execution over HTTP, MCP stdio, and remote MCP HTTP
+- enforce confirmation and execution mode in the host runtime
+- validate the agent host with dedicated HTTP and MCP smoke paths
+
+Status:
+
+- completed
+- `task_create`, `task_list`, and `task_move` expose complete `agentic` surfaces
+- `apps/agent` exposes `/catalog` and `/tools/:toolName/execute`
+- `apps/agent` also exposes a real MCP stdio transport with `initialize`, `tools/list`, and `tools/call`
+- `apps/agent` exposes a remote MCP HTTP endpoint at `/mcp` using the same catalog and canonical execution path
+- `npm run smoke` now covers backend and agent flows end-to-end
+- agentic execution preserves structured API failures
+- shared backend + agent writes are coordinated safely in `packages/data`
 
 ## Acceptance criteria
 
@@ -165,3 +199,12 @@ Status:
 - new tasks appear in `todo`
 - moved tasks appear in the target column
 - all created APP surfaces include `test()`
+- the same capabilities are discoverable and executable through `apps/agent`
+- the same capabilities are discoverable and executable through MCP stdio
+- the same capabilities are discoverable and executable through remote MCP HTTP
+- agentic failures preserve canonical APP error codes
+- shared `tasks.json` access remains valid under concurrent backend + agent writes
+
+Status:
+
+- satisfied by the current implementation

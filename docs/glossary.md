@@ -34,6 +34,11 @@ located at `apps/agent/`.
 The app-level extension of `AppRegistry` used by agent hosts to discover,
 catalog, resolve, and publish registered `agentic` surfaces.
 
+## `BaseAppMcpAdapter`
+
+The abstract MCP adapter contract that may live in `core/shared/`, while
+concrete MCP transport implementations are bound by the host in `_providers`.
+
 ## `ctx.cases`
 
 The host-materialized composition boundary through which a Case orchestrates

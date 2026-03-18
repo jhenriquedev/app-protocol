@@ -157,7 +157,7 @@ Different host types keep the same role but not identical boot code:
 
 - `backend` mounts request/transport bindings
 - `portal` or frontend hosts mount UI runtime concerns
-- `agent` exposes agentic tools or MCP bindings
+- `agent` exposes governed HTTP and MCP agentic boundaries from the same host catalog
 - `worker` or `lambdas` adapt execution to background or serverless triggers
 
 `agent` is the canonical generic name for an app-level agentic host.

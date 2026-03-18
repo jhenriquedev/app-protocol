@@ -1,25 +1,25 @@
 /* ========================================================================== *
- * APP v1.0.0
+ * APP v1.0.1
  * core/agentic.case.ts
  * ----------------------------------------------------------------------------
- * Contrato base da surface agentic no APP.
+ * Base contract for the APP agentic surface.
  *
- * Papel desta surface:
- * - tornar um Case compreensível por agentes
- * - expor descoberta, contexto, prompt, tool, MCP e RAG
- * - manter a execução real apontando para surfaces canônicas do Case
+ * Role of this surface:
+ * - make a Case understandable to agents
+ * - expose discovery, context, prompt, tool, MCP, and RAG
+ * - keep real execution pointing to canonical Case surfaces
  *
- * Regra fundamental:
- * - agentic.case.ts NÃO reimplementa a lógica principal da capacidade
- * - agentic.case.ts descreve e opera a capacidade via contratos estruturados
+ * Fundamental rule:
+ * - agentic.case.ts does NOT reimplement the main capability logic
+ * - agentic.case.ts describes and operates the capability through structured contracts
  *
- * Integração com domain.case.ts:
- * - esta base permite derivar schema, descrição e exemplos do domínio
- * - isso reduz duplicação semântica e drift entre domínio e tool
+ * Integration with domain.case.ts:
+ * - this base allows deriving schema, description, and examples from the domain
+ * - this reduces semantic duplication and drift between domain and tool
  *
- * Contexto:
- * - AgenticContext estende AppBaseContext com infraestrutura agentic
- * - inclui registry de Cases e informações de runtime MCP
+ * Context:
+ * - AgenticContext extends AppBaseContext with agentic infrastructure
+ * - it includes the Cases registry and MCP runtime information
  * ========================================================================== */
 
 import {
@@ -34,44 +34,44 @@ import { AppBaseContext } from "./shared/app_base_context";
 /* ==========================================================================
  * AgenticContext
  * --------------------------------------------------------------------------
- * Contexto específico da surface agentic.
+ * Agentic surface-specific context.
  *
- * Estende AppBaseContext com infraestrutura de operação agentic:
- * - cases: registro de Cases carregados pelo runtime (para resolução de tools)
- * - mcp: informações do runtime MCP, quando disponível
+ * Extends AppBaseContext with agentic operation infrastructure:
+ * - cases: registry of Cases loaded by the runtime (for tool resolution)
+ * - mcp: MCP runtime information, when available
  *
- * O campo cases é essencial para que a tool do agentic consiga
- * apontar para a execução canônica via ctx.cases.
+ * The cases field is essential so the agentic tool can
+ * point to canonical execution through ctx.cases.
  * ========================================================================== */
 
 export interface AgenticContext extends AppBaseContext {
   /**
-   * Registro de Cases carregados pelo runtime.
+   * Registry of Cases loaded by the runtime.
    *
-   * Usado pela tool para resolver a execução canônica do Case.
+   * Used by the tool to resolve the canonical execution of the Case.
    *
-   * Exemplo de acesso:
+   * Access example:
    * ctx.cases?.users?.user_validate?.api?.handler(input)
    */
   cases?: Dict;
 
   /**
-   * Packages de biblioteca registrados pelo host.
+   * Library packages registered by the host.
    *
-   * Expostos via registry._packages.
-   * Bibliotecas puras de packages/ que o app disponibiliza.
+   * Exposed through registry._packages.
+   * Pure libraries from packages/ that the app makes available.
    */
   packages?: Dict;
 
   /**
-   * Informações do runtime MCP, quando disponível.
+   * MCP runtime information, when available.
    *
-   * Exemplos: MCP server instance, adapter config, transport info.
+   * Examples: MCP server instance, adapter config, transport info.
    */
   mcp?: unknown;
 
   /**
-   * Espaço de extensão livre para o host do projeto.
+   * Free extension space for the project host.
    */
   extra?: Dict;
 }
@@ -82,111 +82,111 @@ export interface AgenticContext extends AppBaseContext {
 
 export interface AgenticDiscovery {
   /**
-   * Nome canônico do Case.
+   * Canonical Case name.
    */
   name: string;
 
   /**
-   * Descrição curta e clara da capacidade.
+   * Short, clear description of the capability.
    */
   description: string;
 
   /**
-   * Categoria semântica.
-   * Exemplo: "users", "billing"
+   * Semantic category.
+   * Example: "users", "billing"
    */
   category?: string;
 
   /**
-   * Tags auxiliares para indexação.
+   * Helper tags for indexing.
    */
   tags?: string[];
 
   /**
-   * Nomes alternativos ou aliases.
+   * Alternative names or aliases.
    */
   aliases?: string[];
 
   /**
-   * Capacidades representadas pelo Case.
+   * Capabilities represented by the Case.
    */
   capabilities?: string[];
 
   /**
-   * Intenções de uso.
+   * Usage intents.
    */
   intents?: string[];
 }
 
 /* ==========================================================================
- * Contexto de execução para agentes
+ * Execution context for agents
  * ========================================================================== */
 
 export interface AgenticExecutionContext {
   /**
-   * Indica se autenticação é obrigatória.
+   * Indicates whether authentication is required.
    */
   requiresAuth?: boolean;
 
   /**
-   * Indica se tenant é obrigatório.
+   * Indicates whether a tenant is required.
    */
   requiresTenant?: boolean;
 
   /**
-   * Dependências semânticas ou superfícies relacionadas.
-   * Exemplo: ["user_validate.api", "user_validate.domain"]
+   * Semantic dependencies or related surfaces.
+   * Example: ["user_validate.api", "user_validate.domain"]
    */
   dependencies?: string[];
 
   /**
-   * Pré-condições para uso da capacidade.
+   * Preconditions for using the capability.
    */
   preconditions?: string[];
 
   /**
-   * Restrições de uso.
+   * Usage constraints.
    */
   constraints?: string[];
 
   /**
-   * Observações auxiliares.
+   * Auxiliary notes.
    */
   notes?: string[];
 }
 
 /* ==========================================================================
- * Prompt estruturado
+ * Structured prompt
  * ========================================================================== */
 
 export interface AgenticPrompt {
   /**
-   * Objetivo principal da capacidade.
+   * Main purpose of the capability.
    */
   purpose: string;
 
   /**
-   * Quando usar.
+   * When to use it.
    */
   whenToUse?: string[];
 
   /**
-   * Quando não usar.
+   * When not to use it.
    */
   whenNotToUse?: string[];
 
   /**
-   * Restrições específicas.
+   * Specific constraints.
    */
   constraints?: string[];
 
   /**
-   * Hints de raciocínio para agentes.
+   * Reasoning hints for agents.
    */
   reasoningHints?: string[];
 
   /**
-   * Resultado esperado em linguagem natural.
+   * Expected outcome in natural language.
    */
   expectedOutcome?: string;
 }
@@ -197,40 +197,40 @@ export interface AgenticPrompt {
 
 export interface AgenticToolContract<TInput = unknown, TOutput = unknown> {
   /**
-   * Nome canônico da tool.
+   * Canonical tool name.
    */
   name: string;
 
   /**
-   * Descrição curta da tool.
+   * Short tool description.
    */
   description: string;
 
   /**
-   * Schema de entrada.
+   * Input schema.
    */
   inputSchema: AppSchema;
 
   /**
-   * Schema de saída.
+   * Output schema.
    */
   outputSchema: AppSchema;
 
   /**
-   * Indica se a tool causa side effects.
+   * Indicates whether the tool causes side effects.
    */
   isMutating?: boolean;
 
   /**
-   * Indica se a execução exige confirmação explícita.
+   * Indicates whether execution requires explicit confirmation.
    */
   requiresConfirmation?: boolean;
 
   /**
-   * Execução real da tool.
+   * Actual tool execution.
    *
-   * Regra:
-   * deve apontar para a implementação canônica do Case.
+   * Rule:
+   * it must point to the canonical implementation of the Case.
    */
   execute(input: TInput, ctx: AgenticContext): Promise<TOutput>;
 }
@@ -253,6 +253,10 @@ export interface AgenticToolContract<TInput = unknown, TOutput = unknown> {
  *
  * mcp controls presence and presentation.
  * It never redefines schemas or execution paths.
+ *
+ * Full MCP publication is still an app-host concern:
+ * - `agentic.case.ts` declares Case-level MCP metadata
+ * - `apps/agent/` publishes the concrete MCP boundary through its registry/app runtime
  * ========================================================================== */
 
 export interface AgenticMcpContract {
@@ -294,112 +298,112 @@ export interface AgenticMcpContract {
 /* ==========================================================================
  * RAG
  * --------------------------------------------------------------------------
- * O contrato RAG do APP opera em duas camadas:
+ * The APP RAG contract operates in two layers:
  *
- * 1. Camada semântica — topics, hints, scope, mode
- *    Define a intenção de retrieval: sobre o quê, com qual orientação,
- *    em qual escopo, e com qual grau de dependência.
+ * 1. Semantic layer — topics, hints, scope, mode
+ *    Defines retrieval intent: about what, with which guidance,
+ *    within what scope, and with what level of dependency.
  *
- * 2. Camada de referência concreta — resources
- *    Define referências concretas a artefatos APP-native ou project-native.
- *    O APP define o endereçamento (kind + ref). O runtime define a resolução.
+ * 2. Concrete reference layer — resources
+ *    Defines concrete references to APP-native or project-native artifacts.
+ *    APP defines the addressing (kind + ref). The runtime defines resolution.
  *
- * O APP não define motor de RAG, mecanismo de retrieval, ranking,
- * embedding, nem pipeline de busca. Essas responsabilidades são do runtime.
+ * APP does not define the RAG engine, retrieval mechanism, ranking,
+ * embeddings, or search pipeline. Those responsibilities belong to the runtime.
  *
- * Extensibilidade:
- * Novos resource kinds (ex: "index") podem ser padronizados apenas
- * após reference implementations demonstrarem semântica estável.
+ * Extensibility:
+ * New resource kinds (for example, "index") may only be standardized
+ * after reference implementations demonstrate stable semantics.
  * ========================================================================== */
 
 /**
- * Tipos de recurso de conhecimento reconhecidos pelo APP.
+ * Knowledge resource kinds recognized by APP.
  *
- * Cada kind define uma categoria de artefato que o protocolo
- * consegue endereçar de forma estável:
+ * Each kind defines an artifact category that the protocol
+ * can address in a stable way:
  *
- * - "case": referência a outro Case no projeto APP.
- *   ref é um identificador relativo ao diretório cases/.
- *   Exemplo: "users/user_validate"
+ * - "case": reference to another Case in the APP project.
+ *   ref is an identifier relative to the cases/ directory.
+ *   Example: "users/user_validate"
  *
- * - "file": referência a um arquivo do projeto.
- *   ref é um path relativo à raiz do projeto.
- *   Exemplo: "docs/validation-rules.md"
+ * - "file": reference to a project file.
+ *   ref is a path relative to the project root.
+ *   Example: "docs/validation-rules.md"
  */
 export type RagResourceKind = "case" | "file";
 
 /**
- * Referência concreta a um artefato de conhecimento.
+ * Concrete reference to a knowledge artifact.
  *
- * O APP define o endereçamento (kind + ref).
- * O runtime define como resolver e acessar o conteúdo.
+ * APP defines the addressing (kind + ref).
+ * The runtime defines how to resolve and access the content.
  */
 export interface RagResource {
   /**
-   * Tipo do recurso.
+   * Resource kind.
    */
   kind: RagResourceKind;
 
   /**
-   * Referência ao recurso.
+   * Resource reference.
    *
-   * Formato por kind:
-   * - "case": identificador relativo a cases/ (ex: "users/user_validate")
-   * - "file": path relativo à raiz do projeto (ex: "docs/validation-rules.md")
+   * Format by kind:
+   * - "case": identifier relative to cases/ (e.g. "users/user_validate")
+   * - "file": path relative to the project root (e.g. "docs/validation-rules.md")
    */
   ref: string;
 
   /**
-   * Descrição opcional do porquê este recurso é relevante para o Case.
+   * Optional description of why this resource is relevant to the Case.
    */
   description?: string;
 }
 
 export interface AgenticRagContract {
   /**
-   * Rótulos semânticos normalizados do domínio de conhecimento
-   * relevante para este Case.
+   * Normalized semantic labels for the knowledge domain
+   * relevant to this Case.
    *
-   * Usados para:
-   * - indexação e classificação semântica
-   * - agrupamento de Cases por área de conhecimento
-   * - validação por tooling (lint, catálogos)
-   * - integração com runtimes que possuam catálogo de conhecimento
+   * Used for:
+   * - semantic indexing and classification
+   * - grouping Cases by knowledge area
+   * - validation by tooling (lint, catalogs)
+   * - integration with runtimes that maintain a knowledge catalog
    *
-   * Exemplo: ["validation_rules", "document_policy"]
+   * Example: ["validation_rules", "document_policy"]
    */
   topics?: string[];
 
   /**
-   * Referências concretas a artefatos de conhecimento APP-native
-   * ou project-native.
+   * Concrete references to APP-native
+   * or project-native knowledge artifacts.
    *
-   * APP não define retrieval resolution. O runtime é responsável
-   * por resolver e acessar o conteúdo de cada resource.
+   * APP does not define retrieval resolution. The runtime is responsible
+   * for resolving and accessing the content of each resource.
    *
-   * Novos resource kinds podem ser padronizados apenas após
-   * reference implementations demonstrarem semântica estável.
+   * New resource kinds may only be standardized after
+   * reference implementations demonstrate stable semantics.
    */
   resources?: RagResource[];
 
   /**
-   * Orientações livres de raciocínio e preferência para o agente.
+   * Free-form reasoning and preference guidance for the agent.
    *
-   * Diferente de topics (que são indexáveis e normalizados),
-   * hints são interpretativos e não estruturais.
+   * Unlike topics (which are indexable and normalized),
+   * hints are interpretive and non-structural.
    *
-   * Exemplo: ["Prefer official compliance material",
+   * Example: ["Prefer official compliance material",
    *           "Use tenant-approved rules first"]
    */
   hints?: string[];
 
   /**
-   * Escopo máximo permitido para recuperação contextual.
+   * Maximum allowed scope for contextual retrieval.
    */
   scope?: "case-local" | "project" | "org-approved";
 
   /**
-   * Grau de dependência do Case em relação a contexto externo.
+   * Degree of dependency of the Case on external context.
    */
   mode?: "disabled" | "optional" | "recommended" | "required";
 }
@@ -410,32 +414,32 @@ export interface AgenticRagContract {
 
 export interface AgenticPolicy {
   /**
-   * Exige confirmação explícita antes da execução.
+   * Requires explicit confirmation before execution.
    */
   requireConfirmation?: boolean;
 
   /**
-   * Exige autenticação.
+   * Requires authentication.
    */
   requireAuth?: boolean;
 
   /**
-   * Exige tenant.
+   * Requires tenant context.
    */
   requireTenant?: boolean;
 
   /**
-   * Nível de risco operacional.
+   * Operational risk level.
    */
   riskLevel?: "low" | "medium" | "high";
 
   /**
-   * Modo de execução permitido para agentes.
+   * Execution mode allowed for agents.
    */
   executionMode?: "suggest-only" | "manual-approval" | "direct-execution";
 
   /**
-   * Limites textuais adicionais.
+   * Additional textual limits.
    */
   limits?: string[];
 }
@@ -453,7 +457,7 @@ export interface AgenticExample<TInput = unknown, TOutput = unknown> {
 }
 
 /* ==========================================================================
- * Definição consolidada
+ * Consolidated definition
  * ========================================================================== */
 
 export interface AgenticDefinition<TInput = unknown, TOutput = unknown> {
@@ -468,19 +472,19 @@ export interface AgenticDefinition<TInput = unknown, TOutput = unknown> {
 }
 
 /* ==========================================================================
- * Classe base
+ * Base class
  * ========================================================================== */
 
 /**
- * Classe base canônica para agentic.case.ts
+ * Canonical base class for agentic.case.ts
  *
- * Esta classe suporta dois modos:
+ * This class supports two modes:
  *
- * 1. Implementação manual
- *    A surface agentic define tudo explicitamente.
+ * 1. Manual implementation
+ *    The agentic surface defines everything explicitly.
  *
- * 2. Implementação derivada do domínio
- *    A surface agentic reutiliza descrição, schemas e exemplos do domain.case.ts.
+ * 2. Domain-derived implementation
+ *    The agentic surface reuses description, schemas, and examples from domain.case.ts.
  */
 export abstract class BaseAgenticCase<TInput = unknown, TOutput = unknown> {
   protected readonly ctx: AgenticContext;
@@ -490,19 +494,19 @@ export abstract class BaseAgenticCase<TInput = unknown, TOutput = unknown> {
   }
 
   /* ========================================================================
-   * Conexão opcional com o domínio
+   * Optional connection to the domain
    * ====================================================================== */
 
   /**
-   * Retorna a instância do domínio local do Case, quando existir.
+   * Returns the local domain instance of the Case, when it exists.
    *
-   * Esta conexão permite:
-   * - derivar description
-   * - derivar inputSchema/outputSchema
-   * - derivar examples
+   * This connection allows:
+   * - deriving description
+   * - deriving inputSchema/outputSchema
+   * - deriving examples
    *
-   * Observação:
-   * A implementação concreta decide se quer ou não usar o domínio como base.
+   * Note:
+   * The concrete implementation decides whether to use the domain as its base.
    */
   protected domain():
     | BaseDomainCase<TInput, TOutput>
@@ -511,47 +515,47 @@ export abstract class BaseAgenticCase<TInput = unknown, TOutput = unknown> {
   }
 
   /* ========================================================================
-   * Seções obrigatórias
+   * Required sections
    * ====================================================================== */
 
   /**
-   * Metadados de descoberta.
+   * Discovery metadata.
    */
   public abstract discovery(): AgenticDiscovery;
 
   /**
-   * Contexto mínimo necessário para operação correta do Case.
+   * Minimum context required for correct Case operation.
    */
   public abstract context(): AgenticExecutionContext;
 
   /**
-   * Prompt estruturado para agentes.
+   * Structured prompt for agents.
    */
   public abstract prompt(): AgenticPrompt;
 
   /**
-   * Contrato de tool.
+   * Tool contract.
    *
-   * Regra mais importante:
-   * a tool deve apontar para a execução canônica do Case.
+   * Most important rule:
+   * the tool must point to the canonical execution of the Case.
    */
   public abstract tool(): AgenticToolContract<TInput, TOutput>;
 
   /**
-   * Testa a surface agentic do Case.
+   * Tests the Case agentic surface.
    *
    * Recommended APP practice:
    * surfaces ideally expose test() for self-contained contract validation.
    *
-   * O teste deve verificar, no mínimo:
-   * - definition() retorna contrato válido (validateDefinition)
-   * - discovery, context, prompt e tool são consistentes entre si
-   * - tool.execute() produz resultado esperado para inputs conhecidos
+   * The test must verify, at minimum:
+   * - definition() returns a valid contract (validateDefinition)
+   * - discovery, context, prompt, and tool are consistent with each other
+   * - tool.execute() produces the expected result for known inputs
    */
   public async test(): Promise<void> {}
 
   /* ========================================================================
-   * Seções opcionais
+   * Optional sections
    * ====================================================================== */
 
   public mcp(): AgenticMcpContract | undefined {
@@ -572,39 +576,39 @@ export abstract class BaseAgenticCase<TInput = unknown, TOutput = unknown> {
   }
 
   /* ========================================================================
-   * Helpers de derivação a partir do domínio
+   * Domain-derived helpers
    * ====================================================================== */
 
   /**
-   * Deriva a descrição a partir do domínio, quando disponível.
+   * Derives the description from the domain, when available.
    */
   protected domainDescription(): string | undefined {
     return this.domain()?.description();
   }
 
   /**
-   * Deriva o nome canônico a partir do domínio, quando disponível.
+   * Derives the canonical name from the domain, when available.
    */
   protected domainCaseName(): string | undefined {
     return this.domain()?.caseName();
   }
 
   /**
-   * Deriva o schema de entrada a partir do domínio, quando disponível.
+   * Derives the input schema from the domain, when available.
    */
   protected domainInputSchema(): AppSchema | undefined {
     return this.domain()?.inputSchema();
   }
 
   /**
-   * Deriva o schema de saída a partir do domínio, quando disponível.
+   * Derives the output schema from the domain, when available.
    */
   protected domainOutputSchema(): AppSchema | undefined {
     return this.domain()?.outputSchema();
   }
 
   /**
-   * Deriva exemplos do domínio e os converte para examples agentic.
+   * Derives examples from the domain and converts them to agentic examples.
    */
   protected domainExamples():
     | AgenticExample<TInput, TOutput>[]
@@ -627,11 +631,11 @@ export abstract class BaseAgenticCase<TInput = unknown, TOutput = unknown> {
   }
 
   /* ========================================================================
-   * Métodos públicos utilitários
+   * Public utility methods
    * ====================================================================== */
 
   /**
-   * Retorna a definição consolidada do Agentic Protocol.
+   * Returns the consolidated Agentic Protocol definition.
    */
   public definition(): AgenticDefinition<TInput, TOutput> {
     return {
@@ -647,14 +651,14 @@ export abstract class BaseAgenticCase<TInput = unknown, TOutput = unknown> {
   }
 
   /**
-   * Atalho seguro para executar a tool.
+   * Safe shortcut to execute the tool.
    */
   public async execute(input: TInput): Promise<TOutput> {
     return this.tool().execute(input, this.ctx);
   }
 
   /**
-   * Indica se a surface agentic está apta para exposição MCP.
+   * Indicates whether the agentic surface is ready for MCP exposure.
    */
   public isMcpEnabled(): boolean {
     const contract = this.mcp();
@@ -662,9 +666,9 @@ export abstract class BaseAgenticCase<TInput = unknown, TOutput = unknown> {
   }
 
   /**
-   * Indica se a execução exige confirmação.
+   * Indicates whether execution requires confirmation.
    *
-   * Esta decisão considera tanto policy quanto tool contract.
+   * This decision considers both policy and the tool contract.
    */
   public requiresConfirmation(): boolean {
     return Boolean(
@@ -674,28 +678,28 @@ export abstract class BaseAgenticCase<TInput = unknown, TOutput = unknown> {
   }
 
   /**
-   * Retorna o nome canônico do Case.
+   * Returns the canonical Case name.
    *
-   * Prioridade:
+   * Priority:
    * 1. discovery.name
-   * 2. domínio, se houver
+   * 2. domain, if available
    */
   public caseName(): string {
     return this.discovery().name || this.domainCaseName() || "unknown_case";
   }
 
   /* ========================================================================
-   * Hook opcional de validação interna
+   * Optional internal validation hook
    * ====================================================================== */
 
   /**
-   * Valida consistência interna da definição agentic.
+   * Validates internal consistency of the agentic definition.
    *
-   * A implementação base verifica invariantes estruturais mínimas.
-   * Subclasses podem sobrescrever para validação adicional
-   * (ex: prompt constraints vs tool inputSchema, examples coverage).
+   * The base implementation verifies minimal structural invariants.
+   * Subclasses may override it for additional validation
+   * (e.g. prompt constraints vs tool inputSchema, examples coverage).
    *
-   * Invocado por test() como primeira fase de validação.
+   * Invoked by test() as the first validation phase.
    */
   protected validateDefinition(): void {
     const d = this.discovery();

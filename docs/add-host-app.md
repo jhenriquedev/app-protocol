@@ -102,13 +102,16 @@ Typical work:
 Typical work:
 
 - discover agentic surfaces
-- expose tools or MCP bindings
+- expose HTTP and MCP boundaries from the same host catalog
 - ensure `tool.execute()` reaches canonical execution
 - enforce confirmation and execution policy at runtime
+- separate plain host HTTP routes from any remote MCP boundary
 
 When the host is agentic, formalize two things explicitly:
 
 - `registry.ts` should satisfy `AppRegistry` plus the formal `AgenticRegistry` extension
+- `registry.ts` should bind the concrete MCP transport adapter in `_providers`
+- if more than one MCP transport exists, bind them explicitly as named providers such as `_providers.mcpAdapters.stdio` and `_providers.mcpAdapters.http`
 - `app.ts` should expose or clearly implement the runtime responsibilities of an agent host
 
 Required `registry.ts` methods for agentic hosts:
@@ -125,15 +128,29 @@ Required `app.ts` responsibilities for agentic hosts:
 - `bootstrap(config)`
 - `createAgenticContext(parent?)`
 - `buildAgentCatalog(parent?)`
+- `buildSystemPrompt(parent?)`
 - `resolveTool(toolName, parent?)`
 - `executeTool(toolName, input, parent?)`
+- `initializeMcp(params?, parent?)`
+- `listMcpTools(parent?)`
+- `listMcpResources(parent?)`
+- `readMcpResource(uri, parent?)`
+- `callMcpTool(name, input, parent?)`
+- `publishMcp()`
 - `validateAgenticRuntime()`
+
+Additional host rules for complete agentic publication:
+
+- project the complete `AgenticDefinition` automatically from `AgenticRegistry`; do not hand-curate semantic fields per tool in the host
+- assemble the global host prompt automatically from the registered tool prompt fragments and runtime policy
+- expose a concise semantic summary in MCP tool descriptors
+- expose the richer semantic projection through MCP resources and/or the host catalog mirror
 
 Recommended optional responsibilities:
 
 - `buildSystemPrompt(parent?)`
 - `startAgentHost()`
-- `publishMcp()`
+- `startMcpTransport()`
 
 ### `worker`
 
@@ -168,6 +185,9 @@ The protocol standardizes the role, not identical boot code.
 - only required Cases and surfaces are loaded
 - contexts are created per execution, not as global boot-time shared instances
 - `ctx.cases` is built from registry constructors
+- `apps/agent/` uses the same catalog and execution semantics for HTTP and MCP
+- the MCP transport implementation is selected in `_providers`, while protocol-level MCP contracts live in `core/shared/`
+- if remote MCP is in scope, the host exposes a dedicated MCP endpoint rather than treating ordinary REST routes as MCP
 - `ctx.packages` contains only host-selected packages
 
 Additional checks for `apps/agent/`:

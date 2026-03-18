@@ -173,7 +173,8 @@ An agent-operable system exposes:
 
 The `agentic.case.ts` surface defines how a Case can be used by AI systems.
 At the app level, `apps/agent/` turns those Case-level contracts into a governed
-runtime that can publish, resolve, and execute capabilities safely.
+runtime that can publish, resolve, and execute capabilities safely across HTTP
+and MCP.
 
 This makes it possible for agents to:
 

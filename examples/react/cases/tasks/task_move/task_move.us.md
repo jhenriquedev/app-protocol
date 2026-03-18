@@ -60,6 +60,9 @@ Idempotency rule:
 - `task_move.ui.case.ts`
   - drives the move action from the task card
   - triggers board refresh after success
+- `task_move.agentic.case.ts`
+  - exposes task movement as a confirmable tool for `apps/agent`
+  - delegates execution to `task_move.api`
 
 ## Composition
 
@@ -83,6 +86,7 @@ Idempotency rule:
   - reads the persisted task collection
   - updates the matching task
   - writes the updated collection to `tasks.json`
+  - coordinates shared writes across `apps/backend` and `apps/agent`
 - `packages/design_system`
   - `TaskCard`
   - `TaskStatusBadge`
@@ -92,7 +96,10 @@ Idempotency rule:
 
 - no `stream` surface in v1
 - no retries or dead-letter policy in v1
-- no agentic exposure in v1
+- `task_move.agentic` is exposed as tool `task_move`
+- the same mutating tool is published through HTTP and MCP by `apps/agent`
+- agentic execution mode: `manual-approval`
+- confirmation is required before mutating task status
 
 ## Validation Scenarios
 
@@ -115,6 +122,15 @@ Idempotency rule:
 2. Given a successful move, the board refresh flow renders the card in the target column.
 3. Given an API failure, the UI keeps the previous board state and surfaces the failure state.
 
+### Agentic
+
+1. The agentic surface exposes discovery, context, prompt, tool, MCP, and policy metadata.
+2. Tool execution delegates to `task_move.api` through `ctx.cases`.
+3. The host runtime must reject execution without confirmation.
+4. When task identification is ambiguous, the host should ground itself through `task_list` before executing the move.
+5. Structured `NOT_FOUND` and validation failures from `task_move.api` propagate through the agent host without being rewritten to generic `500` errors.
+6. MCP `tools/call` preserves the same confirmation and structured error semantics as the HTTP agent host.
+
 ### Integration
 
 1. Portal move action -> backend `PATCH /tasks/:taskId/status` -> `packages/data` write -> board reload shows the card in the new column.
@@ -127,4 +143,4 @@ Idempotency rule:
 ## Status
 
 - specified
-- ready for implementation
+- implemented and validated

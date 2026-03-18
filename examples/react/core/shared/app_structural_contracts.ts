@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v1.0.0
+ * APP v1.0.1
  * core/shared/app_structural_contracts.ts
  * ----------------------------------------------------------------------------
  * Structural contracts that cross all surfaces.
@@ -101,6 +101,25 @@ export class AppCaseError extends Error implements AppError {
       ...(this.details !== undefined && { details: this.details }),
     };
   }
+}
+
+/**
+ * Rehydrates an AppCaseError from a structural AppError payload.
+ *
+ * Useful when a surface delegates to another canonical surface that returns
+ * an AppResult-style envelope instead of throwing directly.
+ */
+export function toAppCaseError(
+  error: AppError | undefined,
+  fallbackMessage: string,
+  fallbackCode = "INTERNAL",
+  fallbackDetails?: unknown
+): AppCaseError {
+  if (error) {
+    return new AppCaseError(error.code, error.message, error.details);
+  }
+
+  return new AppCaseError(fallbackCode, fallbackMessage, fallbackDetails);
 }
 
 /* ==========================================================================

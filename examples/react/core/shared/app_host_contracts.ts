@@ -1,45 +1,49 @@
 /* ========================================================================== *
- * APP v1.0.0
+ * APP v1.0.1
  * core/shared/app_host_contracts.ts
  * ----------------------------------------------------------------------------
- * Contratos de registry do APP.
+ * APP registry contracts.
  *
- * Definem a interface mínima para:
- * - AppCaseSurfaces: as surfaces disponíveis de um Case dentro de um registry
- * - AppRegistry: o catálogo de Cases e surfaces que um app carrega
- * - InferCasesMap: utility type para tipagem de ctx.cases
+ * They define the minimum interface for:
+ * - AppCaseSurfaces: the surfaces available for a Case inside a registry
+ * - AppRegistry: the catalog of Cases and surfaces loaded by an app
+ * - InferCasesMap: utility type for typing ctx.cases
  *
- * Cada app em apps/ usa estes contratos:
- * - registry.ts exporta um registry (usando `satisfies` para preservar tipos)
- * - app.ts consome o registry para montar o runtime
+ * Each app in apps/ uses these contracts:
+ * - registry.ts exports a registry (using `satisfies` to preserve types)
+ * - app.ts consumes the registry to build the runtime
  *
- * O protocolo define a forma, não o conteúdo:
- * - quais Cases e surfaces carregar é decisão de cada app
- * - como montar o runtime (monolito, lambda, edge) é decisão do projeto
- * - o framework (Hono, Express, React, etc.) é decisão do projeto
+ * The protocol defines the shape, not the content:
+ * - which Cases and surfaces to load is each app's decision
+ * - how to assemble the runtime (monolith, lambda, edge) is a project decision
+ * - the framework (Hono, Express, React, etc.) is a project decision
  * ========================================================================== */
 
 import { Dict } from "../domain.case";
 import { ApiContext } from "../api.case";
 import { UiContext } from "../ui.case";
 import { StreamContext } from "../stream.case";
-import { AgenticContext } from "../agentic.case";
+import {
+  AgenticContext,
+  BaseAgenticCase,
+  type AgenticDefinition,
+} from "../agentic.case";
 
 /* ==========================================================================
  * AppCaseSurfaces
  * --------------------------------------------------------------------------
- * Descreve as surfaces disponíveis de um Case dentro de um registry.
+ * Describes the surfaces available for a Case inside a registry.
  *
- * Cada chave é uma surface canônica e o valor é o construtor da classe.
- * Apenas as surfaces que o app precisa são registradas.
+ * Each key is a canonical surface and the value is the class constructor.
+ * Only the surfaces needed by the app are registered.
  *
- * Cada surface é tipada com seu context específico (ApiContext, UiContext,
- * etc.), não com AppBaseContext genérico. Isso elimina a necessidade de
- * casts nos hosts ao instanciar Cases a partir do registry.
+ * Each surface is typed with its specific context (ApiContext, UiContext,
+ * etc.), not with a generic AppBaseContext. This removes the need for
+ * casts in hosts when instantiating Cases from the registry.
  *
- * Exemplo:
- *   { api: UserValidateApi }                    — só backend
- *   { ui: UserValidateUi }                      — só frontend
+ * Example:
+ *   { api: UserValidateApi }                    — backend only
+ *   { ui: UserValidateUi }                      — frontend only
  *   { api: UserRegisterApi, stream: UserRegisterStream }  — backend + stream
  * ========================================================================== */
 
@@ -54,21 +58,21 @@ export interface AppCaseSurfaces {
 /* ==========================================================================
  * AppRegistry
  * --------------------------------------------------------------------------
- * Interface unificada de registro de um app.
+ * Unified app registry interface.
  *
- * Três slots canônicos:
+ * Three canonical slots:
  *
- * - _cases:     Cases ativos neste app (domínio → case → surfaces).
- *               Cada entry é um construtor de surface importado de cases/.
+ * - _cases:     Active Cases in this app (domain → case → surfaces).
+ *               Each entry is a surface constructor imported from cases/.
  *
- * - _providers: Providers e adapters montados pelo host.
+ * - _providers: Providers and adapters assembled by the host.
  *               Podem satisfazer contratos de core/shared/app_infra_contracts
- *               ou expor providers específicos do projeto.
+ *               or expose project-specific providers.
  *
- * - _packages:  Bibliotecas puras compartilhadas de packages/.
- *               Expostas aos Cases via ctx.packages.
+ * - _packages:  Shared pure libraries from packages/.
+ *               Exposed to Cases through ctx.packages.
  *
- * Nenhum slot é obrigatório além de _cases.
+ * No slot is required besides _cases.
  *
  * Uso:
  *   export function createRegistry(config) {
@@ -76,53 +80,92 @@ export interface AppCaseSurfaces {
  *   }
  *   export type MyAppRegistry = ReturnType<typeof createRegistry>;
  *
- * O registry unifica num único arquivo tudo que o app precisa registrar.
+ * The registry centralizes everything the app needs to register in a single file.
  * ========================================================================== */
 
 export interface AppRegistry {
   /**
-   * Cases ativos neste app.
-   * Shape: domínio → case → surfaces (construtores).
+   * Active Cases in this app.
+   * Shape: domain → case → surfaces (constructors).
    */
   _cases: Dict<Dict<AppCaseSurfaces>>;
 
   /**
-   * Providers e adapters montados pelo host.
+   * Providers and adapters assembled by the host.
    */
   _providers?: Dict;
 
   /**
-   * Packages de biblioteca.
-   * Código compartilhado puro exposto aos Cases via ctx.packages.
+   * Library packages.
+   * Pure shared code exposed to Cases through ctx.packages.
    */
   _packages?: Dict;
 }
 
 /* ==========================================================================
+ * AgenticRegistry
+ * --------------------------------------------------------------------------
+ * Formal extension of AppRegistry for agentic hosts.
+ *
+ * The host still uses `_cases`, `_providers`, and `_packages` as canonical
+ * slots. The agentic specialization only adds catalog, lookup, and
+ * instantiation capabilities for agentic surfaces.
+ * ========================================================================== */
+
+export interface AgenticCaseRef {
+  domain: string;
+  caseName: string;
+}
+
+export interface AgenticCatalogEntry<TInput = unknown, TOutput = unknown> {
+  ref: AgenticCaseRef;
+  publishedName: string;
+  definition: AgenticDefinition<TInput, TOutput>;
+  isMcpEnabled: boolean;
+  requiresConfirmation: boolean;
+  executionMode: "suggest-only" | "manual-approval" | "direct-execution";
+}
+
+export interface AgenticRegistry extends AppRegistry {
+  listAgenticCases(): AgenticCaseRef[];
+  getAgenticSurface(ref: AgenticCaseRef): AppCaseSurfaces["agentic"] | undefined;
+  instantiateAgentic(
+    ref: AgenticCaseRef,
+    ctx: AgenticContext
+  ): BaseAgenticCase;
+  buildCatalog(ctx: AgenticContext): AgenticCatalogEntry[];
+  resolveTool(
+    toolName: string,
+    ctx: AgenticContext
+  ): AgenticCatalogEntry | undefined;
+  listMcpEnabledTools(ctx: AgenticContext): AgenticCatalogEntry[];
+}
+
+/* ==========================================================================
  * InferCasesMap
  * --------------------------------------------------------------------------
- * Utility type que deriva o mapa de instâncias a partir de um registry.
+ * Utility type that derives the instance map from a registry.
  *
- * Converte construtores em seus tipos de instância, preservando a
- * estrutura literal de chaves (domínio → case → surface → instância).
+ * Converts constructors into their instance types while preserving the
+ * literal key structure (domain → case → surface → instance).
  *
  * Uso:
  *   const registry = { ... } satisfies Record<string, Record<string, AppCaseSurfaces>>;
  *   type MyCasesMap = InferCasesMap<typeof registry>;
  *
- * Dentro de _composition:
+ * Inside _composition:
  *   const cases = this.ctx.cases as MyCasesMap | undefined;
  *   // autocomplete: cases?.users?.user_validate?.api?.handler(...)
  *
- * Importante:
- * - o registry NÃO deve ser anotado como `: AppRegistry` — isso apaga
- *   a estrutura literal. Use `satisfies` para validar sem perder tipos.
- * - ctx.cases permanece Dict nos contratos base (sem generic cascade).
- * - o cast é seguro porque é derivado mecanicamente do registry real.
+ * Important:
+ * - the registry MUST NOT be annotated as `: AppRegistry` — that erases
+ *   the literal structure. Use `satisfies` to validate without losing types.
+ * - ctx.cases remains Dict in the base contracts (no generic cascade).
+ * - the cast is safe because it is mechanically derived from the real registry.
  * ========================================================================== */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- any[] necessário
-// para match contravariant de construtores com parâmetros tipados (ApiContext, etc.)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- any[] is required
+// for contravariant constructor matching with typed parameters (ApiContext, etc.)
 type InferSurfaceInstances<S extends AppCaseSurfaces> = {
   [K in keyof S]: S[K] extends new (...args: any[]) => infer I ? I : never;
 };

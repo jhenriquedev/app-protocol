@@ -98,26 +98,36 @@ Validate APP grammar in this repository using /app.
 
 If you want the operational details, read [`using-app-skill.md`](./using-app-skill.md).
 
-## Run the TypeScript example
+## Run the React example
 
-The reference example is the fastest executable APP project in this repository.
+The current full reference example is `examples/react/`. It is the example that
+best reflects the active APP guidance for `apps/agent/`, HTTP publication,
+local MCP publication, and remote MCP publication.
 
 Run it:
 
 ```bash
-npm --prefix examples/typescript ci
-npm --prefix examples/typescript run start
+npm --prefix examples/react ci
+npm --prefix examples/react run smoke
 ```
 
 What it demonstrates:
 
 - backend host bootstrapping
-- agent host consuming agentic surfaces (`chatbot` in the current TypeScript reference until the example is renamed)
-- API, UI, stream, and agentic surfaces
-- cross-case orchestration through `ctx.cases`
-- scenario execution and surface-level tests
+- portal + backend + `agent` hosts
+- HTTP, MCP `stdio`, and remote MCP publication from the same agent host
+- API, UI, and agentic surfaces
+- cross-case execution through `ctx.cases`
+- runtime smoke validation for HTTP and MCP
 
 If you want the example map, read [`examples.md`](./examples.md).
+
+If you want the smaller illustrative TypeScript scenario, use:
+
+```bash
+npm --prefix examples/typescript ci
+npm --prefix examples/typescript run start
+```
 
 ## Start your own APP project
 

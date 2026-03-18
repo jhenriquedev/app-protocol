@@ -9,6 +9,7 @@ import {
   AgenticContext,
   AgenticDiscovery,
   AgenticExecutionContext,
+  AgenticExample,
   AgenticMcpContract,
   AgenticPolicy,
   AgenticPrompt,
@@ -17,6 +18,10 @@ import {
   BaseAgenticCase,
 } from "../../../core/agentic.case";
 import { ApiResponse } from "../../../core/api.case";
+import {
+  AppCaseError,
+  toAppCaseError,
+} from "../../../core/shared/app_structural_contracts";
 import { TaskCreateDomain, TaskCreateInput, TaskCreateOutput } from "./task_create.domain.case";
 
 type ExpectedCasesMap = {
@@ -55,6 +60,7 @@ export class TaskCreateAgentic extends BaseAgenticCase<
       dependencies: ["task_create.domain", "task_create.api"],
       preconditions: ["Title must be provided."],
       constraints: ["Execution follows canonical API flow."],
+      notes: ["New tasks are created in pending status in this example."],
     };
   }
 
@@ -63,6 +69,8 @@ export class TaskCreateAgentic extends BaseAgenticCase<
       purpose: "Create a new task with a title and optional description.",
       whenToUse: ["When a user wants to create or add a new task."],
       whenNotToUse: ["When updating or completing an existing task."],
+      constraints: ["Do not invent persistence-managed fields such as id or createdAt."],
+      reasoningHints: ["Keep titles concise and use description only when the user supplied additional detail."],
       expectedOutcome: "A new task object with id, title, status=pending, and createdAt.",
     };
   }
@@ -84,7 +92,7 @@ export class TaskCreateAgentic extends BaseAgenticCase<
         const cases = ctx.cases as ExpectedCasesMap | undefined;
         const result = await cases?.tasks?.task_create?.api?.handler(input);
         if (!result?.success || !result.data) {
-          throw new Error(result?.error?.message ?? "task_create API failed");
+          throw toAppCaseError(result?.error, "task_create API failed");
         }
         return result.data;
       },
@@ -96,6 +104,7 @@ export class TaskCreateAgentic extends BaseAgenticCase<
       enabled: true,
       name: "task_create",
       title: "Create Task",
+      description: "Create a task through the canonical APP task_create flow.",
       metadata: { category: "tasks", mutating: true },
     };
   }
@@ -106,6 +115,7 @@ export class TaskCreateAgentic extends BaseAgenticCase<
       resources: [
         { kind: "case", ref: "tasks/task_create", description: "Task creation capability." },
       ],
+      hints: ["Prefer the canonical task creation flow over ad hoc task mutations."],
       scope: "project",
       mode: "optional",
     };
@@ -119,6 +129,10 @@ export class TaskCreateAgentic extends BaseAgenticCase<
     };
   }
 
+  public examples(): AgenticExample<TaskCreateInput, TaskCreateOutput>[] {
+    return super.examples();
+  }
+
   public async test(): Promise<void> {
     this.validateDefinition();
 
@@ -128,6 +142,40 @@ export class TaskCreateAgentic extends BaseAgenticCase<
     }
     if (!def.tool.inputSchema.properties) {
       throw new Error("Tool must have input schema properties");
+    }
+
+    const example = this.examples()[0];
+    if (!example) {
+      throw new Error("task_create should expose at least one example");
+    }
+
+    let propagatedError: unknown;
+    try {
+      await this.tool().execute(example.input, {
+        correlationId: "task-create-agentic-failure-test",
+        logger: this.ctx.logger,
+        cases: {
+          tasks: {
+            task_create: {
+              api: {
+                handler: async () => ({
+                  success: false,
+                  error: {
+                    code: "VALIDATION_FAILED",
+                    message: "title is required",
+                  },
+                }),
+              },
+            },
+          },
+        },
+      });
+    } catch (error: unknown) {
+      propagatedError = error;
+    }
+
+    if (!(propagatedError instanceof AppCaseError)) {
+      throw new Error("task_create must propagate structured AppCaseError failures");
     }
   }
 }

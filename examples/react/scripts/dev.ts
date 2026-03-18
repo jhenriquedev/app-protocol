@@ -5,13 +5,14 @@ import { fileURLToPath } from "node:url";
 const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 const prefixPalette = {
-  backend: "\u001B[36m",
-  portal: "\u001B[35m",
+  api: "\u001B[36m",
+  front: "\u001B[35m",
+  agent: "\u001B[33m",
   reset: "\u001B[0m",
 } as const;
 
 type ManagedProcess = {
-  name: "backend" | "portal";
+  name: "api" | "front" | "agent";
   child: ChildProcess;
 };
 
@@ -94,9 +95,10 @@ function registerShutdown(signal: NodeJS.Signals): void {
 registerShutdown("SIGINT");
 registerShutdown("SIGTERM");
 
-spawnScript("backend", "dev:backend");
-spawnScript("portal", "dev:portal");
+spawnScript("api", "dev:api");
+spawnScript("front", "dev:front");
+spawnScript("agent", "dev:agent");
 
 process.stdout.write(
-  "[dev] Running backend on http://localhost:3000 and portal on http://localhost:5173\n"
+  "[dev] Running api on http://localhost:3000, front on http://localhost:5173, and agent HTTP on http://localhost:3001 (remote MCP at /mcp). Start MCP stdio separately with `npm run dev:agent:mcp` because stdio transport needs direct client ownership.\n"
 );

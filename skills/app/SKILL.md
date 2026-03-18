@@ -11,8 +11,8 @@ and improving scanability.
 
 ## Revision Metadata
 
-- Version: `1.0.0-prd`
-- Protocol: `app@v1.0.0`
+- Version: `1.0.1-prd`
+- Protocol: `app@v1.0.1`
 - Status: `prd`
 
 ## What This Skill Does
@@ -203,11 +203,12 @@ view ↔ _viewmodel ↔ _service ↔ _repository
 
 #### agentic
 
-- `mcp()` controls exposure and presentation; it does not redefine execution
+- `mcp()` controls Case-level exposure and presentation; it does not redefine execution
 - `tool.execute()` must delegate to a canonical surface
 - if `agentic` is created or revised, `/app` requires the full formal contract to be materially defined: `discovery()`, `context()`, `prompt()`, `tool()`, and `test()`
 - include `policy()`, `mcp()`, `rag()`, and `examples()` whenever the capability semantics or host runtime require them; do not leave those concerns implicit
 - if the task requires app-level agentic operability, the skill must also formalize the host layer in `apps/agent/`; `agentic.case.ts` alone is not sufficient
+- full app-level agentic conformance requires a real MCP boundary in `apps/agent/`; Case-level `mcp()` metadata alone is not enough
 
 ## 6. Composition and Runtime
 
@@ -264,23 +265,44 @@ Required registry definition:
 - `buildCatalog(ctx)`
 - `resolveTool(toolName, ctx)`
 - `listMcpEnabledTools(ctx)`
+- protocol-level MCP abstraction in `core/shared/` through an abstract adapter contract such as `BaseAppMcpAdapter`
+- concrete MCP transport implementation bound in `_providers` rather than in `core/shared/`
+- if more than one MCP transport exists, bind them explicitly as named providers such as `_providers.mcpAdapters.stdio` and `_providers.mcpAdapters.http`
 
 Required `apps/agent/app.ts` responsibilities:
 
 - `bootstrap(config)`
 - `createAgenticContext(parent?)`
 - `buildAgentCatalog(parent?)`
+- `buildSystemPrompt(parent?)`
 - `resolveTool(toolName, parent?)`
 - `executeTool(toolName, input, parent?)`
+- `initializeMcp(params?, parent?)`
+- `listMcpTools(parent?)`
+- `listMcpResources(parent?)`
+- `readMcpResource(uri, parent?)`
+- `callMcpTool(name, input, parent?)`
+- `publishMcp()`
 - `validateAgenticRuntime()`
 
 Required runtime semantics:
 
 - tool publication derives from registered `agentic` surfaces
+- host publication must project the complete `AgenticDefinition` automatically from `AgenticRegistry`; do not hand-curate per-tool semantic fields in the host
 - `AgenticContext` is materialized per execution
 - tool names are unique after MCP fallback resolution
 - `requireConfirmation` and `executionMode` are enforced by the host/runtime
-- a global host prompt must not override per-Case `agentic` semantics
+- MCP tool descriptors must include a semantic summary derived from `prompt`, `discovery`, `context`, and runtime policy
+- richer host channels such as MCP resources and `/catalog` must expose the full projected semantic payload from the registry
+- the global host prompt must be assembled automatically from registered tool prompt fragments and runtime policy; it must not override per-Case `agentic` semantics
+- complete `apps/agent/` conformance exposes an HTTP boundary plus at least one real MCP boundary
+- HTTP and MCP derive from the same host catalog and canonical execution path
+- MCP lifecycle and operations are materially implemented: `initialize`, `tools/list`, `resources/list`, `resources/read`, `tools/call`
+- do not invent `_mcp()` as a canonical host method; use explicit host methods such as `publishMcp()`, `listMcpTools()`, and `callMcpTool()`
+- when MCP uses `stdio`, do not present it as just another long-running HTTP service; document and wire it as a separate process because the MCP client must own stdin/stdout directly
+- `initializeMcp()` must not assume exact protocol-version equality if the host claims support for more than one compatible revision; declare supported versions explicitly and reject only truly unsupported versions
+- plain host REST routes do not count as remote MCP publication
+- if remote MCP is in scope, expose a dedicated remote MCP endpoint and keep it aligned with the same catalog, policy, and structured-error semantics used by local MCP
 
 ### New `packages/` Entry
 
@@ -307,6 +329,7 @@ Required runtime semantics:
 - identify a bounded area where APP can be introduced safely
 - create new APP Cases and host registries incrementally around new or refactored capability slices
 - record where APP-managed and legacy areas meet, and review drift explicitly at task closure
+- if an example or guide changes status from placeholder/legacy to active reference, update all active onboarding documents that point to the old reference
 
 ## 7. `<case>.us.md` Contract
 
@@ -418,6 +441,11 @@ inspect → specify → create/implement → validate → review
 - existing-project adoption keeps APP boundaries explicit instead of silently mixing grammar
 - `apps/agent/` enforces `requireConfirmation` and `executionMode` at runtime
 - `apps/agent/` resolves and publishes tools through `AgenticRegistry`
+- `apps/agent/` keeps HTTP and MCP publication aligned to the same catalog and policy semantics
+- the concrete MCP adapter is bound in `_providers`, while the abstract MCP contract remains in `core/shared/`
+- `apps/agent/` does not conflate stdio MCP startup with aggregate HTTP dev flows
+- `apps/agent/` does not confuse ordinary HTTP routes with a remote MCP boundary
+- active onboarding docs point to the current reference implementation rather than a legacy or placeholder example
 
 ## 10. Example: `usuario_criar`
 
@@ -482,6 +510,11 @@ When `apps/agent/` is touched, validation must also cover:
 - host resolution from external tool name to canonical execution
 - runtime enforcement for confirmation and execution mode
 - per-execution `AgenticContext` materialization
+- MCP lifecycle and transport behavior: `initialize`, `tools/list`, `tools/call`
+- HTTP/MCP parity for catalog publication and canonical execution behavior
+- negative MCP checks for unsupported protocol versions when the host exposes `initializeMcp()`
+- if MCP `stdio` exists, stdout remains reserved for protocol messages and startup guidance keeps stdio separate from aggregate dev runners
+- if remote MCP exists, validate the dedicated endpoint path and the remote transport handshake separately from plain REST routes
 
 ## 12. Subagents
 

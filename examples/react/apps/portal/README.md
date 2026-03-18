@@ -12,10 +12,10 @@ Structural status:
 
 - registry created
 - Vite runtime entrypoint created
-- placeholder root page renders the design system package
-- task UI Cases still pending
+- task board shell renders through `root.tsx`
+- task UI Cases implemented and connected to the backend
 
-Planned screens:
+Implemented screens:
 
 - board page
 - create task modal

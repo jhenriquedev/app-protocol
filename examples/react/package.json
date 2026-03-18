@@ -1,16 +1,31 @@
 {
   "name": "app-protocol-example-react",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "tsx scripts/dev.ts",
+    "dev:all": "tsx scripts/dev.ts",
+    "dev:http": "tsx scripts/dev.ts",
     "typecheck": "tsc --noEmit",
+    "dev:api": "tsx watch apps/backend/server.ts",
     "dev:backend": "tsx watch apps/backend/server.ts",
+    "start:api": "tsx apps/backend/server.ts",
     "start:backend": "tsx apps/backend/server.ts",
+    "dev:front": "vite --config apps/portal/vite.config.ts",
     "dev:portal": "vite --config apps/portal/vite.config.ts",
+    "start:front": "vite --host --config apps/portal/vite.config.ts",
+    "start:portal": "vite --host --config apps/portal/vite.config.ts",
+    "dev:agent": "tsx watch apps/agent/server.ts",
+    "start:agent": "tsx apps/agent/server.ts",
+    "dev:agent:mcp": "tsx watch apps/agent/mcp_server.ts",
+    "start:agent:mcp": "tsx apps/agent/mcp_server.ts",
     "build:portal": "vite build --config apps/portal/vite.config.ts",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts && tsx scripts/agentic_smoke.ts && tsx scripts/agent_mcp_smoke.ts && tsx scripts/agent_mcp_http_smoke.ts",
+    "smoke:backend": "tsx scripts/smoke.ts",
+    "smoke:agentic": "tsx scripts/agentic_smoke.ts",
+    "smoke:agent:mcp": "tsx scripts/agent_mcp_smoke.ts",
+    "smoke:agent:mcp:http": "tsx scripts/agent_mcp_http_smoke.ts"
   },
   "dependencies": {
     "react": "^19.1.1",

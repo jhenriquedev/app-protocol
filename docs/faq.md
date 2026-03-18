@@ -39,7 +39,7 @@ Yes only when a Case chooses to expose an agentic surface.
 
 No.
 It makes a Case agent-operable, but app-level agentic conformance also requires
-an agent host that publishes and governs those surfaces.
+an agent host that publishes and governs those surfaces across HTTP and MCP.
 
 ## Is `chatbot` the canonical host name for an agentic app?
 

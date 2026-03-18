@@ -1,11 +1,16 @@
 # Examples
 
-This directory holds the executable APP reference implementation and additional placeholder example targets for future ecosystems.
+This directory holds the executable APP examples and additional placeholder
+targets for future ecosystems.
 
 Current status:
 
-- executable reference published in `examples/typescript/`
+- full current reference published in `examples/react/`
+- compact illustrative example published in `examples/typescript/`
 - additional ecosystem folders reserved for future implementations
+
+The React reference currently demonstrates an `agent` host with HTTP, MCP
+`stdio`, and remote MCP publication from the same runtime.
 
 Planned targets:
 

@@ -1,32 +1,32 @@
 /* ========================================================================== *
- * APP v1.0.0
+ * APP v1.0.1
  * core/ui.case.ts
  * ----------------------------------------------------------------------------
- * Contrato base da surface de UI no APP.
+ * Base contract for the APP UI surface.
  *
- * Representa a superfície de interface da capacidade.
+ * Represents the interface surface of the capability.
  *
- * Responsabilidade:
- * - apresentar interface ao usuário
- * - gerenciar estado local via viewmodel
- * - acessar dados via repository
- * - executar lógica de negócio local via service
+ * Responsibility:
+ * - present an interface to the user
+ * - manage local state via the viewmodel
+ * - access data through the repository
+ * - execute local business logic through the service
  *
- * Gramática canônica:
+ * Canonical grammar:
  *   view <-> _viewmodel <-> _service <-> _repository
  *
- * A view é uma unidade visual viva e autocontida: um formulário,
- * uma tabela com filtros, uma sidebar, uma appbar.
+ * The view is a live, self-contained visual unit: a form,
+ * a table with filters, a sidebar, an appbar.
  *
- * O ciclo de vida de framework (render, mount, dismount, etc.)
- * vive dentro de view como detalhe de implementação — o protocolo
- * não dita lifecycle hooks.
+ * The framework lifecycle (render, mount, dismount, etc.)
+ * lives inside view as an implementation detail — the protocol
+ * does not prescribe lifecycle hooks.
  *
- * Não depende de framework específico.
+ * It does not depend on a specific framework.
  *
- * Contexto:
- * - UiContext estende AppBaseContext com infraestrutura de frontend
- * - cada projeto define os tipos concretos de renderer, router, store, etc.
+ * Context:
+ * - UiContext extends AppBaseContext with frontend infrastructure
+ * - each project defines the concrete types for renderer, router, store, etc.
  * ========================================================================== */
 
 import { Dict } from "./domain.case";
@@ -36,57 +36,57 @@ import { AppHttpClient } from "./shared/app_infra_contracts";
 /* ==========================================================================
  * UiContext
  * --------------------------------------------------------------------------
- * Contexto específico da surface de UI.
+ * UI surface-specific context.
  *
- * Estende AppBaseContext com infraestrutura de frontend:
- * - renderer: framework de renderização (React, Vue, Svelte, Flutter, etc.)
- * - router: roteador client-side
- * - store: estado global ou compartilhado
- * - api: cliente HTTP para chamadas ao backend
+ * Extends AppBaseContext with frontend infrastructure:
+ * - renderer: rendering framework (React, Vue, Svelte, Flutter, etc.)
+ * - router: client-side router
+ * - store: global or shared state
+ * - api: HTTP client for backend calls
  *
- * Todos os campos de infraestrutura são opcionais e tipados como unknown
- * para manter neutralidade de framework.
+ * All infrastructure fields are optional and typed as unknown
+ * to preserve framework neutrality.
  * ========================================================================== */
 
 export interface UiContext extends AppBaseContext {
   /**
-   * Framework de renderização.
+   * Rendering framework.
    *
-   * Exemplos: React root, Vue app instance, Svelte component context.
+   * Examples: React root, Vue app instance, Svelte component context.
    */
   renderer?: unknown;
 
   /**
-   * Roteador client-side.
+   * Client-side router.
    *
-   * Exemplos: React Router, Vue Router, Svelte navigate.
+   * Examples: React Router, Vue Router, Svelte navigate.
    */
   router?: unknown;
 
   /**
-   * Estado global ou compartilhado.
+   * Global or shared state.
    *
-   * Exemplos: Redux store, Zustand, Pinia, Riverpod.
+   * Examples: Redux store, Zustand, Pinia, Riverpod.
    */
   store?: unknown;
 
   /**
-   * HTTP client para chamadas ao backend.
+   * HTTP client for backend calls.
    *
-   * Exemplos: fetch wrapper, Axios instance, tRPC client.
+   * Examples: fetch wrapper, Axios instance, tRPC client.
    */
   api?: AppHttpClient;
 
   /**
-   * Packages de biblioteca registrados pelo host.
+   * Library packages registered by the host.
    *
-   * Expostos via registry._packages.
-   * Bibliotecas puras de packages/ que o app disponibiliza.
+   * Exposed through registry._packages.
+   * Pure libraries from packages/ that the app makes available.
    */
   packages?: Dict;
 
   /**
-   * Espaço de extensão livre para o host do projeto.
+   * Free extension space for the project host.
    */
   extra?: Dict;
 }
@@ -96,43 +96,43 @@ export interface UiContext extends AppBaseContext {
  * ========================================================================== */
 
 /**
- * Estrutura genérica de estado de UI.
+ * Generic UI state structure.
  */
 export type UIState = Record<string, unknown>;
 
 /* ==========================================================================
  * BaseUiCase
  * --------------------------------------------------------------------------
- * Classe base para surfaces de UI.
+ * Base class for UI surfaces.
  *
- * A gramática canônica da UI é:
+ * The canonical UI grammar is:
  *
  *   view <-> _viewmodel <-> _service <-> _repository
  *
- * - view(): entrypoint público — a unidade visual viva (formulário, tabela,
- *   sidebar, appbar, widget). O ciclo de vida de framework (render, mount,
- *   dismount) é detalhe de implementação interno à view.
+ * - view(): public entrypoint — the live visual unit (form, table,
+ *   sidebar, appbar, widget). The framework lifecycle (render, mount,
+ *   dismount) is an internal implementation detail of the view.
  *
- * - _viewmodel(): transforma estado e dados em modelo de apresentação
- *   para a view consumir.
+ * - _viewmodel(): transforms state and data into a presentation model
+ *   for the view to consume.
  *
- * - _service(): lógica de negócio local da UI (comportamento de estado,
- *   validações client-side, transformações de dados locais).
+ * - _service(): local UI business logic (state behavior,
+ *   client-side validations, local data transformations).
  *
- * - _repository(): acesso a dados — API calls, local storage, cache reads.
+ * - _repository(): data access — API calls, local storage, cache reads.
  *
- * Nota sobre _composition:
- * ui.case.ts não inclui _composition. Orquestração cross-case direta
- * a partir da UI é desencorajada no APP.
+ * Note about _composition:
+ * ui.case.ts does not include _composition. Direct cross-case orchestration
+ * from the UI is discouraged in APP.
  *
- * Nota sobre múltiplas classes:
- * O pattern de separar UIPresenter + UICase dentro do mesmo ui.case.ts
- * é permitido como estrutura interna opcional. O protocolo congela os
- * slots semânticos, não a organização interna de classes.
+ * Note about multiple classes:
+ * The pattern of separating UIPresenter + UICase inside the same ui.case.ts
+ * is allowed as an optional internal structure. The protocol freezes the
+ * semantic slots, not the internal class organization.
  * ========================================================================== */
 
 /**
- * Classe base para surfaces de UI.
+ * Base class for UI surfaces.
  */
 export abstract class BaseUiCase<TState extends UIState = UIState> {
   protected readonly ctx: UiContext;
@@ -140,11 +140,11 @@ export abstract class BaseUiCase<TState extends UIState = UIState> {
   protected state: TState;
 
   /**
-   * @param ctx — contexto de UI fornecido pelo host
-   * @param initialState — estado inicial do Case.
-   *   Opcional na base: o Case concreto define seu próprio estado inicial
-   *   via super(ctx, { ... }). O host nunca precisa conhecer o estado
-   *   interno de um Case.
+   * @param ctx — UI context provided by the host
+   * @param initialState — initial state of the Case.
+   *   Optional in the base class: the concrete Case defines its own
+   *   initial state via super(ctx, { ... }). The host never needs to know
+   *   the internal state of a Case.
    */
   constructor(ctx: UiContext, initialState: TState = {} as TState) {
     this.ctx = ctx;
@@ -152,81 +152,81 @@ export abstract class BaseUiCase<TState extends UIState = UIState> {
   }
 
   /* =======================================================================
-   * Métodos obrigatórios
+   * Required methods
    * ===================================================================== */
 
   /**
-   * Entrypoint público da unidade visual.
+   * Public entrypoint of the visual unit.
    *
-   * A view é a unidade visual viva e autocontida do Case.
-   * Exemplos: formulário de cadastro, tabela com filtros, sidebar, appbar.
+   * The view is the live, self-contained visual unit of the Case.
+   * Examples: registration form, table with filters, sidebar, appbar.
    *
-   * Pode retornar:
+   * It may return:
    * - HTML
    * - JSX
    * - Virtual DOM
    * - Widget tree
-   * - outro formato suportado pelo host/framework
+   * - another format supported by the host/framework
    *
-   * O ciclo de vida de framework (render, mount, dismount, etc.)
-   * vive dentro de view como detalhe de implementação.
-   * O protocolo não dita lifecycle hooks.
+   * The framework lifecycle (render, mount, dismount, etc.)
+   * lives inside view as an implementation detail.
+   * The protocol does not prescribe lifecycle hooks.
    */
   public abstract view(): unknown;
 
   /**
-   * Teste interno da capacidade.
+   * Internal capability test.
    *
-   * Boa prática recomendada no APP — surfaces idealmente expõem um
-   * método test() para validação autocontida do contrato.
+   * Recommended APP practice — surfaces should ideally expose a
+   * test() method for self-contained contract validation.
    */
   public async test(): Promise<void> {}
 
   /* =======================================================================
-   * Slots canônicos internos
+   * Internal canonical slots
    * ===================================================================== */
 
   /**
-   * Viewmodel — transforma estado e dados em modelo de apresentação.
+   * Viewmodel — transforms state and data into a presentation model.
    *
-   * Slot canônico que separa a preparação de dados da renderização.
-   * A view consome o resultado do viewmodel, sem conter lógica
-   * de transformação de estado.
+   * Canonical slot that separates data preparation from rendering.
+   * The view consumes the viewmodel result without containing
+   * state transformation logic.
    *
-   * Responsabilidades:
-   * - combinar state + dados externos em modelo de apresentação
-   * - derivar campos calculados
-   * - formatar dados para a view
+   * Responsibilities:
+   * - combine state + external data into a presentation model
+   * - derive computed fields
+   * - format data for the view
    */
   protected _viewmodel?(...args: unknown[]): unknown;
 
   /**
-   * Lógica de negócio local da UI.
+   * Local UI business logic.
    *
-   * Slot canônico para comportamento de estado, validações client-side,
-   * transformações de dados locais, e ações do usuário.
+   * Canonical slot for state behavior, client-side validations,
+   * local data transformations, and user actions.
    *
-   * Nota: _service na UI é lógica local — não envolve composição
-   * cross-case nem orquestração.
+   * Note: _service in the UI is local logic — it does not involve
+   * cross-case composition or orchestration.
    */
   protected _service?(...args: unknown[]): unknown;
 
   /**
-   * Acesso a dados e persistência local.
+   * Access to data and local persistence.
    *
-   * Slot canônico para API calls, local storage, cache reads,
-   * e qualquer integração de dados.
+   * Canonical slot for API calls, local storage, cache reads,
+   * and any data integration.
    *
-   * Regra: _repository não realiza composição cross-case.
+   * Rule: _repository must not perform cross-case composition.
    */
   protected _repository?(...args: unknown[]): unknown;
 
   /* =======================================================================
-   * Utilitário interno
+   * Internal utility
    * ===================================================================== */
 
   /**
-   * Atualização de estado.
+   * State update.
    */
   protected setState(partial: Partial<TState>) {
     this.state = {

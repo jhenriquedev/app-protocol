@@ -12,7 +12,7 @@ Structural status:
 - registry created
 - Node server entrypoint created
 - health and manifest routes created
-- task Cases still pending
+- task API Cases mounted and validated
 
 Planned v1 cases:
 

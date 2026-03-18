@@ -2,8 +2,11 @@
 
 The tasks domain owns the board capability for the React + Node example.
 
-Planned v1 Cases:
+Implemented v1 Cases:
 
 - create a task
 - list tasks for the board
 - move a task between columns
+
+Each implemented Case also exposes an `agentic` surface for the `apps/agent`
+host, which publishes the same capabilities through HTTP and MCP.

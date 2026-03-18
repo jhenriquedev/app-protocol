@@ -9,6 +9,7 @@ import {
   AgenticContext,
   AgenticDiscovery,
   AgenticExecutionContext,
+  AgenticExample,
   AgenticMcpContract,
   AgenticPolicy,
   AgenticPrompt,
@@ -17,6 +18,10 @@ import {
   BaseAgenticCase,
 } from "../../../core/agentic.case";
 import { ApiResponse } from "../../../core/api.case";
+import {
+  AppCaseError,
+  toAppCaseError,
+} from "../../../core/shared/app_structural_contracts";
 import { TaskCompleteDomain, TaskCompleteInput, TaskCompleteOutput } from "./task_complete.domain.case";
 
 type ExpectedCasesMap = {
@@ -54,6 +59,7 @@ export class TaskCompleteAgentic extends BaseAgenticCase<
       dependencies: ["task_complete.domain", "task_complete.api"],
       preconditions: ["Task must exist and be in pending status."],
       constraints: ["Cannot complete a task that is already done."],
+      notes: ["This capability mutates persisted task state and should be confirmed by the host runtime."],
     };
   }
 
@@ -62,6 +68,8 @@ export class TaskCompleteAgentic extends BaseAgenticCase<
       purpose: "Mark an existing task as done by its ID.",
       whenToUse: ["When a user wants to complete or finish a task."],
       whenNotToUse: ["When creating a new task.", "When listing tasks."],
+      constraints: ["Do not invent task ids; ground ambiguous requests before execution."],
+      reasoningHints: ["List tasks first when the target task is not uniquely identified."],
       expectedOutcome: "The task object with status changed to 'done'.",
     };
   }
@@ -83,7 +91,7 @@ export class TaskCompleteAgentic extends BaseAgenticCase<
         const cases = ctx.cases as ExpectedCasesMap | undefined;
         const result = await cases?.tasks?.task_complete?.api?.handler(input);
         if (!result?.success || !result.data) {
-          throw new Error(result?.error?.message ?? "task_complete API failed");
+          throw toAppCaseError(result?.error, "task_complete API failed");
         }
         return result.data;
       },
@@ -95,6 +103,7 @@ export class TaskCompleteAgentic extends BaseAgenticCase<
       enabled: true,
       name: "task_complete",
       title: "Complete Task",
+      description: "Complete a task through the canonical APP task_complete flow.",
       metadata: { category: "tasks", mutating: true },
     };
   }
@@ -105,6 +114,7 @@ export class TaskCompleteAgentic extends BaseAgenticCase<
       resources: [
         { kind: "case", ref: "tasks/task_complete", description: "Task completion capability." },
       ],
+      hints: ["Treat completion as a mutating task-state transition that may need confirmation."],
       scope: "project",
       mode: "optional",
     };
@@ -118,12 +128,50 @@ export class TaskCompleteAgentic extends BaseAgenticCase<
     };
   }
 
+  public examples(): AgenticExample<TaskCompleteInput, TaskCompleteOutput>[] {
+    return super.examples();
+  }
+
   public async test(): Promise<void> {
     this.validateDefinition();
 
     const def = this.definition();
     if (def.discovery.name !== "task_complete") {
       throw new Error("Agentic discovery name mismatch");
+    }
+
+    const example = this.examples()[0];
+    if (!example) {
+      throw new Error("task_complete should expose at least one example");
+    }
+
+    let propagatedError: unknown;
+    try {
+      await this.tool().execute(example.input, {
+        correlationId: "task-complete-agentic-failure-test",
+        logger: this.ctx.logger,
+        cases: {
+          tasks: {
+            task_complete: {
+              api: {
+                handler: async () => ({
+                  success: false,
+                  error: {
+                    code: "NOT_FOUND",
+                    message: "task missing",
+                  },
+                }),
+              },
+            },
+          },
+        },
+      });
+    } catch (error: unknown) {
+      propagatedError = error;
+    }
+
+    if (!(propagatedError instanceof AppCaseError)) {
+      throw new Error("task_complete must propagate structured AppCaseError failures");
     }
   }
 }

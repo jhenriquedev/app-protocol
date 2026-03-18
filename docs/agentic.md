@@ -13,7 +13,7 @@ The agentic surface is optional. If a Case exposes this surface, it must follow 
 That is necessary but not sufficient for an APP project to be agentic at the
 app level. A project becomes agentic at the host level when an app under
 `apps/agent/` publishes those surfaces through a registry/runtime that can
-discover, resolve, validate, and execute them canonically.
+discover, resolve, validate, and execute them canonically across HTTP and MCP.
 
 The canonical generic host name is `agent`.
 `chatbot` may still exist as a project-specific conversational specialization,
@@ -162,7 +162,8 @@ The following rules are stable and normative:
 
 ## MCP Exposure
 
-`tool` is the canonical contract for agent execution. `mcp` is an optional exposure configuration for MCP publication.
+`tool` is the canonical contract for agent execution. `mcp` is an optional
+Case-level exposure configuration for MCP publication.
 
 Fallback rules (normative — adapters must follow):
 
@@ -175,7 +176,11 @@ Fallback rules (normative — adapters must follow):
 | `outputSchema` | Always from `tool` |
 | `execute` | Always delegates to `tool.execute()` |
 
-`mcp` controls presence and presentation. It never redefines schemas or execution paths.
+`mcp` controls Case-level presence and presentation. It never redefines schemas
+or execution paths.
+
+Case-level `mcp()` metadata is not a full MCP runtime by itself. Full app-level
+MCP publication is a host concern implemented in `apps/agent/`.
 
 ## App-Level Agentic Hosts
 
@@ -203,30 +208,50 @@ must come from `_cases` and the registered `agentic` surfaces.
 
 ### `apps/agent/app.ts`
 
-When a host claims agentic runtime conformance, its `app.ts` should expose or
-clearly implement these responsibilities:
+When a host claims complete app-level agentic conformance, its `app.ts` must
+expose or clearly implement these responsibilities:
 
 | Method | Purpose |
 | --- | --- |
 | `bootstrap(config)` | initialize the registry, adapters, and runtime |
 | `createAgenticContext(parent?)` | build a fresh execution context per tool call |
 | `buildAgentCatalog(parent?)` | assemble the published tool/catalog view |
+| `buildSystemPrompt(parent?)` | compose the host prompt automatically from tool prompt fragments and runtime policy |
 | `resolveTool(toolName, parent?)` | map an external tool name to a capability |
 | `executeTool(toolName, input, parent?)` | enforce policy, then delegate to canonical execution |
+| `initializeMcp(params?, parent?)` | negotiate MCP lifecycle and server capabilities |
+| `listMcpTools(parent?)` | publish the MCP-visible tool set from the same catalog |
+| `listMcpResources(parent?)` | publish MCP resources with the richer semantic projection of the catalog |
+| `readMcpResource(uri, parent?)` | return the full projected semantic payload for a published resource |
+| `callMcpTool(name, input, parent?)` | execute MCP tool calls through the same host policy and canonical execution path |
+| `publishMcp()` | hand the MCP server contract to the concrete adapter registered in `_providers` |
 | `validateAgenticRuntime()` | reject startup/publication when host semantics cannot honor the Case declarations |
-
-Recommended optional methods:
-
-- `buildSystemPrompt(parent?)`
-- `startAgentHost()`
-- `publishMcp()`
 
 Runtime invariants:
 
 1. Tool names must be unique after MCP fallback resolution.
 2. `requireConfirmation` and `executionMode` must be enforced by the host/runtime.
 3. `tool.execute()` must still reach canonical execution through `ctx.cases`.
-4. The host may add a system prompt, but it must not override per-Case semantics.
+4. Host publication must project the complete `AgenticDefinition` automatically from `AgenticRegistry`; do not hand-curate semantic fields per tool.
+5. MCP tool descriptors must include a semantic summary derived from `prompt`, `discovery`, `context`, and runtime policy.
+6. Richer channels such as MCP resources or `/catalog` must expose the full projected semantic payload from the registry.
+7. The global host prompt must be assembled automatically from the registered tool prompt fragments and must not override per-Case semantics.
+8. Local agentic conformance requires an HTTP boundary plus a local MCP transport such as `stdio`.
+9. Remote agentic conformance requires an HTTP boundary plus a remote MCP boundary; plain REST host routes do not count as remote MCP.
+10. Cross-client complete conformance requires HTTP, local MCP, and remote MCP from the same catalog and execution semantics.
+11. Concrete MCP transport adapters belong in `registry._providers`, not in `core/shared/`.
+
+### MCP provider boundary
+
+APP keeps the MCP contract split in two layers:
+
+- `core/shared/` defines the transport-agnostic structural contract
+- `registry._providers` binds the concrete MCP transport implementation
+- if multiple transports are active, bind them explicitly as named providers such as `registry._providers.mcpAdapters.stdio` and `registry._providers.mcpAdapters.http`
+
+That means the protocol may define abstractions such as `AppMcpServer` and
+`BaseAppMcpAdapter` in `core/shared/`, but the concrete stdio or remote HTTP
+transport still belongs to `_providers`.
 
 ## Execution Policy
 

@@ -124,7 +124,9 @@ flowchart LR
   agent["Agent / MCP Client"]:::apps --> host["apps/agent/app.ts"]:::apps
   host -.-> registry["AgenticRegistry"]:::core
   registry -.-> tool["agentic.tool() contract"]:::surface
+  registry -.-> provider["_providers.mcpAdapters.*"]:::apps
   host --> tool
+  host --> provider
   tool --> canonical["canonical api/stream surface"]:::cases
   canonical --> result["AppResult / structured output"]:::core
 
@@ -136,7 +138,8 @@ flowchart LR
 
 At app level, the agent host resolves, validates, and governs tool execution.
 The agentic surface is not a shadow implementation. It still delegates to
-canonical execution surfaces.
+canonical execution surfaces. Concrete MCP transport stays in
+`_providers.mcpAdapters`, while catalog semantics stay in the registry/host.
 
 ## 6. Stream Recovery
 

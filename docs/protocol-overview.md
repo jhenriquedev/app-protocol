@@ -20,7 +20,7 @@ APP can be used in both:
 APP can also be agentic at two different layers:
 
 - Case level, through `agentic.case.ts`
-- app level, through an `apps/agent/` host that publishes and governs those capabilities
+- app level, through an `apps/agent/` host that publishes and governs those capabilities across HTTP and MCP
 
 ## APP in one sentence
 
@@ -97,6 +97,7 @@ That includes:
 - exposing `ctx.packages`
 - binding routes, streams, and tools
 - enforcing app-level agentic policy when the host is `apps/agent/`
+- keeping HTTP and MCP publication aligned to the same host catalog and execution rules
 
 ## What APP does not try to standardize
 

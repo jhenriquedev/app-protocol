@@ -4,7 +4,25 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
-- No unreleased changes yet.
+## v1.0.1
+
+### Added
+
+- Formal MCP adapter contract for app-level agentic hosts in the working draft and the React reference example
+- MCP stdio boundary for [`examples/react/apps/agent`](./examples/react/apps/agent) with end-to-end smoke coverage
+- MCP semantic-resource publication (`resources/list`, `resources/read`) and host-built global prompt projection in the React reference agent host
+
+### Changed
+
+- `apps/agent/` conformance in the working draft and `/app` skill now requires both HTTP and MCP boundaries for complete app-level agentic hosts
+- The `/app` skill now normatizes abstract MCP contracts in `core/shared/` and concrete transport implementations in `_providers`
+- The `/app` skill, spec, and conformance docs now require registry-driven projection of the complete `AgenticDefinition`, descriptor-level semantic summaries, and host prompts assembled from registered tool prompt fragments
+- Active release metadata now advances the repository, examples, installer package, and skill manifests to `1.0.1`
+
+### Fixed
+
+- Removed drift where complete agentic hosts could declare rich Case-level agentic metadata without normatively requiring the host runtime to project and publish it
+- Completed agentic metadata and structured-error propagation across the remaining non-React agentic cases in the repository
 
 ## v1.0.0
 

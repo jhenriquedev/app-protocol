@@ -53,6 +53,9 @@ Expected output rules:
 - `task_list.ui.case.ts`
   - drives board loading and refresh behavior
   - maps the returned list to the board presentation model
+- `task_list.agentic.case.ts`
+  - exposes board listing as a read-only tool for `apps/agent`
+  - acts as the grounding capability before ambiguous task mutations
 
 ## Composition
 
@@ -74,6 +77,7 @@ Expected output rules:
 
 - `packages/data`
   - reads the persisted task collection from `tasks.json`
+  - provides cross-host file coordination so agent and backend reads do not observe partial writes
 - `packages/design_system`
   - `TaskBoard`
   - `TaskColumn`
@@ -85,7 +89,10 @@ Expected output rules:
 
 - no `stream` surface in v1
 - no retries or dead-letter policy in v1
-- no agentic exposure in v1
+- `task_list.agentic` is exposed as tool `task_list`
+- the same read-only tool is published through HTTP and MCP by `apps/agent`
+- agentic execution mode: `direct-execution`
+- confirmation is not required because the capability is read-only
 
 ## Validation Scenarios
 
@@ -106,6 +113,14 @@ Expected output rules:
 2. Given returned tasks in multiple statuses, the UI groups them into `todo`, `doing`, and `done`.
 3. Given an empty list, the UI renders empty states for all columns.
 
+### Agentic
+
+1. The agentic surface exposes task listing as a read-only tool.
+2. Tool execution delegates to `task_list.api` through `ctx.cases`.
+3. The agent host can use this capability for grounding before a mutating task operation.
+4. Structured API failures propagate to the host instead of collapsing into generic `500 INTERNAL` responses.
+5. MCP `tools/list` and `tools/call` expose the same published capability name and canonical execution path as the HTTP host.
+
 ### Integration
 
 1. Portal board load -> backend `GET /tasks` -> `packages/data` read -> grouped board render.
@@ -118,4 +133,4 @@ Expected output rules:
 ## Status
 
 - specified
-- ready for implementation
+- implemented and validated

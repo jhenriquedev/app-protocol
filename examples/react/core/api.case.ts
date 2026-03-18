@@ -1,21 +1,21 @@
 /* ========================================================================== *
- * APP v1.0.0
+ * APP v1.0.1
  * core/api.case.ts
  * ----------------------------------------------------------------------------
- * Contrato base da surface de API no APP.
+ * Base contract for the APP API surface.
  *
- * Responsabilidade:
- * - expor uma capacidade via interface de backend (HTTP, RPC, CLI, etc)
- * - orquestrar validação, autorização e execução
- * - retornar uma resposta estruturada
+ * Responsibility:
+ * - expose a capability through a backend interface (HTTP, RPC, CLI, etc)
+ * - orchestrate validation, authorization, and execution
+ * - return a structured response
  *
- * Regra fundamental:
- * - lógica de domínio pertence ao domain.case.ts
- * - persistência ou integração deve ser encapsulada em métodos privados
+ * Fundamental rule:
+ * - domain logic belongs in domain.case.ts
+ * - persistence or integration must be encapsulated in private methods
  *
- * Contexto:
- * - ApiContext estende AppBaseContext com infraestrutura de backend
- * - cada projeto define os tipos concretos de http, db, auth, etc.
+ * Context:
+ * - ApiContext extends AppBaseContext with backend infrastructure
+ * - each project defines the concrete types for http, db, auth, etc.
  * ========================================================================== */
 
 import { Dict } from "./domain.case";
@@ -26,82 +26,82 @@ import { AppCaseError, AppResult } from "./shared/app_structural_contracts";
 /* ==========================================================================
  * ApiContext
  * --------------------------------------------------------------------------
- * Contexto específico da surface de API.
+ * API surface-specific context.
  *
- * Estende AppBaseContext com infraestrutura de backend:
+ * Extends AppBaseContext with backend infrastructure:
  * - httpClient: outbound HTTP client (fetch, axios, etc.)
- * - db: acesso a banco de dados (unknown — sem contrato estável)
- * - auth: autenticação e autorização (unknown — semântica de domínio)
+ * - db: database access (unknown — no stable contract)
+ * - auth: authentication and authorization (unknown — domain semantics)
  * - storage: persistent storage client
  * - cache: cache com TTL
  *
- * Campos com contrato mínimo usam interfaces de app_infra_contracts.ts.
- * Campos sem semântica estável permanecem unknown.
+ * Fields with a minimum contract use interfaces from app_infra_contracts.ts.
+ * Fields without stable semantics remain unknown.
  * ========================================================================== */
 
 export interface ApiContext extends AppBaseContext {
   /**
    * Outbound HTTP client.
    *
-   * Exemplos: fetch wrapper, Axios instance, got, ky, undici.
-   * Nota: este é um client contract, não um server/framework contract.
+   * Examples: fetch wrapper, Axios instance, got, ky, undici.
+   * Note: this is a client contract, not a server/framework contract.
    */
   httpClient?: AppHttpClient;
 
   /**
-   * Acesso a banco de dados.
+   * Database access.
    *
-   * Mantido como unknown — paradigmas incompatíveis (ORM, query builder,
-   * document store) impedem contrato mínimo convergente.
+   * Kept as unknown — incompatible paradigms (ORM, query builder,
+   * document store) prevent a convergent minimum contract.
    *
-   * Exemplos: Prisma client, Drizzle, Knex, connection pool.
+   * Examples: Prisma client, Drizzle, Knex, connection pool.
    */
   db?: unknown;
 
   /**
-   * Informações de autenticação e autorização.
+   * Authentication and authorization information.
    *
-   * Mantido como unknown — carrega semântica de domínio que varia
-   * entre modelos (RBAC, ABAC, claims, scopes, sessions).
+   * Kept as unknown — it carries domain semantics that vary
+   * across models (RBAC, ABAC, claims, scopes, sessions).
    *
-   * Exemplos: JWT decoded, session object, API key metadata.
+   * Examples: JWT decoded, session object, API key metadata.
    */
   auth?: unknown;
 
   /**
    * Persistent storage client.
    *
-   * Exemplos: S3 client, GCS client, local filesystem adapter.
+   * Examples: S3 client, GCS client, local filesystem adapter.
    */
   storage?: AppStorageClient;
 
   /**
-   * Cache com TTL opcional.
+   * Cache with optional TTL.
    *
-   * Exemplos: Redis client, in-memory cache, Memcached.
+   * Examples: Redis client, in-memory cache, Memcached.
    */
   cache?: AppCache;
 
   /**
-   * Registro de Cases carregados pelo runtime.
+   * Registry of Cases loaded by the runtime.
    *
-   * Permite composição cross-case via registry boundary.
-   * Usado por `_composition` para resolver capabilities de outros Cases.
+   * Allows cross-case composition through the registry boundary.
+   * Used by `_composition` to resolve capabilities from other Cases.
    *
-   * Exemplo: ctx.cases?.users?.user_validate?.api?.handler(input)
+   * Example: ctx.cases?.users?.user_validate?.api?.handler(input)
    */
   cases?: Dict;
 
   /**
-   * Packages de biblioteca registrados pelo host.
+   * Library packages registered by the host.
    *
-   * Expostos via registry._packages.
-   * Bibliotecas puras de packages/ que o app disponibiliza.
+   * Exposed through registry._packages.
+   * Pure libraries from packages/ that the app makes available.
    */
   packages?: Dict;
 
   /**
-   * Espaço de extensão livre para o host do projeto.
+   * Free extension space for the project host.
    */
   extra?: Dict;
 }
@@ -117,9 +117,9 @@ export interface ApiContext extends AppBaseContext {
  * ========================================================================== */
 
 /**
- * Estrutura de resposta da surface de API.
+ * API surface response structure.
  *
- * Estende AppResult com metadados opcionais específicos de API.
+ * Extends AppResult with optional API-specific metadata.
  */
 export interface ApiResponse<T = unknown> extends AppResult<T> {
   /**
@@ -136,7 +136,7 @@ export interface ApiResponse<T = unknown> extends AppResult<T> {
  * ========================================================================== */
 
 /**
- * Classe base para surfaces de API.
+ * Base class for API surfaces.
  */
 export abstract class BaseApiCase<TInput = unknown, TOutput = unknown> {
   protected readonly ctx: ApiContext;
@@ -146,104 +146,104 @@ export abstract class BaseApiCase<TInput = unknown, TOutput = unknown> {
   }
 
   /* =======================================================================
-   * Métodos obrigatórios
+   * Required methods
    * ===================================================================== */
 
   /**
-   * Handler principal da capacidade.
+   * Primary capability handler.
    *
-   * handler é o entrypoint público da capability. Recebe input de negócio
-   * e retorna resultado de negócio. NÃO é um endpoint HTTP.
+   * handler is the public entrypoint of the capability. It receives business
+   * input and returns a business result. It is NOT an HTTP endpoint.
    *
-   * Bindings de transporte (HTTP routes, gRPC definitions, CLI commands)
-   * vivem em router() ou no adapter/host.
+   * Transport bindings (HTTP routes, gRPC definitions, CLI commands)
+   * live in router() or in the adapter/host.
    *
-   * Deve:
-   * - validar input
-   * - verificar autorização
-   * - executar lógica principal
-   * - retornar resposta estruturada
+   * It must:
+   * - validate input
+   * - verify authorization
+   * - execute the main logic
+   * - return a structured response
    */
   public abstract handler(input: TInput): Promise<ApiResponse<TOutput>>;
 
   /**
-   * Router opcional — bindings de transporte.
+   * Optional router — transport bindings.
    *
-   * É onde o Case declara sua superfície de transporte (HTTP, gRPC, CLI).
-   * O router delega para handler(), nunca contém lógica de negócio.
-   * O host/adapter monta as rotas coletando os router() de cada Case.
+   * This is where the Case declares its transport surface (HTTP, gRPC, CLI).
+   * The router delegates to handler(); it never contains business logic.
+   * The host/adapter assembles routes by collecting each Case's router().
    *
-   * Retorno é framework-specific (unknown).
+   * Return type is framework-specific (unknown).
    */
   public router?(): unknown;
 
   /**
-   * Teste interno da capacidade.
+   * Internal capability test.
    *
-   * Boa prática recomendada no APP — surfaces idealmente expõem um
-   * método test() para validação autocontida do contrato.
+   * Recommended APP practice — surfaces should ideally expose a
+   * test() method for self-contained contract validation.
    *
-   * Assinatura canônica: test(): Promise<void>
-   * O teste invoca handler() internamente e faz assertions.
-   * Não recebe input nem retorna resultado — é validação interna.
+   * Canonical signature: test(): Promise<void>
+   * The test invokes handler() internally and performs assertions.
+   * It receives no input and returns no result — it is internal validation.
    */
   public async test(): Promise<void> {}
 
   /* =======================================================================
-   * Hooks protegidos (opcionais)
+   * Protected hooks (optional)
    * ===================================================================== */
 
   /**
-   * Validação de input antes da execução.
+   * Input validation before execution.
    */
   protected async _validate?(input: TInput): Promise<void>;
 
   /**
-   * Verificação de autorização.
+   * Authorization check.
    */
   protected async _authorize?(input: TInput): Promise<void>;
 
   /**
-   * Acesso a persistência e integrations locais do Case.
+   * Access to persistence and local integrations for the Case.
    *
-   * Slot canônico para queries, mutations, cache reads e chamadas
-   * a serviços externos de infraestrutura.
+   * Canonical slot for queries, mutations, cache reads, and calls
+   * to external infrastructure services.
    *
-   * Regra: _repository não realiza composição cross-case.
+   * Rule: _repository must not perform cross-case composition.
    */
   protected _repository?(): unknown;
 
   /**
-   * Execução da lógica principal (Case atômico).
+   * Main logic execution (atomic Case).
    *
-   * Slot canônico para lógica de negócio que não envolve
-   * orquestração cross-case. Mutuamente exclusivo com _composition
-   * como centro de execução principal.
+   * Canonical slot for business logic that does not involve
+   * cross-case orchestration. Mutually exclusive with _composition
+   * as the main execution center.
    *
-   * Cases atômicos implementam _service.
-   * Cases compostos implementam _composition.
-   * O pipeline exige que ao menos um dos dois esteja definido.
+   * Atomic Cases implement _service.
+   * Composed Cases implement _composition.
+   * The pipeline requires at least one of the two to be defined.
    */
   protected async _service?(input: TInput): Promise<TOutput>;
 
   /**
-   * Orquestração cross-case via registry (Case composto).
+   * Cross-case orchestration via the registry (composed Case).
    *
-   * Slot canônico para Cases que precisam invocar outros Cases.
-   * Resolve capabilities via ctx.cases, nunca por import direto.
+   * Canonical slot for Cases that need to invoke other Cases.
+   * Resolves capabilities through ctx.cases, never through direct imports.
    *
-   * Mutuamente exclusivo com _service como centro de execução principal.
-   * Quando presente, o pipeline deve usar _composition em vez de _service.
+   * Mutually exclusive with _service as the main execution center.
+   * When present, the pipeline must use _composition instead of _service.
    */
   protected async _composition?(input: TInput): Promise<TOutput>;
 
   /**
-   * Método utilitário padrão para execução.
+   * Standard utility method for execution.
    *
-   * Orquestra o pipeline: validate → authorize → (composition | service).
+   * Orchestrates the pipeline: validate → authorize → (composition | service).
    *
-   * Se _composition estiver definido, ele é o centro de execução (Case composto).
-   * Caso contrário, _service é usado (Case atômico).
+   * If _composition is defined, it is the execution center (composed Case).
+   * Otherwise, _service is used (atomic Case).
    */
   protected async execute(input: TInput): Promise<ApiResponse<TOutput>> {
     try {

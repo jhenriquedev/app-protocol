@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v1.0.0
+ * APP v1.0.1
  * core/shared/app_structural_contracts.ts
  * ----------------------------------------------------------------------------
  * Structural contracts that cross all surfaces.
@@ -101,6 +101,17 @@ export class AppCaseError extends Error implements AppError {
       ...(this.details !== undefined && { details: this.details }),
     };
   }
+}
+
+export function toAppCaseError(
+  error: AppError | undefined,
+  fallbackMessage: string
+): AppCaseError {
+  if (error) {
+    return new AppCaseError(error.code, error.message, error.details);
+  }
+
+  return new AppCaseError("INTERNAL", fallbackMessage);
 }
 
 /* ==========================================================================
