@@ -48,6 +48,7 @@ Infrastructure contracts in `core/shared/app_infra_contracts.ts` are minimal int
 - [`docs/agentic.md`](./docs/agentic.md): deeper notes on the agentic surface
 - [`docs/conformance.md`](./docs/conformance.md): conformance levels and validation criteria
 - [`docs/development-flow.md`](./docs/development-flow.md): how the spec evolves
+- [`docs/publishing.md`](./docs/publishing.md): release and publishing flow for the installable `/app` skill
 - [`docs/skill_v5.md`](./docs/skill_v5.md): current revision of the canonical `/app` operational skill
 - [`skills/app/`](./skills/app): canonical installable `/app` skill package
 - [`tooling/skill-app/`](./tooling/skill-app): npm-publishable installer package for the `/app` skill
@@ -141,6 +142,34 @@ Global install pattern:
 npx @app-protocol/skill-app install codex --global
 npx @app-protocol/skill-app install claude --global
 ```
+
+Release URL fallback before npm publish:
+
+```bash
+npm exec --yes --package https://github.com/jhenriquedev/app-protocol/releases/download/vX.Y.Z/app-protocol-skill-app-X.Y.Z.tgz app-skill -- install all --project .
+```
+
+## Publishing `/app`
+
+The repository now includes an automated release workflow in
+`.github/workflows/release-skill-app.yml`.
+
+Release pipeline behavior:
+
+1. trigger on `v*` tags or manual dispatch
+2. validate root, examples, and skill package alignment
+3. run typecheck, boundary validation, skill validation, and example scenario/tests
+4. pack and publish `tooling/skill-app/` to npm using Trusted Publishing
+5. create or update the GitHub Release and attach the package tarball
+
+One-time external setup is still required:
+
+- the npm scope in [`tooling/skill-app/package.json`](./tooling/skill-app/package.json) must belong to you or your npm organization
+- npm Trusted Publishing must be configured for this repository/workflow
+
+Setup details live in [`docs/publishing.md`](./docs/publishing.md).
+
+The GitHub Release tarball remains a valid fallback install channel.
 
 ## How To Read This Repo
 

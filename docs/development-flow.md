@@ -60,6 +60,8 @@ A release snapshots the current accepted spec into `versions/`.
 - `skills/app/` is the canonical installable source of the `/app` skill.
 - `.codex/skills/app/` and `.claude/skills/app/` are host mirrors generated from `skills/app/`.
 - `tooling/skill-app/` is the npm-publishable installer package for `/app`.
+- `.github/workflows/release-skill-app.yml` is the automated release pipeline for publishing the `/app` installer to GitHub Releases and npm.
+- `docs/publishing.md` documents the one-time external npm Trusted Publishing setup that the workflow depends on.
 - architectural explanations in `docs/` must remain aligned with the current working draft and must not introduce alternative semantics
 - `examples/` should demonstrate conformance once implementations exist.
 - `i18n/pt-br/` preserves native-language backup copies of Portuguese materials.

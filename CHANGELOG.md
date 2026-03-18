@@ -4,7 +4,16 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
-- No unreleased changes yet.
+### Added
+
+- Automated GitHub Actions release workflow for the installable `/app` skill under [`.github/workflows/release-skill-app.yml`](./.github/workflows/release-skill-app.yml)
+- Release helpers for changelog extraction and version alignment verification under [`scripts/`](./scripts)
+- [`docs/publishing.md`](./docs/publishing.md) documenting npm Trusted Publishing setup and the release flow
+
+### Changed
+
+- Root package scripts now expose `npm run release:notes` and `npm run release:verify`
+- README and development-flow docs now document the automated publish pipeline and the release tarball fallback
 
 ## v0.0.7
 

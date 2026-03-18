@@ -9,7 +9,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "npm run typecheck && npm run validate:boundaries",
     "skill:sync": "node scripts/sync-app-skill.mjs",
-    "skill:pack": "npm pack ./tooling/skill-app"
+    "skill:pack": "npm pack ./tooling/skill-app",
+    "release:notes": "node scripts/extract-changelog-section.mjs",
+    "release:verify": "node scripts/verify-release-alignment.mjs"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

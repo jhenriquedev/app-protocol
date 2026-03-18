@@ -1,0 +1,95 @@
+name: Release Skill Package
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to publish, for example v0.0.7
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org/"
+          cache: "npm"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install example dependencies
+        run: npm --prefix examples/typescript ci
+
+      - name: Synchronize host mirrors
+        run: npm run skill:sync
+
+      - name: Verify release alignment
+        run: npm run release:verify -- "$RELEASE_TAG"
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Validate APP boundaries
+        run: npm run validate:boundaries
+
+      - name: Validate installable skill package
+        run: node tooling/skill-app/bin/app-skill.mjs validate
+
+      - name: Run example scenario and tests
+        run: npm --prefix examples/typescript run start
+
+      - name: Extract release notes
+        run: npm run release:notes -- "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
+
+      - name: Pack npm installer
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          TARBALL=$(npm pack ./tooling/skill-app --pack-destination "$RUNNER_TEMP/release")
+          echo "TARBALL_PATH=$RUNNER_TEMP/release/$TARBALL" >> "$GITHUB_ENV"
+
+      - name: Check whether npm version already exists
+        id: npm_publish
+        run: |
+          PACKAGE_NAME=$(node --input-type=module -e "import fs from 'node:fs'; const pkg = JSON.parse(fs.readFileSync('tooling/skill-app/package.json', 'utf8')); console.log(pkg.name);")
+          PACKAGE_VERSION=$(node --input-type=module -e "import fs from 'node:fs'; const pkg = JSON.parse(fs.readFileSync('tooling/skill-app/package.json', 'utf8')); console.log(pkg.version);")
+          if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish package to npm
+        if: steps.npm_publish.outputs.already_published != 'true'
+        working-directory: tooling/skill-app
+        run: npm publish --provenance --access public
+
+      - name: Create or update GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$TARBALL_PATH" --clobber
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
+          else
+            gh release create "$RELEASE_TAG" "$TARBALL_PATH" --title "$RELEASE_TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi
