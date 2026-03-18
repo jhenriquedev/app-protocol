@@ -9,7 +9,7 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v0.0.10`](./versions/v0.0.10.md)
+- Latest released snapshot: [`v0.0.11`](./versions/v0.0.11.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: working protocol with TypeScript reference implementation
 
@@ -43,11 +43,15 @@ Infrastructure contracts in `core/shared/app_infra_contracts.ts` are minimal int
 If you are new to APP, use this order:
 
 1. [`docs/getting-started.md`](./docs/getting-started.md)
-2. [`docs/protocol-overview.md`](./docs/protocol-overview.md)
-3. [`docs/core-concepts.md`](./docs/core-concepts.md)
-4. [`docs/spec-guide.md`](./docs/spec-guide.md)
-5. [`docs/installing-app-skill.md`](./docs/installing-app-skill.md)
-6. [`docs/using-app-skill.md`](./docs/using-app-skill.md)
+2. [`docs/create-app-project.md`](./docs/create-app-project.md)
+3. [`docs/add-host-app.md`](./docs/add-host-app.md)
+4. [`docs/using-packages.md`](./docs/using-packages.md)
+5. [`docs/migrating-existing-projects.md`](./docs/migrating-existing-projects.md)
+6. [`docs/protocol-overview.md`](./docs/protocol-overview.md)
+7. [`docs/core-concepts.md`](./docs/core-concepts.md)
+8. [`docs/spec-guide.md`](./docs/spec-guide.md)
+9. [`docs/installing-app-skill.md`](./docs/installing-app-skill.md)
+10. [`docs/using-app-skill.md`](./docs/using-app-skill.md)
 
 Quick project-local install of the `/app` skill:
 
@@ -81,6 +85,10 @@ npm --prefix examples/typescript run start
 - [`spec.md`](./spec.md): current working draft of the specification
 - [`versions/`](./versions): versioned snapshots of released specs
 - [`docs/getting-started.md`](./docs/getting-started.md): fastest path to install `/app` and run the reference implementation
+- [`docs/create-app-project.md`](./docs/create-app-project.md): bootstrap a new APP project without overbuilding the repository
+- [`docs/add-host-app.md`](./docs/add-host-app.md): add a new host app and choose the right runtime wiring for backend, portal, chatbot, worker, or lambdas
+- [`docs/using-packages.md`](./docs/using-packages.md): decide when code belongs in `packages/` and how to expose it correctly through hosts
+- [`docs/migrating-existing-projects.md`](./docs/migrating-existing-projects.md): adopt APP incrementally in an existing codebase without forcing a big-bang rewrite
 - [`docs/installing-app-skill.md`](./docs/installing-app-skill.md): installation, update, downgrade, uninstall, and host matrices for Codex, Claude, GitHub Copilot, Windsurf, npm, and GitHub Release tarballs
 - [`docs/using-app-skill.md`](./docs/using-app-skill.md): when and how to use the canonical `/app` skill
 - [`docs/protocol-overview.md`](./docs/protocol-overview.md): high-level overview of APP as a protocol
@@ -181,9 +189,11 @@ For release and npm publishing:
 
 1. Start with [`README.md`](./README.md).
 2. Read [`docs/getting-started.md`](./docs/getting-started.md) if you want the shortest practical path.
-3. Read [`spec.md`](./spec.md) for the current draft.
-4. Compare released snapshots in [`versions/`](./versions).
-5. Use [`rfcs/`](./rfcs) for substantive protocol changes.
+3. Read [`docs/create-app-project.md`](./docs/create-app-project.md) if you want to start a new APP project.
+4. Read [`docs/migrating-existing-projects.md`](./docs/migrating-existing-projects.md) if you want to adopt APP incrementally.
+5. Read [`spec.md`](./spec.md) for the current draft.
+6. Compare released snapshots in [`versions/`](./versions).
+7. Use [`rfcs/`](./rfcs) for substantive protocol changes.
 
 ## Contribution Model
 

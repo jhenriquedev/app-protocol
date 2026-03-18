@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,7 +15,6 @@ const packageManifest = JSON.parse(
 const manifest = JSON.parse(
   await readFile(path.join(skillDir, "skill.json"), "utf8")
 );
-const run = promisify(execFile);
 const supportedHosts = Object.keys(manifest.hosts);
 const hostAliases = new Map([
   ["codex-app", "codex"],
@@ -159,6 +157,52 @@ async function readInstalledVersion(target) {
   }
 }
 
+function runCommand(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      shell: false,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+      ...options,
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout?.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr?.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+        return;
+      }
+
+      const output = stderr.trim() || stdout.trim();
+      reject(
+        new Error(
+          output || `${command} exited with code ${code ?? "unknown"}.`
+        )
+      );
+    });
+  });
+}
+
+async function runNpm(args) {
+  if (process.platform === "win32") {
+    await runCommand("npm", args, { shell: true });
+    return;
+  }
+
+  await runCommand("npm", args);
+}
+
 function describeTransition(command, previousVersion, nextVersion) {
   if (!previousVersion) {
     return `installed ${manifest.name}@${nextVersion}`;
@@ -200,6 +244,24 @@ function normalizeVersionSelector(command, requestedVersion) {
   return null;
 }
 
+function shouldSkipInstall(command, previousVersion, nextVersion) {
+  if (!previousVersion) {
+    return null;
+  }
+
+  const comparison = compareVersions(nextVersion, previousVersion);
+
+  if (command === "upgrade" && comparison <= 0) {
+    return `skipped upgrade because installed version ${previousVersion} is already >= target ${nextVersion}`;
+  }
+
+  if (command === "downgrade" && comparison >= 0) {
+    return `skipped downgrade because installed version ${previousVersion} is already <= target ${nextVersion}`;
+  }
+
+  return null;
+}
+
 async function prepareInstallSource(command, requestedVersion) {
   const selector = normalizeVersionSelector(command, requestedVersion);
 
@@ -216,7 +278,7 @@ async function prepareInstallSource(command, requestedVersion) {
   const packageSegments = packageManifest.name.split("/");
 
   try {
-    await run("npm", [
+    await runNpm([
       "install",
       "--prefix",
       tempRoot,
@@ -255,6 +317,17 @@ async function install(host, projectRoot, isGlobal, command, requestedVersion) {
   try {
     for (const { host: targetHost, target } of targets) {
       const previousVersion = await readInstalledVersion(target);
+      const skipReason = shouldSkipInstall(
+        command,
+        previousVersion,
+        source.resolvedVersion
+      );
+
+      if (skipReason) {
+        console.log(`${skipReason} for ${targetHost} at ${target}`);
+        continue;
+      }
+
       await rm(target, { recursive: true, force: true });
       await mkdir(path.dirname(target), { recursive: true });
       await cp(source.sourceDir, target, { recursive: true });

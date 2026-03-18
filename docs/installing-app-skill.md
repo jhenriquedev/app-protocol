@@ -89,6 +89,8 @@ npx @app-protocol/skill-app downgrade all --project . --version 0.0.9
 npx @app-protocol/skill-app install all --project . --version 0.0.9
 ```
 
+`upgrade` skips when the installed version is already newer or equal to the resolved target. `downgrade` skips when the installed version is already lower or equal to the requested target.
+
 You can do the same with a globally installed CLI:
 
 ```bash

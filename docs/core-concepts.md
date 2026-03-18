@@ -153,6 +153,34 @@ Critical rules:
 - hosts must not reuse boot-time runtime instances for cross-case execution
 - route and subscription definitions remain declarative
 
+Different host types keep the same role but not identical boot code:
+
+- `backend` mounts request/transport bindings
+- `portal` or frontend hosts mount UI runtime concerns
+- `chatbot` exposes agentic tools or MCP bindings
+- `worker` or `lambdas` adapt execution to background or serverless triggers
+
+## Choosing the right layer
+
+Use this mental model:
+
+- `cases/` for capability-local semantics and execution
+- `packages/` for shared project code selected by hosts and exposed via `ctx.packages`
+- `core/shared/` for protocol-level contexts, contracts, and shared structural shapes
+- protocol change, not routine project work, when adding a new canonical surface to `core/`
+
+## Project bootstrap and incremental adoption
+
+For a new project:
+
+- start with `core/`, `cases/`, one host app, and an empty or intentionally small `packages/` layer
+
+For an existing project:
+
+- adopt APP incrementally in a bounded area
+- do not force migration unless the project explicitly wants it
+- keep APP-managed and legacy areas visibly distinct during transition
+
 ## `<case>.us.md`
 
 `<case>.us.md` is a support artifact used by operational profiles such as `/app`.
@@ -167,6 +195,10 @@ In `/app`:
 
 ## Recommended next reading
 
+- [`create-app-project.md`](./create-app-project.md)
+- [`add-host-app.md`](./add-host-app.md)
+- [`using-packages.md`](./using-packages.md)
+- [`migrating-existing-projects.md`](./migrating-existing-projects.md)
 - [`protocol-overview.md`](./protocol-overview.md)
 - [`using-app-skill.md`](./using-app-skill.md)
 - [`../spec.md`](../spec.md)

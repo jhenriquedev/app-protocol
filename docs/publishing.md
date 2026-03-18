@@ -38,7 +38,7 @@ The workflow already requests the required permissions:
 ## Release flow
 
 1. prepare version, changelog, and tag in the repository
-2. push the tag, for example `v0.0.10`
+2. push the tag, for example `v0.0.11`
 3. GitHub Actions validates release alignment, typecheck, boundaries, skill package, and example scenario/tests
 4. the workflow packs and publishes `tooling/skill-app/` to npm
 5. the workflow creates or updates the GitHub Release and attaches the package tarball

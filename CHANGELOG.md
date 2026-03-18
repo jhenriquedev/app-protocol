@@ -6,6 +6,27 @@ All notable changes to this project should be documented in this file.
 
 - No unreleased changes yet.
 
+## v0.0.11
+
+### Added
+
+- `v0.0.11` release snapshot under [`versions/`](./versions)
+- New active guides for APP structural work: [`docs/create-app-project.md`](./docs/create-app-project.md), [`docs/add-host-app.md`](./docs/add-host-app.md), [`docs/using-packages.md`](./docs/using-packages.md), and [`docs/migrating-existing-projects.md`](./docs/migrating-existing-projects.md)
+- Expanded `/app` skill coverage for new-project bootstrap, host-app creation, package introduction, classification across `cases/`, `packages/`, and `core/shared/`, and incremental adoption of existing projects
+
+### Changed
+
+- Root, example, installer package, skill metadata, and runtime headers advanced to `0.0.11`
+- `spec.md`, `README.md`, skill docs, and active supporting docs now align on APP bootstrap, host-app semantics, `packages/` usage, and incremental adoption
+- The spec now formalizes promotion boundaries between `cases/`, `packages/`, `core/shared/`, and protocol evolution in `core/`
+- The `/app` package README and host metadata now advertise the broader structural workflow, not only Case-level edits
+- `ROADMAP.md` now treats published bootstrap/migration guidance as delivered documentation and moves the remaining migration item toward ecosystem validation
+
+### Fixed
+
+- Installer version fetch now works on Windows-compatible npm launchers instead of assuming a Unix-style `npm` executable
+- `upgrade` and `downgrade` no longer reinstall the wrong published version when the local install is already newer or already lower than the requested target
+
 ## v0.0.10
 
 ### Added

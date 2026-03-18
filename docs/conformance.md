@@ -71,6 +71,17 @@ Representative differences:
 - baseline APP treats `<case>.us.md` as an optional support artifact; skill `/app` may require it for new Cases or significant semantic changes
 - baseline APP does not require a fixed implementation workflow; skill `/app` standardizes `inspect → specify → create/implement → validate → review`
 
+## Conformance Scope in Existing Projects
+
+APP may be adopted incrementally inside a larger legacy repository.
+
+In that scenario:
+
+- conformance claims should be scoped to the APP-managed area
+- new APP Cases and host registries should follow APP grammar fully
+- legacy code outside the APP-managed area does not automatically invalidate bounded APP adoption
+- review should make APP and legacy boundaries explicit instead of pretending the whole repository is already fully APP
+
 ## Representative Rule Matrix
 
 | Rule | Level | Typical Enforcement |

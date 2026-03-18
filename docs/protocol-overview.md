@@ -12,6 +12,11 @@ are easier for humans and AI agents to inspect, understand, and evolve.
 APP is not a library, framework, or runtime product.
 It is a structural and operational protocol.
 
+APP can be used in both:
+
+- new greenfield projects
+- existing projects through incremental adoption
+
 ## APP in one sentence
 
 APP organizes software around `Cases`, each owning one capability and exposing

@@ -19,11 +19,16 @@ The source of the skill lives in [`../skills/app/`](../skills/app/).
 Use `/app` when you want the agent to:
 
 - inspect the topology of an APP project
+- set up a new APP project
+- add a new host app such as `backend`, `portal`, `chatbot`, `worker`, or `lambdas`
 - explain Cases and surfaces
 - create or update a Case
+- introduce `packages/` correctly
+- classify whether a shared addition belongs in `cases/`, `packages/`, or `core/shared/`
 - implement or revise `domain`, `api`, `ui`, `stream`, or `agentic` surfaces
 - validate APP grammar
 - review structural drift
+- adapt an existing project incrementally to APP
 - maintain `<case>.us.md`
 
 If you do not know APP yet, `/app` should still be usable as a guided workflow rather than a protocol you must already know by heart.
@@ -40,6 +45,18 @@ Use /app to inspect this repository.
 ```
 
 Intent-based trigger examples:
+
+```text
+Set up a new APP project using /app.
+```
+
+```text
+Add a backend host app using /app.
+```
+
+```text
+Introduce packages/ for shared HTTP clients using /app.
+```
 
 ```text
 Create a new Case for user registration following APP.
@@ -59,6 +76,10 @@ Review whether this stream surface still follows APP.
 
 ```text
 Update this Case and keep the <case>.us.md aligned.
+```
+
+```text
+Adapt this existing project to APP incrementally using /app.
 ```
 
 ## Expected workflow
@@ -105,11 +126,16 @@ Expected result:
 - Cases do not import `packages/` directly; they use `ctx.packages`
 - `domain` remains pure
 - hosts instantiate Cases per execution, not as global shared runtime instances
+- all host apps keep the same semantic role, but their `app.ts` implementations vary by runtime
+- new canonical surfaces are protocol evolution, not normal project work
 
 ## Expected artifacts
 
 The skill may create or update:
 
+- `apps/<app>/app.ts`
+- `apps/<app>/registry.ts`
+- `packages/<name>/`
 - `<case>.domain.case.ts`
 - `<case>.api.case.ts`
 - `<case>.ui.case.ts`
@@ -139,6 +165,14 @@ Use /app to review whether the host is materializing ctx.cases per request.
 
 ```text
 Use /app to create usuario_criar with domain, api, and usuario_criar.us.md.
+```
+
+```text
+Use /app to add a chatbot host app and wire only the Cases it needs.
+```
+
+```text
+Use /app to classify whether this shared code should live in packages/ or core/shared/.
 ```
 
 ## Relationship to APP itself

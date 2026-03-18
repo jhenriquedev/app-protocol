@@ -35,6 +35,7 @@ Status: current
 
 - publish and iterate the canonical `/app` operational revision under `docs/skill_v5.md`
 - stabilize skill `/app` into a production-ready operational skill across supported agent hosts
+- document bootstrap of new APP projects, host-app addition, `packages/` usage, and incremental adoption in the active docs and skill
 - strengthen static conformance validation beyond `validate:boundaries` with deeper registry and import-graph checks
 - define and implement formal conformance tooling/workflow across static, review-level, and runtime checks
 - conformance validation (grammar per surface, language-agnostic)
@@ -60,7 +61,7 @@ Status: current
 - artifact materialization: implement Canonical Capability Adapter in tooling/skill `/app` and/or host examples, projecting APP capabilities into an external tool runtime
 - artifact materialization: publish end-to-end agentic proof-of-concept with a real agent consuming APP project tools without glue code
 - ecosystem validation: add reference implementations for Python, Go, and .NET
-- ecosystem validation: publish migration guidance for converting existing projects to APP
+- ecosystem validation: validate migration guidance for converting existing projects to APP through real project adoption
 - field validation: collect real-world adoption cases with measurable gains
 
 ## Phase 7: v1 Readiness and Stabilization

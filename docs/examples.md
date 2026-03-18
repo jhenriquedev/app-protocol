@@ -59,9 +59,13 @@ Use the TypeScript example when you want to:
 - inspect runtime composition behavior
 - learn how surfaces fit together
 - validate tooling changes against a running reference
+- derive the first host app and registry pattern for a new TypeScript APP project
+- compare how backend and chatbot hosts keep the same protocol role with different runtime wiring
 
 ## Read next
 
 - [`getting-started.md`](./getting-started.md)
+- [`create-app-project.md`](./create-app-project.md)
+- [`add-host-app.md`](./add-host-app.md)
 - [`protocol-overview.md`](./protocol-overview.md)
 - [`../examples/typescript/README.md`](../examples/typescript/README.md)

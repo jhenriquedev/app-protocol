@@ -15,7 +15,8 @@ and run the reference implementation.
 2. install the `/app` skill
 3. validate that the skill is available
 4. run the TypeScript example
-5. know where to go next
+5. know how to start your own APP project or adopt APP incrementally
+6. know where to go next
 
 ## What APP is
 
@@ -118,8 +119,21 @@ What it demonstrates:
 
 If you want the example map, read [`examples.md`](./examples.md).
 
+## Start your own APP project
+
+After the example, pick the path that matches your situation:
+
+- new project: [`create-app-project.md`](./create-app-project.md)
+- new host app: [`add-host-app.md`](./add-host-app.md)
+- shared project code through `packages/`: [`using-packages.md`](./using-packages.md)
+- incremental adoption in an existing codebase: [`migrating-existing-projects.md`](./migrating-existing-projects.md)
+
 ## Read next
 
+- [`create-app-project.md`](./create-app-project.md)
+- [`add-host-app.md`](./add-host-app.md)
+- [`using-packages.md`](./using-packages.md)
+- [`migrating-existing-projects.md`](./migrating-existing-projects.md)
 - [`installing-app-skill.md`](./installing-app-skill.md)
 - [`using-app-skill.md`](./using-app-skill.md)
 - [`protocol-overview.md`](./protocol-overview.md)

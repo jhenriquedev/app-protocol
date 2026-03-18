@@ -10,11 +10,16 @@ APP is the protocol layer of the AI-First Programming Paradigm.
 This package installs the official `/app` operational workflow into supported AI coding hosts so they can:
 
 - inspect APP architecture
+- set up a new APP project
+- add a new host app such as `backend`, `portal`, `chatbot`, `worker`, or `lambdas`
 - create or update Cases
+- introduce `packages/` and expose them correctly through host registries
+- classify whether shared code belongs in `cases/`, `packages/`, or `core/shared/`
 - implement `domain`, `api`, `ui`, `stream`, and `agentic` surfaces
 - maintain `<case>.us.md`
 - validate APP grammar
 - review structural drift
+- adapt existing projects to APP incrementally
 
 ## Supported hosts
 
@@ -50,8 +55,11 @@ Then use prompts such as:
 
 ```text
 inspect this project with /app
+set up a new APP project with /app
+add a chatbot host app using /app
 create case usuario_criar
 validate app grammar in this repository
+adapt this existing project to APP incrementally
 ```
 
 ## Install into the current project
@@ -95,7 +103,7 @@ npx @app-protocol/skill-app downgrade all --project . --version 0.0.9
 npx @app-protocol/skill-app install all --project . --version 0.0.9
 ```
 
-`upgrade` installs npm `latest` by default. `downgrade` requires `--version`. `install` and `update` also accept `--version` when you want an explicit published version.
+`upgrade` installs npm `latest` by default, but now skips the operation when the installed version is already newer or equal. `downgrade` requires `--version` and skips the operation when the installed version is already lower or equal. `install` and `update` also accept `--version` when you want an explicit published version.
 
 ## Remove an installed skill
 
@@ -123,16 +131,24 @@ npm exec --yes --package https://github.com/jhenriquedev/app-protocol/releases/d
 Use `/app` when working in APP projects to:
 
 - inspect project structure and explain APP topology
-- inspect topology
+- set up a new APP project
+- add a new host app
 - create or update Cases
+- introduce `packages/`
+- classify shared code across `cases/`, `packages/`, and `core/shared/`
 - implement or revise surfaces
 - maintain `<case>.us.md`
 - validate APP grammar
 - review structural drift
+- adapt existing projects incrementally
 
 ## More documentation
 
 - repository: [app-protocol](https://github.com/jhenriquedev/app-protocol)
 - getting started: [docs/getting-started.md](https://github.com/jhenriquedev/app-protocol/blob/main/docs/getting-started.md)
+- create a new project: [docs/create-app-project.md](https://github.com/jhenriquedev/app-protocol/blob/main/docs/create-app-project.md)
+- add a host app: [docs/add-host-app.md](https://github.com/jhenriquedev/app-protocol/blob/main/docs/add-host-app.md)
+- use packages: [docs/using-packages.md](https://github.com/jhenriquedev/app-protocol/blob/main/docs/using-packages.md)
+- migrate an existing project: [docs/migrating-existing-projects.md](https://github.com/jhenriquedev/app-protocol/blob/main/docs/migrating-existing-projects.md)
 - installation: [docs/installing-app-skill.md](https://github.com/jhenriquedev/app-protocol/blob/main/docs/installing-app-skill.md)
 - usage: [docs/using-app-skill.md](https://github.com/jhenriquedev/app-protocol/blob/main/docs/using-app-skill.md)
