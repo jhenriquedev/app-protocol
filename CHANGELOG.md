@@ -6,6 +6,25 @@ All notable changes to this project should be documented in this file.
 
 - No unreleased changes yet.
 
+## v0.0.7
+
+### Added
+
+- `v0.0.7` release snapshot under [`versions/`](./versions)
+- Canonical installable `/app` skill package under [`skills/app/`](./skills/app)
+- npm-publishable installer package under [`tooling/skill-app/`](./tooling/skill-app)
+- `skill.json` manifest and `agents/openai.yaml` metadata for `/app`
+- `scripts/sync-app-skill.mjs` to mirror the canonical skill into `.codex/`, `.claude/`, and the installer package
+
+### Changed
+
+- Root, example, and npm installer package versions advanced to `0.0.7`
+- README, spec, and versions index now align with `v0.0.7`
+- `.codex/skills/app/` and `.claude/skills/app/` now contain real skill packages with frontmatter and host metadata instead of thin pointers
+- README and development-flow docs now distinguish the published `/app` revision in `docs/` from the installable source in `skills/app/`
+- Root package scripts now expose `npm run skill:sync` and `npm run skill:pack`
+- `docs/skill_v5.md`, `skills/app/skill.json`, and runtime metadata now align with `0.0.7`
+
 ## v0.0.6
 
 ### Added

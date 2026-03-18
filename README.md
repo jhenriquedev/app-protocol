@@ -9,7 +9,7 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v0.0.6`](./versions/v0.0.6.md)
+- Latest released snapshot: [`v0.0.7`](./versions/v0.0.7.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: working protocol with TypeScript reference implementation
 
@@ -49,6 +49,8 @@ Infrastructure contracts in `core/shared/app_infra_contracts.ts` are minimal int
 - [`docs/conformance.md`](./docs/conformance.md): conformance levels and validation criteria
 - [`docs/development-flow.md`](./docs/development-flow.md): how the spec evolves
 - [`docs/skill_v5.md`](./docs/skill_v5.md): current revision of the canonical `/app` operational skill
+- [`skills/app/`](./skills/app): canonical installable `/app` skill package
+- [`tooling/skill-app/`](./tooling/skill-app): npm-publishable installer package for the `/app` skill
 - [`scripts/validate-boundaries.mjs`](./scripts/validate-boundaries.mjs): initial static boundary validator for `cases/`, `packages/`, and `registry.ts`
 - [`rfcs/`](./rfcs): proposal process for substantive changes
 - [`examples/`](./examples): executable TypeScript reference implementation and future ecosystem examples
@@ -114,6 +116,31 @@ APP is the first normative expression of the paradigm, not the only one possible
 The paradigm declarations are formalized in [`spec.md` §2](./spec.md). Expanded philosophical framing lives in [`docs/philosophy.md`](./docs/philosophy.md).
 
 The conceptual layer is now closed enough to be public and stable. The next cycle is operational hardening and validation: stabilize the `/app` skill beyond HML, ship Canonical Capability Adapter tooling, publish an end-to-end agentic proof-of-concept, expand multi-language references, and validate the protocol through real-world adoption.
+
+## Installing `/app`
+
+The installable source of the `/app` skill lives in [`skills/app/`](./skills/app).
+Project-local host mirrors are synchronized into `.codex/skills/app/` and `.claude/skills/app/`.
+
+Local install from this repo:
+
+```bash
+npm run skill:sync
+npm exec --yes --package ./tooling/skill-app app-skill -- install all --project .
+```
+
+Published install pattern:
+
+```bash
+npx @app-protocol/skill-app install all --project .
+```
+
+Global install pattern:
+
+```bash
+npx @app-protocol/skill-app install codex --global
+npx @app-protocol/skill-app install claude --global
+```
 
 ## How To Read This Repo
 

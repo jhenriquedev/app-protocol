@@ -1,0 +1,4 @@
+interface:
+  display_name: "APP /app"
+  short_description: "Operate APP projects"
+  default_prompt: "Inspect or update this APP project using the canonical /app workflow."

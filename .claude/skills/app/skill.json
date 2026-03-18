@@ -1,0 +1,19 @@
+{
+  "name": "app",
+  "version": "0.0.7",
+  "revision": "0.0.7-prd",
+  "entry": "SKILL.md",
+  "description": "Canonical /app operational skill for APP projects.",
+  "hosts": {
+    "codex": {
+      "projectPath": ".codex/skills/app",
+      "globalPathEnv": "CODEX_HOME",
+      "globalPathFallback": "~/.codex/skills/app"
+    },
+    "claude": {
+      "projectPath": ".claude/skills/app",
+      "globalPathEnv": "CLAUDE_HOME",
+      "globalPathFallback": "~/.claude/skills/app"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@app-protocol/skill-app",
+  "version": "0.0.7",
+  "description": "Install the canonical /app skill into supported agent hosts.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "app-skill": "./bin/app-skill.mjs"
+  },
+  "files": [
+    "bin",
+    "skill",
+    "package.json"
+  ],
+  "keywords": [
+    "app",
+    "ai-first-programming",
+    "skill",
+    "codex",
+    "claude"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jhenriquedev/app-protocol.git",
+    "directory": "tooling/skill-app"
+  }
+}

@@ -13,6 +13,7 @@ Conventions:
 
 Current snapshots:
 
+- [`v0.0.7`](./v0.0.7.md)
 - [`v0.0.6`](./v0.0.6.md)
 - [`v0.0.5`](./v0.0.5.md)
 - [`v0.0.4`](./v0.0.4.md)
@@ -21,7 +22,8 @@ Current snapshots:
 
 Note:
 
-- `v0.0.6` is the latest released snapshot and promotes `docs/skill_v5.md` as the active `/app` revision.
+- `v0.0.7` is the latest released snapshot and packages `/app` as an installable skill with host mirrors and npm/npx installer support.
+- `v0.0.6` promotes `docs/skill_v5.md` as the active `/app` revision.
 - `v0.0.5` is the first release aligned with the canonical `/app` skill HML.
 - `v0.0.4` is the first English snapshot published under the current documentation policy.
 - `v0.0.1` and `v0.0.2` are legacy Portuguese snapshots that predate the English-first documentation policy.

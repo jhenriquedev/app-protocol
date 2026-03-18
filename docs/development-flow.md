@@ -56,7 +56,10 @@ A release snapshots the current accepted spec into `versions/`.
 - `spec.md` is the living draft.
 - `versions/` contains historical snapshots.
 - `docs/` explains the model but does not override the spec.
-- `docs/skill_v5.md` is the current revision of the canonical `/app` skill; `.codex/skills/app/SKILL.md` and `.claude/skills/app/SKILL.md` mirror its entrypoint.
+- `docs/skill_v5.md` is the current published revision of the canonical `/app` skill.
+- `skills/app/` is the canonical installable source of the `/app` skill.
+- `.codex/skills/app/` and `.claude/skills/app/` are host mirrors generated from `skills/app/`.
+- `tooling/skill-app/` is the npm-publishable installer package for `/app`.
 - architectural explanations in `docs/` must remain aligned with the current working draft and must not introduce alternative semantics
 - `examples/` should demonstrate conformance once implementations exist.
 - `i18n/pt-br/` preserves native-language backup copies of Portuguese materials.
