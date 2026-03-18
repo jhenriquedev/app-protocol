@@ -33,7 +33,7 @@ Status: completed
 
 Status: current
 
-- publish the initial HML of skill `/app` under `docs/skill_v3.md`
+- publish and iterate the canonical `/app` HML under `docs/skill_v4.md`
 - stabilize skill `/app` into a production-ready operational skill across supported agent hosts
 - strengthen static conformance validation beyond `validate:boundaries` with deeper registry and import-graph checks
 - define and implement formal conformance tooling/workflow across static, review-level, and runtime checks

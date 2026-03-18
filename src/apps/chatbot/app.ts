@@ -178,7 +178,7 @@ function createAgenticContext(
       // MCP server info — host-specific, not protocol-mandated.
       // In practice: server name, version, transport config.
       serverName: "chatbot",
-      version: "0.0.5",
+      version: "0.0.6",
     },
   };
 

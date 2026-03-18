@@ -6,6 +6,21 @@ All notable changes to this project should be documented in this file.
 
 - No unreleased changes yet.
 
+## v0.0.6
+
+### Added
+
+- `v0.0.6` release snapshot under [`versions/`](./versions)
+- `docs/skill_v4.md` as the optimized HML revision of the canonical `/app` operational skill
+
+### Changed
+
+- Root and example package versions advanced to `0.0.6`
+- README, spec, roadmap, and versions index now align with `v0.0.6`
+- `.codex/skills/app/SKILL.md` and `.claude/skills/app/SKILL.md` now point to `docs/skill_v4.md`
+- The active `/app` HML moved from `docs/skill_v3.md` to `docs/skill_v4.md`
+- Open Work now treats the optimized `/app` HML promotion as closed in `v0.0.6` and moves remaining tooling hardening to the next cycle
+
 ## v0.0.5
 
 ### Added

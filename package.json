@@ -1,6 +1,6 @@
 {
   "name": "app-protocol",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "AI-First Programming Protocol — specification and reference implementation",
   "private": true,
   "type": "module",

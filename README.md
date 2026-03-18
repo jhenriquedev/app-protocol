@@ -9,7 +9,7 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v0.0.5`](./versions/v0.0.5.md)
+- Latest released snapshot: [`v0.0.6`](./versions/v0.0.6.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: working protocol with TypeScript reference implementation
 
@@ -48,7 +48,7 @@ Infrastructure contracts in `core/shared/app_infra_contracts.ts` are minimal int
 - [`docs/agentic.md`](./docs/agentic.md): deeper notes on the agentic surface
 - [`docs/conformance.md`](./docs/conformance.md): conformance levels and validation criteria
 - [`docs/development-flow.md`](./docs/development-flow.md): how the spec evolves
-- [`docs/skill_v3.md`](./docs/skill_v3.md): current HML of the canonical `/app` operational skill
+- [`docs/skill_v4.md`](./docs/skill_v4.md): current HML of the canonical `/app` operational skill
 - [`scripts/validate-boundaries.mjs`](./scripts/validate-boundaries.mjs): initial static boundary validator for `cases/`, `packages/`, and `registry.ts`
 - [`rfcs/`](./rfcs): proposal process for substantive changes
 - [`examples/`](./examples): executable TypeScript reference implementation and future ecosystem examples

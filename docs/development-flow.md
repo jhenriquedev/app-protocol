@@ -56,7 +56,7 @@ A release snapshots the current accepted spec into `versions/`.
 - `spec.md` is the living draft.
 - `versions/` contains historical snapshots.
 - `docs/` explains the model but does not override the spec.
-- `docs/skill_v3.md` is the current HML of the canonical `/app` skill; `.codex/skills/app/SKILL.md` and `.claude/skills/app/SKILL.md` mirror its entrypoint.
+- `docs/skill_v4.md` is the current HML of the canonical `/app` skill; `.codex/skills/app/SKILL.md` and `.claude/skills/app/SKILL.md` mirror its entrypoint.
 - architectural explanations in `docs/` must remain aligned with the current working draft and must not introduce alternative semantics
 - `examples/` should demonstrate conformance once implementations exist.
 - `i18n/pt-br/` preserves native-language backup copies of Portuguese materials.
