@@ -9,7 +9,7 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v0.0.8`](./versions/v0.0.8.md)
+- Latest released snapshot: [`v0.0.9`](./versions/v0.0.9.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: working protocol with TypeScript reference implementation
 
@@ -55,6 +55,14 @@ Quick project-local install of the `/app` skill:
 npx @app-protocol/skill-app install all --project .
 ```
 
+Supported host mirrors:
+
+- Codex
+- Claude
+- GitHub Copilot
+- Windsurf
+- other Agent Skills-compatible hosts through `.agents/skills`
+
 Quick validation:
 
 ```bash
@@ -73,7 +81,7 @@ npm --prefix examples/typescript run start
 - [`spec.md`](./spec.md): current working draft of the specification
 - [`versions/`](./versions): versioned snapshots of released specs
 - [`docs/getting-started.md`](./docs/getting-started.md): fastest path to install `/app` and run the reference implementation
-- [`docs/installing-app-skill.md`](./docs/installing-app-skill.md): installation modes for Codex, Claude, npm, and GitHub Release tarballs
+- [`docs/installing-app-skill.md`](./docs/installing-app-skill.md): installation, update, downgrade, uninstall, and host matrices for Codex, Claude, GitHub Copilot, Windsurf, npm, and GitHub Release tarballs
 - [`docs/using-app-skill.md`](./docs/using-app-skill.md): when and how to use the canonical `/app` skill
 - [`docs/protocol-overview.md`](./docs/protocol-overview.md): high-level overview of APP as a protocol
 - [`docs/core-concepts.md`](./docs/core-concepts.md): canonical layers, surfaces, composition, and runtime model
@@ -90,7 +98,7 @@ npm --prefix examples/typescript run start
 - [`docs/publishing.md`](./docs/publishing.md): release and publishing flow for the installable `/app` skill
 - [`docs/skill_v5.md`](./docs/skill_v5.md): current revision of the canonical `/app` operational skill
 - [`skills/app/`](./skills/app): canonical installable `/app` skill package
-- [`tooling/skill-app/`](./tooling/skill-app): npm-publishable installer package for the `/app` skill
+- [`tooling/skill-app/`](./tooling/skill-app): npm-publishable installer package for the `/app` skill with install, update, upgrade, downgrade, and uninstall commands
 - [`scripts/validate-boundaries.mjs`](./scripts/validate-boundaries.mjs): initial static boundary validator for `cases/`, `packages/`, and `registry.ts`
 - [`rfcs/`](./rfcs): proposal process for substantive changes
 - [`examples/`](./examples): executable TypeScript reference implementation and future ecosystem examples
@@ -155,7 +163,7 @@ APP is the first normative expression of the paradigm, not the only one possible
 
 The paradigm declarations are formalized in [`spec.md` §2](./spec.md). Expanded philosophical framing lives in [`docs/philosophy.md`](./docs/philosophy.md).
 
-The conceptual layer is now closed enough to be public and stable. The next cycle is operational hardening and validation: stabilize the `/app` skill beyond HML, ship Canonical Capability Adapter tooling, publish an end-to-end agentic proof-of-concept, expand multi-language references, and validate the protocol through real-world adoption.
+The conceptual layer is now closed enough to be public and stable. The next cycle is operational hardening and validation: strengthen formal conformance tooling, ship Canonical Capability Adapter tooling, publish an end-to-end agentic proof-of-concept, expand multi-language references, and validate the protocol through real-world adoption.
 
 ## Install and Publish
 

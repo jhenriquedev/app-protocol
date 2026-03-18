@@ -1,7 +1,7 @@
 {
   "name": "@app-protocol/skill-app",
-  "version": "0.0.8",
-  "description": "Install the canonical /app skill into supported agent hosts.",
+  "version": "0.0.9",
+  "description": "Install, update, downgrade, and remove the canonical /app skill across Codex, Claude, GitHub Copilot, Windsurf, and compatible hosts.",
   "type": "module",
   "license": "Apache-2.0",
   "homepage": "https://github.com/jhenriquedev/app-protocol/tree/main/tooling/skill-app",
@@ -21,7 +21,9 @@
     "ai-first-programming",
     "skill",
     "codex",
-    "claude"
+    "claude",
+    "copilot",
+    "windsurf"
   ],
   "engines": {
     "node": ">=20"

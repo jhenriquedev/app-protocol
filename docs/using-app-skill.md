@@ -26,6 +26,8 @@ Use `/app` when you want the agent to:
 - review structural drift
 - maintain `<case>.us.md`
 
+If you do not know APP yet, `/app` should still be usable as a guided workflow rather than a protocol you must already know by heart.
+
 ## How to trigger it
 
 Explicit trigger:
@@ -38,6 +40,10 @@ Intent-based trigger examples:
 
 ```text
 Create a new Case for user registration following APP.
+```
+
+```text
+Create case usuario_criar using /app.
 ```
 
 ```text
@@ -63,6 +69,25 @@ What this means in practice:
 3. implement only the surfaces the task needs
 4. validate structure, semantics, and runtime-facing rules
 5. review drift before task closure
+
+## Concrete example: `usuario_criar`
+
+Prompt:
+
+```text
+Create case usuario_criar using /app.
+```
+
+Expected result:
+
+- inspect the existing domains and Case naming
+- create `usuario_criar.us.md`
+- create `usuario_criar.domain.case.ts`
+- create `usuario_criar.api.case.ts`
+- define invariants such as unique email and non-plain-text password handling
+- implement an atomic canonical flow unless composition is necessary
+- add `test()` to each touched surface
+- validate the result against APP grammar
 
 ## Operational rules the skill enforces
 
@@ -103,6 +128,10 @@ Use /app to add an API surface for notifications_send and create the correspondi
 
 ```text
 Use /app to review whether the host is materializing ctx.cases per request.
+```
+
+```text
+Use /app to create usuario_criar with domain, api, and usuario_criar.us.md.
 ```
 
 ## Relationship to APP itself

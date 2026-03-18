@@ -9,6 +9,9 @@ const sourceDir = path.join(repoRoot, "skills", "app");
 const targets = [
   path.join(repoRoot, ".codex", "skills", "app"),
   path.join(repoRoot, ".claude", "skills", "app"),
+  path.join(repoRoot, ".github", "skills", "app"),
+  path.join(repoRoot, ".windsurf", "skills", "app"),
+  path.join(repoRoot, ".agents", "skills", "app"),
   path.join(repoRoot, "tooling", "skill-app", "skill"),
 ];
 

@@ -1,9 +1,9 @@
 {
   "name": "app",
-  "version": "0.0.8",
-  "revision": "0.0.8-prd",
+  "version": "0.0.9",
+  "revision": "0.0.9-prd",
   "entry": "SKILL.md",
-  "description": "Canonical /app operational skill for APP projects.",
+  "description": "Use when working in APP projects to inspect structure, create and implement Cases, validate APP grammar, maintain <case>.us.md, and review architectural drift with the canonical /app workflow.",
   "hosts": {
     "codex": {
       "projectPath": ".codex/skills/app",
@@ -14,6 +14,21 @@
       "projectPath": ".claude/skills/app",
       "globalPathEnv": "CLAUDE_HOME",
       "globalPathFallback": "~/.claude/skills/app"
+    },
+    "copilot": {
+      "projectPath": ".github/skills/app",
+      "globalPathEnv": "COPILOT_HOME",
+      "globalPathFallback": "~/.copilot/skills/app"
+    },
+    "windsurf": {
+      "projectPath": ".windsurf/skills/app",
+      "globalPathEnv": "WINDSURF_HOME",
+      "globalPathFallback": "~/.codeium/windsurf/skills/app"
+    },
+    "agents": {
+      "projectPath": ".agents/skills/app",
+      "globalPathEnv": "AGENTS_HOME",
+      "globalPathFallback": "~/.agents/skills/app"
     }
   }
 }

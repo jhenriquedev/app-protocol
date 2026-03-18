@@ -58,7 +58,7 @@ A release snapshots the current accepted spec into `versions/`.
 - `docs/` explains the model but does not override the spec.
 - `docs/skill_v5.md` is the current published revision of the canonical `/app` skill.
 - `skills/app/` is the canonical installable source of the `/app` skill.
-- `.codex/skills/app/` and `.claude/skills/app/` are host mirrors generated from `skills/app/`.
+- `.codex/skills/app/`, `.claude/skills/app/`, `.github/skills/app/`, `.windsurf/skills/app/`, and `.agents/skills/app/` are host mirrors generated from `skills/app/`.
 - `tooling/skill-app/` is the npm-publishable installer package for `/app`.
 - `.github/workflows/release-skill-app.yml` is the automated release pipeline for publishing the `/app` installer to GitHub Releases and npm.
 - `docs/publishing.md` documents the one-time external npm Trusted Publishing setup that the workflow depends on.

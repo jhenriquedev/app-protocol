@@ -1,6 +1,6 @@
 ---
 name: app
-description: Use when working in APP projects to inspect topology, create or update Cases, implement or revise domain/api/ui/stream/agentic surfaces, maintain <case>.us.md, validate APP grammar, review drift, or operate under the canonical /app workflow.
+description: use when working in app projects to inspect structure, create and implement cases, validate app grammar, maintain <case>.us.md, and review architectural drift using the canonical /app workflow
 ---
 
 # /app — Canonical Operational Skill for APP
@@ -11,20 +11,37 @@ and improving scanability.
 
 ## Revision Metadata
 
-- Version: `0.0.8-prd`
-- Protocol: `app@v0.0.8`
+- Version: `0.0.9-prd`
+- Protocol: `app@v0.0.9`
 - Status: `prd`
 
-### Suggested Triggers
+## What This Skill Does
 
-- `/app`
-- `create case`
-- `implement surface`
-- `validate project`
-- `review code`
-- `inspect structure`
+- inspect an APP project and explain its topology
+- create a new Case such as `usuario_criar`
+- implement or revise `domain`, `api`, `ui`, `stream`, and `agentic` surfaces
+- validate APP grammar and host runtime rules
+- detect architectural drift in Cases and hosts
+- create or update `<case>.us.md` when semantics, contracts, or composition change
+
+If you do not know APP yet, this skill should guide you through the canonical workflow instead of assuming prior protocol knowledge.
+
+### Example Prompts
+
+- `Use /app to inspect this repository.`
+- `Create case usuario_criar using /app.`
+- `Implement the api surface for usuario_criar using /app.`
+- `Validate this repository with APP grammar.`
+- `Review drift in this project using /app.`
+- `Create usuario_criar with domain, api, and usuario_criar.us.md.`
 
 ## 1. Identity
+
+### Positioning
+
+- executable workflow for APP engineering
+- architecture-aware implementation and review guide
+- operational lint for APP grammar and runtime rules
 
 ### Scope
 
@@ -274,7 +291,41 @@ inspect → specify → create/implement → validate → review
 - host materialization of `ctx.cases` and `ctx.packages` remains correct
 - cross-case composition inherits the current operation context
 
-## 10. `test()` Model
+## 10. Example: `usuario_criar`
+
+Example prompt:
+
+```text
+Create case usuario_criar using /app.
+```
+
+Expected agent behavior:
+
+1. inspect the current project topology and naming conventions
+2. create or update `usuario_criar.us.md`
+3. create `usuario_criar.domain.case.ts`
+4. create `usuario_criar.api.case.ts`
+5. define canonical invariants and validation rules
+6. implement an atomic execution center unless composition is truly required
+7. add or update `test()` on each touched surface
+8. validate the result against APP grammar and `<case>.us.md`
+
+Expected invariants:
+
+- email is unique
+- password never remains plain text in the canonical flow
+- the API surface remains thin and delegates business logic
+
+Expected structure:
+
+```text
+cases/identidade/usuario_criar/
+  usuario_criar.us.md
+  usuario_criar.domain.case.ts
+  usuario_criar.api.case.ts
+```
+
+## 11. `test()` Model
 
 In baseline APP, `test()` is strongly recommended.
 In `/app`, `test()` is required for every surface the agent creates or edits.
@@ -297,7 +348,7 @@ In `/app`, `test()` is required for every surface the agent creates or edits.
 | `stream` | `subscribe()` shape when present; pipeline slots function; `handler()` processes a valid synthetic event |
 | `agentic` | definition integrity; schema and policy consistency; `tool.execute()` delegates and returns expected shape |
 
-## 11. Subagents
+## 12. Subagents
 
 If the platform supports subagents, delegation, or parallel work:
 
@@ -322,7 +373,7 @@ Do not use subagents for:
 - tightly coupled changes in the same file
 - small tasks where coordination cost exceeds benefit
 
-## 12. Drift and Partial Adoption
+## 13. Drift and Partial Adoption
 
 Not every project will be fully aligned with APP.
 
@@ -339,7 +390,7 @@ Rules:
 - create new code in APP when compatible with the task
 - record relevant drift in the operational memory appendix when using this skill as a living artifact
 
-## 13. Guardrails
+## 14. Guardrails
 
 ### NEVER
 
@@ -365,7 +416,7 @@ Rules:
 | platform does not support subagents | ignore that capability |
 | automated tooling does not exist | validate manually with this skill checklist |
 
-## 14. Task Closure
+## 15. Task Closure
 
 Before closing, confirm:
 

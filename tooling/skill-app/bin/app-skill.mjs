@@ -1,23 +1,47 @@
 #!/usr/bin/env node
 
-import { cp, mkdir, readFile, rm } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { cp, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(__dirname, "..");
 const skillDir = path.join(packageRoot, "skill");
+const packageManifest = JSON.parse(
+  await readFile(path.join(packageRoot, "package.json"), "utf8")
+);
 const manifest = JSON.parse(
   await readFile(path.join(skillDir, "skill.json"), "utf8")
 );
+const run = promisify(execFile);
+const supportedHosts = Object.keys(manifest.hosts);
+const hostAliases = new Map([
+  ["codex-app", "codex"],
+  ["claude-code", "claude"],
+  ["github", "copilot"],
+  ["github-copilot", "copilot"],
+  ["cascade", "windsurf"],
+  ["codeium", "windsurf"],
+  ["agent-skills", "agents"],
+  ["agentskills", "agents"],
+]);
 
 function printHelp() {
+  const hostList = [...supportedHosts, "all"].join("|");
   console.log(`app-skill ${manifest.version}
 
 Usage:
-  app-skill install [codex|claude|all] [--project <path>]
-  app-skill install [codex|claude|all] --global
+  app-skill install [${hostList}] [--project <path>] [--version <version>]
+  app-skill install [${hostList}] --global [--version <version>]
+  app-skill update [${hostList}] [--project <path>] [--version <version>]
+  app-skill update [${hostList}] --global [--version <version>]
+  app-skill upgrade [${hostList}] [--project <path>] [--version <version>]
+  app-skill downgrade [${hostList}] [--project <path>] --version <version>
+  app-skill uninstall [${hostList}] [--project <path>]
+  app-skill uninstall [${hostList}] --global
   app-skill manifest
   app-skill validate
   app-skill help
@@ -25,6 +49,10 @@ Usage:
 Examples:
   app-skill install all --project .
   app-skill install codex --global
+  app-skill update copilot --project .
+  app-skill upgrade all --project .
+  app-skill uninstall windsurf --global
+  app-skill downgrade all --project . --version 0.0.8
   npx @app-protocol/skill-app install claude --project .
 `);
 }
@@ -39,9 +67,12 @@ function expandHome(inputPath) {
 function normalizeHost(value = "all") {
   const normalized = value.toLowerCase();
   if (normalized === "all") return "all";
-  if (normalized === "codex" || normalized === "codex-app") return "codex";
-  if (normalized === "claude" || normalized === "claude-code") return "claude";
-  throw new Error(`Unsupported host "${value}". Use codex, claude, or all.`);
+  if (supportedHosts.includes(normalized)) return normalized;
+  const aliased = hostAliases.get(normalized);
+  if (aliased) return aliased;
+  throw new Error(
+    `Unsupported host "${value}". Use ${supportedHosts.join(", ")}, or all.`
+  );
 }
 
 function parseArgs(argv) {
@@ -51,6 +82,7 @@ function parseArgs(argv) {
     host: maybeHost && !maybeHost.startsWith("--") ? maybeHost : "all",
     project: process.cwd(),
     global: false,
+    version: null,
   };
 
   const flags = maybeHost && maybeHost.startsWith("--") ? [maybeHost, ...rest] : rest;
@@ -64,6 +96,11 @@ function parseArgs(argv) {
     }
     if (flag === "--global") {
       args.global = true;
+      continue;
+    }
+    if (flag === "--version") {
+      args.version = flags[index + 1];
+      index += 1;
       continue;
     }
     if (flag === "--help" || flag === "-h") {
@@ -90,21 +127,157 @@ function getProjectRoot(host, projectRoot) {
 }
 
 function resolveTargets(host, projectRoot, isGlobal) {
-  const hosts = host === "all" ? ["codex", "claude"] : [host];
+  const hosts = host === "all" ? supportedHosts : [host];
   return hosts.map((entry) => ({
     host: entry,
     target: isGlobal ? getGlobalRoot(entry) : getProjectRoot(entry, projectRoot),
   }));
 }
 
-async function install(host, projectRoot, isGlobal) {
+function compareVersions(left, right) {
+  const leftParts = left.split(".").map(Number);
+  const rightParts = right.split(".").map(Number);
+
+  for (let index = 0; index < Math.max(leftParts.length, rightParts.length); index += 1) {
+    const leftValue = leftParts[index] ?? 0;
+    const rightValue = rightParts[index] ?? 0;
+    if (leftValue > rightValue) return 1;
+    if (leftValue < rightValue) return -1;
+  }
+
+  return 0;
+}
+
+async function readInstalledVersion(target) {
+  try {
+    const installed = JSON.parse(
+      await readFile(path.join(target, "skill.json"), "utf8")
+    );
+    return typeof installed.version === "string" ? installed.version : null;
+  } catch {
+    return null;
+  }
+}
+
+function describeTransition(command, previousVersion, nextVersion) {
+  if (!previousVersion) {
+    return `installed ${manifest.name}@${nextVersion}`;
+  }
+
+  switch (command) {
+    case "install":
+      return `installed ${manifest.name}@${nextVersion} over ${previousVersion}`;
+    case "update":
+      return `updated ${manifest.name} from ${previousVersion} to ${nextVersion}`;
+    case "upgrade":
+      return compareVersions(nextVersion, previousVersion) > 0
+        ? `upgraded ${manifest.name} from ${previousVersion} to ${nextVersion}`
+        : `reinstalled ${manifest.name}@${nextVersion} (requested upgrade; previous ${previousVersion})`;
+    case "downgrade":
+      return compareVersions(nextVersion, previousVersion) < 0
+        ? `downgraded ${manifest.name} from ${previousVersion} to ${nextVersion}`
+        : `reinstalled ${manifest.name}@${nextVersion} (requested downgrade; previous ${previousVersion})`;
+    default:
+      return `installed ${manifest.name}@${nextVersion}`;
+  }
+}
+
+function normalizeVersionSelector(command, requestedVersion) {
+  if (requestedVersion) {
+    return requestedVersion;
+  }
+
+  if (command === "upgrade") {
+    return "latest";
+  }
+
+  if (command === "downgrade") {
+    throw new Error(
+      'The "downgrade" command requires --version <version>, for example --version 0.0.8.'
+    );
+  }
+
+  return null;
+}
+
+async function prepareInstallSource(command, requestedVersion) {
+  const selector = normalizeVersionSelector(command, requestedVersion);
+
+  if (!selector || selector === manifest.version) {
+    return {
+      sourceDir: skillDir,
+      resolvedVersion: manifest.version,
+      cleanup: async () => {},
+    };
+  }
+
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "app-skill-"));
+  const packageSpec = `${packageManifest.name}@${selector}`;
+  const packageSegments = packageManifest.name.split("/");
+
+  try {
+    await run("npm", [
+      "install",
+      "--prefix",
+      tempRoot,
+      "--no-save",
+      "--no-package-lock",
+      packageSpec,
+    ]);
+
+    const downloadedSkillDir = path.join(
+      tempRoot,
+      "node_modules",
+      ...packageSegments,
+      "skill"
+    );
+    const downloadedManifest = JSON.parse(
+      await readFile(path.join(downloadedSkillDir, "skill.json"), "utf8")
+    );
+
+    return {
+      sourceDir: downloadedSkillDir,
+      resolvedVersion: downloadedManifest.version,
+      cleanup: async () => {
+        await rm(tempRoot, { recursive: true, force: true });
+      },
+    };
+  } catch (error) {
+    await rm(tempRoot, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+async function install(host, projectRoot, isGlobal, command, requestedVersion) {
+  const source = await prepareInstallSource(command, requestedVersion);
+  const targets = resolveTargets(host, projectRoot, isGlobal);
+
+  try {
+    for (const { host: targetHost, target } of targets) {
+      const previousVersion = await readInstalledVersion(target);
+      await rm(target, { recursive: true, force: true });
+      await mkdir(path.dirname(target), { recursive: true });
+      await cp(source.sourceDir, target, { recursive: true });
+      console.log(
+        `${describeTransition(command, previousVersion, source.resolvedVersion)} for ${targetHost} at ${target}`
+      );
+    }
+  } finally {
+    await source.cleanup();
+  }
+}
+
+async function uninstall(host, projectRoot, isGlobal) {
   const targets = resolveTargets(host, projectRoot, isGlobal);
 
   for (const { host: targetHost, target } of targets) {
+    const previousVersion = await readInstalledVersion(target);
     await rm(target, { recursive: true, force: true });
-    await mkdir(path.dirname(target), { recursive: true });
-    await cp(skillDir, target, { recursive: true });
-    console.log(`installed ${manifest.name} for ${targetHost} at ${target}`);
+    if (previousVersion) {
+      console.log(`removed ${manifest.name}@${previousVersion} for ${targetHost} from ${target}`);
+      continue;
+    }
+    console.log(`no existing ${manifest.name} install for ${targetHost} at ${target}`);
   }
 }
 
@@ -112,6 +285,7 @@ async function validatePackage() {
   const requiredFiles = [
     path.join(skillDir, manifest.entry),
     path.join(skillDir, "skill.json"),
+    path.join(skillDir, "agents", "openai.yaml"),
   ];
 
   for (const file of requiredFiles) {
@@ -120,6 +294,16 @@ async function validatePackage() {
 
   if (manifest.name !== "app") {
     throw new Error(`Unexpected manifest name "${manifest.name}".`);
+  }
+
+  if (supportedHosts.length < 3) {
+    throw new Error("Expected at least three supported hosts in the manifest.");
+  }
+
+  for (const [host, config] of Object.entries(manifest.hosts)) {
+    if (!config.projectPath || !config.globalPathFallback || !config.globalPathEnv) {
+      throw new Error(`Host "${host}" is missing install path configuration.`);
+    }
   }
 
   console.log(`validated ${manifest.name}@${manifest.version}`);
@@ -140,7 +324,19 @@ async function main() {
       await validatePackage();
       return;
     case "install":
-      await install(host, path.resolve(args.project), args.global);
+    case "update":
+    case "upgrade":
+    case "downgrade":
+      await install(
+        host,
+        path.resolve(args.project),
+        args.global,
+        args.command,
+        args.version
+      );
+      return;
+    case "uninstall":
+      await uninstall(host, path.resolve(args.project), args.global);
       return;
     default:
       throw new Error(`Unknown command "${args.command}".`);

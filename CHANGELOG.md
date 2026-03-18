@@ -6,6 +6,21 @@ All notable changes to this project should be documented in this file.
 
 - No unreleased changes yet.
 
+## v0.0.9
+
+### Added
+
+- `v0.0.9` release snapshot under [`versions/`](./versions)
+- Native host mirrors and installer support for GitHub Copilot, Windsurf, and generic Agent Skills-compatible hosts
+- `/app` skill onboarding improvements, including a stronger entry point, concrete prompt examples, and a canonical `usuario_criar` walkthrough
+
+### Changed
+
+- Root, example, installer package, skill metadata, and runtime headers advanced to `0.0.9`
+- The installer CLI now supports `install`, `update`, `upgrade`, `downgrade`, and `uninstall`
+- Installation docs, package README, repository README, and development-flow docs now align with the multi-host skill lifecycle
+- Open Work now treats `/app` stabilization and expanded host coverage as closed in `v0.0.9`
+
 ## v0.0.8
 
 ### Added

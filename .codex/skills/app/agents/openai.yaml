@@ -1,4 +1,4 @@
 interface:
   display_name: "APP /app"
-  short_description: "Operate APP projects"
-  default_prompt: "Inspect or update this APP project using the canonical /app workflow."
+  short_description: "Inspect, create, validate, and review APP Cases"
+  default_prompt: "Inspect or update this APP project using the canonical /app workflow. Explain the topology, keep <case>.us.md aligned, and preserve APP grammar."

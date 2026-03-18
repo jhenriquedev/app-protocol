@@ -56,6 +56,9 @@ What this installs:
 
 - `.codex/skills/app/`
 - `.claude/skills/app/`
+- `.github/skills/app/`
+- `.windsurf/skills/app/`
+- `.agents/skills/app/`
 
 If you need more installation modes, read
 [`installing-app-skill.md`](./installing-app-skill.md).
@@ -78,6 +81,10 @@ Use /app to inspect this project and explain the current Cases.
 
 ```text
 Use /app to create a new Case for user registration.
+```
+
+```text
+Create case usuario_criar using /app.
 ```
 
 ```text
