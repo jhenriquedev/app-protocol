@@ -28,11 +28,14 @@ jobs:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref }}
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org/"
           cache: "npm"
+
+      - name: Setup npm CLI
+        run: npm install --global npm@11.11.1
 
       - name: Install root dependencies
         run: npm ci
@@ -81,7 +84,7 @@ jobs:
       - name: Publish package to npm
         if: steps.npm_publish.outputs.already_published != 'true'
         working-directory: tooling/skill-app
-        run: npm publish --provenance --access public
+        run: npm publish --access public
 
       - name: Create or update GitHub Release
         env:
