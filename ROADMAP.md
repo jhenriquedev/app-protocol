@@ -16,6 +16,8 @@ Status: completed
 - freeze terminology
 - formalize `agentic.case.ts`
 - formalize `apps/<app>/registry.ts` as the canonical runtime entry point
+- formalize `apps/agent/` as the canonical generic host name for app-level agentic runtimes
+- formalize `AgenticRegistry` plus app-level agent host responsibilities on top of `AppRegistry`
 - formalize APP-induced architectural properties as protocol semantics
 - define conformance invariants
 - define `packages/` as fourth canonical layer
@@ -66,9 +68,9 @@ Status: current
 
 ## Phase 7: v1 Readiness and Stabilization
 
-Status: planned
+Status: completed
 
-- define explicit release criteria for calling APP `v1.0`
-- decide whether `agentic.case.ts` remains optional in `v1` or becomes part of a stronger conformance profile
+- release APP `v1.0.0` as the first stable protocol baseline
+- keep `agentic.case.ts` optional in baseline APP while allowing stronger conformance profiles such as `/app`
 - freeze `v1` guidance around deliberate host-defined infrastructure scope (`auth`, `db`, `queue`) so these remain implementation choices rather than protocol debt
-- consolidate feedback from real implementations back into the normative spec without regressing the closed core model
+- consolidate the closed core model, app-level agentic contracts, and active docs into a stable release snapshot

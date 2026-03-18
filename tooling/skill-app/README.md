@@ -11,7 +11,7 @@ This package installs the official `/app` operational workflow into supported AI
 
 - inspect APP architecture
 - set up a new APP project
-- add a new host app such as `backend`, `portal`, `chatbot`, `worker`, or `lambdas`
+- add a new host app such as `backend`, `portal`, `agent`, `worker`, or `lambdas`
 - create or update Cases
 - introduce `packages/` and expose them correctly through host registries
 - classify whether shared code belongs in `cases/`, `packages/`, or `core/shared/`
@@ -20,6 +20,9 @@ This package installs the official `/app` operational workflow into supported AI
 - validate APP grammar
 - review structural drift
 - adapt existing projects to APP incrementally
+
+For generic app-level agentic hosts, the canonical host name is `agent`.
+Names such as `chatbot` are reserved for explicitly conversational specializations.
 
 ## Supported hosts
 
@@ -45,6 +48,25 @@ Project-local targets:
 npx @app-protocol/skill-app validate
 ```
 
+## CLI help
+
+List all commands, host aliases, examples, and compatibility notes:
+
+```bash
+npx @app-protocol/skill-app --help
+app-skill --help
+```
+
+Print only the CLI version:
+
+```bash
+npx @app-protocol/skill-app --version
+npx @app-protocol/skill-app -v
+app-skill version
+app-skill --version
+app-skill -v
+```
+
 ## Quick start
 
 ```bash
@@ -56,7 +78,7 @@ Then use prompts such as:
 ```text
 inspect this project with /app
 set up a new APP project with /app
-add a chatbot host app using /app
+add an agent host app using /app
 create case usuario_criar
 validate app grammar in this repository
 adapt this existing project to APP incrementally
@@ -116,9 +138,26 @@ npx @app-protocol/skill-app uninstall windsurf --global
 
 ```bash
 npm install --global @app-protocol/skill-app
+app-skill --help
+app-skill --version
 app-skill validate
 app-skill install all --project .
 ```
+
+## Platform compatibility
+
+The installer is designed to work on:
+
+- macOS
+- Linux
+- Windows
+
+Compatibility notes:
+
+- it uses Node.js standard library APIs for path resolution and file operations
+- global and project-local install targets are built with `path.join`, not shell-specific path concatenation
+- npm invocation uses a Windows-specific fallback so `npm.cmd`-style launchers work on `win32`
+- no Unix-only shell commands are required by the installer itself
 
 ## Release tarball fallback
 

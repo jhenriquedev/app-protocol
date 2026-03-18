@@ -13,6 +13,8 @@ Conventions:
 
 Current snapshots:
 
+- [`v1.0.0`](./v1.0.0.md)
+- [`v0.0.12`](./v0.0.12.md)
 - [`v0.0.11`](./v0.0.11.md)
 - [`v0.0.10`](./v0.0.10.md)
 - [`v0.0.9`](./v0.0.9.md)
@@ -26,7 +28,9 @@ Current snapshots:
 
 Note:
 
-- `v0.0.11` is the latest released snapshot and adds structural APP guidance for new-project bootstrap, host-app creation, `packages/` usage, incremental adoption of existing projects, and sharper protocol boundaries around `core/` evolution.
+- `v1.0.0` is the first stable APP release. It packages the current protocol baseline, the formal app-level agentic host contract, aligned release tooling, and the installer/runtime version cleanup required for stable publication.
+- `v0.0.12` formalizes app-level agentic host contracts, `apps/agent/` as the canonical generic host name for agentic runtimes, and the supporting documentation alignment needed to close drift between Case-level and app-level operability.
+- `v0.0.11` adds structural APP guidance for new-project bootstrap, host-app creation, `packages/` usage, incremental adoption of existing projects, and sharper protocol boundaries around `core/` evolution.
 - `v0.0.10` improves `/app` package discoverability with stronger positioning, onboarding copy, and prompt-based package guidance.
 - `v0.0.9` stabilizes `/app` with stronger onboarding, lifecycle operations, and native host coverage across Codex, Claude, GitHub Copilot, Windsurf, and compatible skill hosts.
 - `v0.0.8` adds a complete onboarding and operational documentation layer for APP and `/app`.

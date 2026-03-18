@@ -6,6 +6,19 @@ It exists to make a Case discoverable, understandable, and executable by AI agen
 
 The agentic surface is optional. If a Case exposes this surface, it must follow the APP agentic protocol and must not diverge from canonical execution behavior.
 
+## Case level vs app level
+
+`agentic.case.ts` formalizes agentic behavior at the Case level.
+
+That is necessary but not sufficient for an APP project to be agentic at the
+app level. A project becomes agentic at the host level when an app under
+`apps/agent/` publishes those surfaces through a registry/runtime that can
+discover, resolve, validate, and execute them canonically.
+
+The canonical generic host name is `agent`.
+`chatbot` may still exist as a project-specific conversational specialization,
+but it is not the generic protocol term for an agentic host.
+
 ## Goals
 
 - expose a Case as a tool for AI agents
@@ -163,6 +176,57 @@ Fallback rules (normative — adapters must follow):
 | `execute` | Always delegates to `tool.execute()` |
 
 `mcp` controls presence and presentation. It never redefines schemas or execution paths.
+
+## App-Level Agentic Hosts
+
+For app-level agentic conformance, the host layer adds two pieces on top of the
+Case-level surface:
+
+### `AgenticRegistry`
+
+`AgenticRegistry` is the app-level extension of `AppRegistry` for hosts that
+publish agentic capabilities.
+
+Required methods:
+
+| Method | Purpose |
+| --- | --- |
+| `listAgenticCases()` | enumerate Cases that actually expose `agentic` in that host |
+| `getAgenticSurface(ref)` | resolve the registered `agentic` surface constructor |
+| `instantiateAgentic(ref, ctx)` | instantiate the surface with the current `AgenticContext` |
+| `buildCatalog(ctx)` | derive the host-visible catalog from registered surfaces |
+| `resolveTool(toolName, ctx)` | resolve external tool names with MCP fallback rules |
+| `listMcpEnabledTools(ctx)` | filter what is publishable through MCP |
+
+`AgenticRegistry` should not introduce a parallel source of truth. Publication
+must come from `_cases` and the registered `agentic` surfaces.
+
+### `apps/agent/app.ts`
+
+When a host claims agentic runtime conformance, its `app.ts` should expose or
+clearly implement these responsibilities:
+
+| Method | Purpose |
+| --- | --- |
+| `bootstrap(config)` | initialize the registry, adapters, and runtime |
+| `createAgenticContext(parent?)` | build a fresh execution context per tool call |
+| `buildAgentCatalog(parent?)` | assemble the published tool/catalog view |
+| `resolveTool(toolName, parent?)` | map an external tool name to a capability |
+| `executeTool(toolName, input, parent?)` | enforce policy, then delegate to canonical execution |
+| `validateAgenticRuntime()` | reject startup/publication when host semantics cannot honor the Case declarations |
+
+Recommended optional methods:
+
+- `buildSystemPrompt(parent?)`
+- `startAgentHost()`
+- `publishMcp()`
+
+Runtime invariants:
+
+1. Tool names must be unique after MCP fallback resolution.
+2. `requireConfirmation` and `executionMode` must be enforced by the host/runtime.
+3. `tool.execute()` must still reach canonical execution through `ctx.cases`.
+4. The host may add a system prompt, but it must not override per-Case semantics.
 
 ## Execution Policy
 

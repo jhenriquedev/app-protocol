@@ -35,6 +35,19 @@ Domain artifacts are consumed manually by other surfaces.
 No in baseline APP.
 Yes only when a Case chooses to expose an agentic surface.
 
+## Is `agentic.case.ts` enough to make an app agentic?
+
+No.
+It makes a Case agent-operable, but app-level agentic conformance also requires
+an agent host that publishes and governs those surfaces.
+
+## Is `chatbot` the canonical host name for an agentic app?
+
+No.
+The canonical generic host name is `agent`.
+`chatbot` may still be used when the host is explicitly a conversational
+specialization.
+
 ## Is `test()` mandatory?
 
 In baseline APP, `test()` is strongly recommended.

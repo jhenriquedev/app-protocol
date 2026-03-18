@@ -20,7 +20,7 @@ Use `/app` when you want the agent to:
 
 - inspect the topology of an APP project
 - set up a new APP project
-- add a new host app such as `backend`, `portal`, `chatbot`, `worker`, or `lambdas`
+- add a new host app such as `backend`, `portal`, `agent`, `worker`, or `lambdas`
 - explain Cases and surfaces
 - create or update a Case
 - introduce `packages/` correctly
@@ -168,7 +168,7 @@ Use /app to create usuario_criar with domain, api, and usuario_criar.us.md.
 ```
 
 ```text
-Use /app to add a chatbot host app and wire only the Cases it needs.
+Use /app to add an agent host app and wire only the Cases it needs.
 ```
 
 ```text

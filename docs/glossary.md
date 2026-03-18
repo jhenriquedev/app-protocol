@@ -24,6 +24,16 @@ A canonical execution or interaction boundary of a Case, such as `domain`,
 An app-level runtime that selects Cases, providers, shared packages, and
 materializes execution context.
 
+## Agent Host
+
+The canonical generic app-level host for agentic runtimes, conventionally
+located at `apps/agent/`.
+
+## `AgenticRegistry`
+
+The app-level extension of `AppRegistry` used by agent hosts to discover,
+catalog, resolve, and publish registered `agentic` surfaces.
+
 ## `ctx.cases`
 
 The host-materialized composition boundary through which a Case orchestrates

@@ -7,6 +7,7 @@ Good candidates for RFCs:
 - adding or removing surfaces
 - changing dependency rules
 - formalizing `agentic.case.ts`
+- formalizing app-level agentic host contracts such as `AgenticRegistry` or `apps/agent/app.ts`
 - changing release or conformance policy
 - renaming core concepts
 

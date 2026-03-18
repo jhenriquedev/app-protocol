@@ -121,7 +121,10 @@ APP allows composition, but only through explicit runtime boundaries. A Case doe
 
 ```mermaid
 flowchart LR
-  agent["Agent / MCP Client"]:::apps --> tool["agentic.tool()"]:::surface
+  agent["Agent / MCP Client"]:::apps --> host["apps/agent/app.ts"]:::apps
+  host -.-> registry["AgenticRegistry"]:::core
+  registry -.-> tool["agentic.tool() contract"]:::surface
+  host --> tool
   tool --> canonical["canonical api/stream surface"]:::cases
   canonical --> result["AppResult / structured output"]:::core
 
@@ -131,7 +134,9 @@ flowchart LR
   classDef apps fill:#ffe2d5,stroke:#c05621,color:#4a1f10;
 ```
 
-The agentic surface is not a shadow implementation. It delegates to canonical execution surfaces.
+At app level, the agent host resolves, validates, and governs tool execution.
+The agentic surface is not a shadow implementation. It still delegates to
+canonical execution surfaces.
 
 ## 6. Stream Recovery
 

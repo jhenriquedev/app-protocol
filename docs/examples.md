@@ -15,7 +15,7 @@ This is the reference implementation to run first.
 - canonical project structure
 - multiple Cases
 - domain, API, UI, stream, and agentic surfaces
-- backend and chatbot hosts
+- backend and agent hosts (`chatbot` in the current TypeScript reference until the example is renamed)
 - declarative stream recovery
 - cross-case orchestration through `ctx.cases`
 - end-to-end scenario execution
@@ -60,7 +60,7 @@ Use the TypeScript example when you want to:
 - learn how surfaces fit together
 - validate tooling changes against a running reference
 - derive the first host app and registry pattern for a new TypeScript APP project
-- compare how backend and chatbot hosts keep the same protocol role with different runtime wiring
+- compare how backend and the agent host (`chatbot` in the current reference) keep the same protocol role with different runtime wiring
 
 ## Read next
 

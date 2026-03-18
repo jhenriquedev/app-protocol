@@ -9,9 +9,9 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v0.0.11`](./versions/v0.0.11.md)
+- Latest released snapshot: [`v1.0.0`](./versions/v1.0.0.md)
 - Working draft: [`spec.md`](./spec.md)
-- Maturity: working protocol with TypeScript reference implementation
+- Maturity: stable protocol baseline with TypeScript reference implementation
 
 Language policy:
 
@@ -86,7 +86,7 @@ npm --prefix examples/typescript run start
 - [`versions/`](./versions): versioned snapshots of released specs
 - [`docs/getting-started.md`](./docs/getting-started.md): fastest path to install `/app` and run the reference implementation
 - [`docs/create-app-project.md`](./docs/create-app-project.md): bootstrap a new APP project without overbuilding the repository
-- [`docs/add-host-app.md`](./docs/add-host-app.md): add a new host app and choose the right runtime wiring for backend, portal, chatbot, worker, or lambdas
+- [`docs/add-host-app.md`](./docs/add-host-app.md): add a new host app and choose the right runtime wiring for backend, portal, agent, worker, or lambdas
 - [`docs/using-packages.md`](./docs/using-packages.md): decide when code belongs in `packages/` and how to expose it correctly through hosts
 - [`docs/migrating-existing-projects.md`](./docs/migrating-existing-projects.md): adopt APP incrementally in an existing codebase without forcing a big-bang rewrite
 - [`docs/installing-app-skill.md`](./docs/installing-app-skill.md): installation, update, downgrade, uninstall, and host matrices for Codex, Claude, GitHub Copilot, Windsurf, npm, and GitHub Release tarballs
@@ -100,7 +100,7 @@ npm --prefix examples/typescript run start
 - [`docs/philosophy.md`](./docs/philosophy.md): conceptual framing behind AI-first programming
 - [`docs/architectural-properties.md`](./docs/architectural-properties.md): APP-native architectural properties and how to interpret them
 - [`docs/architecture.md`](./docs/architecture.md): canonical architectural diagrams and explanatory walkthroughs
-- [`docs/agentic.md`](./docs/agentic.md): deeper notes on the agentic surface
+- [`docs/agentic.md`](./docs/agentic.md): deeper notes on the agentic surface and agent host runtime contracts
 - [`docs/conformance.md`](./docs/conformance.md): conformance levels and validation criteria
 - [`docs/development-flow.md`](./docs/development-flow.md): how the spec evolves
 - [`docs/publishing.md`](./docs/publishing.md): release and publishing flow for the installable `/app` skill

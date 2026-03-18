@@ -33,11 +33,13 @@ Typical examples:
 
 - `backend`
 - `portal`
-- `chatbot`
+- `agent`
 - `worker`
 - `lambdas`
 
-You may use other names if they clearly express a host role, but the same APP semantics still apply.
+`agent` is the canonical generic host name for app-level agentic runtimes.
+Names such as `chatbot` may still be used when the host is explicitly a
+conversational specialization, but the same APP semantics still apply.
 
 ## Step-by-step
 
@@ -95,13 +97,43 @@ Typical work:
 - expose design or frontend packages
 - keep app-specific rendering and navigation inside the host/runtime
 
-### `chatbot`
+### `agent`
 
 Typical work:
 
 - discover agentic surfaces
 - expose tools or MCP bindings
 - ensure `tool.execute()` reaches canonical execution
+- enforce confirmation and execution policy at runtime
+
+When the host is agentic, formalize two things explicitly:
+
+- `registry.ts` should satisfy `AppRegistry` plus the formal `AgenticRegistry` extension
+- `app.ts` should expose or clearly implement the runtime responsibilities of an agent host
+
+Required `registry.ts` methods for agentic hosts:
+
+- `listAgenticCases()`
+- `getAgenticSurface(ref)`
+- `instantiateAgentic(ref, ctx)`
+- `buildCatalog(ctx)`
+- `resolveTool(toolName, ctx)`
+- `listMcpEnabledTools(ctx)`
+
+Required `app.ts` responsibilities for agentic hosts:
+
+- `bootstrap(config)`
+- `createAgenticContext(parent?)`
+- `buildAgentCatalog(parent?)`
+- `resolveTool(toolName, parent?)`
+- `executeTool(toolName, input, parent?)`
+- `validateAgenticRuntime()`
+
+Recommended optional responsibilities:
+
+- `buildSystemPrompt(parent?)`
+- `startAgentHost()`
+- `publishMcp()`
 
 ### `worker`
 
@@ -119,7 +151,7 @@ Typical work:
 
 ## Important rule
 
-Do not assume `apps/backend/app.ts`, `apps/chatbot/app.ts`, and `apps/portal/app.ts` should look the same.
+Do not assume `apps/backend/app.ts`, `apps/agent/app.ts`, and `apps/portal/app.ts` should look the same.
 
 They share protocol duties, but:
 
@@ -137,6 +169,13 @@ The protocol standardizes the role, not identical boot code.
 - contexts are created per execution, not as global boot-time shared instances
 - `ctx.cases` is built from registry constructors
 - `ctx.packages` contains only host-selected packages
+
+Additional checks for `apps/agent/`:
+
+- published tools are derived from registered `agentic` surfaces, not from parallel metadata
+- tool names are unique after MCP fallback resolution
+- `requireConfirmation` and `executionMode` are enforced by the host/runtime
+- `AgenticContext` is created per execution
 
 ## Read next
 

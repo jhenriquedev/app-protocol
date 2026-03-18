@@ -157,8 +157,12 @@ Different host types keep the same role but not identical boot code:
 
 - `backend` mounts request/transport bindings
 - `portal` or frontend hosts mount UI runtime concerns
-- `chatbot` exposes agentic tools or MCP bindings
+- `agent` exposes agentic tools or MCP bindings
 - `worker` or `lambdas` adapt execution to background or serverless triggers
+
+`agent` is the canonical generic name for an app-level agentic host.
+`chatbot` may still exist as a conversational specialization, but it is not the
+generic protocol term.
 
 ## Choosing the right layer
 

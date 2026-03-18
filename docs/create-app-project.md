@@ -91,7 +91,7 @@ Start with one host that matches the first delivery need:
 
 - `backend` for server/API execution
 - `portal` for frontend/UI runtime
-- `chatbot` for agentic tool hosting
+- `agent` for agentic tool hosting
 - `worker` for background processing
 - `lambdas` for serverless routing or event handling
 

@@ -112,7 +112,7 @@ npm --prefix examples/typescript run start
 What it demonstrates:
 
 - backend host bootstrapping
-- chatbot host consuming agentic surfaces
+- agent host consuming agentic surfaces (`chatbot` in the current TypeScript reference until the example is renamed)
 - API, UI, stream, and agentic surfaces
 - cross-case orchestration through `ctx.cases`
 - scenario execution and surface-level tests

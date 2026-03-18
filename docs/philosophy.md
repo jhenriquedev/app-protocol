@@ -172,6 +172,8 @@ An agent-operable system exposes:
 - guardrails and policies
 
 The `agentic.case.ts` surface defines how a Case can be used by AI systems.
+At the app level, `apps/agent/` turns those Case-level contracts into a governed
+runtime that can publish, resolve, and execute capabilities safely.
 
 This makes it possible for agents to:
 
@@ -208,7 +210,7 @@ It can be adopted gradually:
 
 1. New capabilities can be implemented as Cases.
 2. Legacy systems can be integrated through adapters.
-3. Agentic surfaces can be added progressively.
+3. Agentic surfaces and agent hosts can be added progressively.
 
 This allows organizations to experiment with APP without large migrations.
 

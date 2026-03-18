@@ -32,6 +32,8 @@ function printHelp() {
   console.log(`app-skill ${manifest.version}
 
 Usage:
+  app-skill [--help|-h|--version|-v]
+  app-skill version
   app-skill install [${hostList}] [--project <path>] [--version <version>]
   app-skill install [${hostList}] --global [--version <version>]
   app-skill update [${hostList}] [--project <path>] [--version <version>]
@@ -44,6 +46,18 @@ Usage:
   app-skill validate
   app-skill help
 
+Host aliases:
+  github, github-copilot -> copilot
+  cascade, codeium -> windsurf
+  codex-app -> codex
+  claude-code -> claude
+  agent-skills, agentskills -> agents
+
+Compatibility:
+  Works on macOS, Linux, and Windows with Node.js >= 20.
+  Project-local install paths and global install paths are resolved with Node path APIs.
+  npm invocation uses a Windows-specific fallback to support npm launchers on win32.
+
 Examples:
   app-skill install all --project .
   app-skill install codex --global
@@ -53,6 +67,10 @@ Examples:
   app-skill downgrade all --project . --version 0.0.8
   npx @app-protocol/skill-app install claude --project .
 `);
+}
+
+function printVersion() {
+  console.log(manifest.version);
 }
 
 function expandHome(inputPath) {
@@ -74,6 +92,36 @@ function normalizeHost(value = "all") {
 }
 
 function parseArgs(argv) {
+  if (argv.length === 0) {
+    return {
+      command: "help",
+      host: "all",
+      project: process.cwd(),
+      global: false,
+      version: null,
+    };
+  }
+
+  if (argv[0] === "--help" || argv[0] === "-h") {
+    return {
+      command: "help",
+      host: "all",
+      project: process.cwd(),
+      global: false,
+      version: null,
+    };
+  }
+
+  if (argv[0] === "--version" || argv[0] === "-v") {
+    return {
+      command: "version",
+      host: "all",
+      project: process.cwd(),
+      global: false,
+      version: null,
+    };
+  }
+
   const [command = "help", maybeHost, ...rest] = argv;
   const args = {
     command,
@@ -389,6 +437,9 @@ async function main() {
   switch (args.command) {
     case "help":
       printHelp();
+      return;
+    case "version":
+      printVersion();
       return;
     case "manifest":
       console.log(JSON.stringify(manifest, null, 2));

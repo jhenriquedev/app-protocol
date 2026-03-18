@@ -11,15 +11,15 @@ and improving scanability.
 
 ## Revision Metadata
 
-- Version: `0.0.11-prd`
-- Protocol: `app@v0.0.11`
+- Version: `1.0.0-prd`
+- Protocol: `app@v1.0.0`
 - Status: `prd`
 
 ## What This Skill Does
 
 - inspect an APP project and explain its topology
 - set up a new APP project with canonical layers and the first host app
-- add a new host app such as `backend`, `portal`, `chatbot`, `worker`, or `lambdas`
+- add a new host app such as `backend`, `portal`, `agent`, `worker`, or `lambdas`
 - create a new Case such as `usuario_criar`
 - implement or revise `domain`, `api`, `ui`, `stream`, and `agentic` surfaces
 - introduce `packages/` and expose them correctly through host registries
@@ -38,7 +38,7 @@ APP is the protocol layer of the AI-First Programming Paradigm.
 
 - `Use /app to inspect this repository.`
 - `Set up a new APP project using /app.`
-- `Add a chatbot host app using /app.`
+- `Add an agent host app using /app.`
 - `Create case usuario_criar using /app.`
 - `Introduce packages/ for shared HTTP clients using /app.`
 - `Adapt this existing project to APP incrementally using /app.`
@@ -80,6 +80,7 @@ APP defines baseline protocol grammar.
 | `<case>.us.md` | optional support artifact | required for new Cases, new surfaces, and semantic changes |
 | workflow | free | `inspect → specify → create/implement → validate → review` |
 | validation | may be partial | must happen before task closure |
+| agentic completeness | `agentic` optional; app-level agentic host formalized in current spec | when the task requires agentic at Case or app level, the full formal definition is mandatory; partial or placeholder agentic layers are non-conformant in `/app` |
 | subagents | outside protocol scope | required when supported and parallel work is useful |
 
 ### Core Rules
@@ -88,6 +89,7 @@ APP defines baseline protocol grammar.
 - keep `handler()` thin and free of business logic
 - create or update `<case>.us.md` when semantics change
 - add or update `test()` on every touched surface
+- if the task requires the agentic layer, define it completely according to the current normative contract; never leave a partial agentic host or surface behind
 - validate and review before closing the task
 
 ## 3. APP Model
@@ -168,7 +170,7 @@ Implement only the surfaces the task needs.
 | `api` | `<case>.api.case.ts` | backend execution, auth, orchestration, response | `handler(input)`, `test()`, one execution center: `_service` or `_composition` | `router`, `_validate`, `_authorize`, `_repository` | `handler()` receives business input; `router()` only binds transport; `_composition` uses `ctx.cases` |
 | `ui` | `<case>.ui.case.ts` | self-contained visual unit | `view()`, `test()` | `_viewmodel`, `_service`, `_repository`, `setState` | UI must not do direct cross-case composition |
 | `stream` | `<case>.stream.case.ts` | event consumption, publication, declarative recovery | `handler(event)`, `test()`, one execution center: `_service` or `_composition` | `subscribe`, `recoveryPolicy`, `_consume`, `_repository`, `_publish` | `subscribe()` and `recoveryPolicy()` are declarative; `recoveryPolicy()` must be deterministic and free of I/O |
-| `agentic` | `<case>.agentic.case.ts` | discovery, tool contract, policy, MCP integration | `discovery()`, `context()`, `prompt()`, `tool()`, `test()` when surface exists | `mcp`, `rag`, `policy`, `examples` | `tool.execute()` delegates to a canonical surface; no shadow business logic; `agentic` remains optional in baseline APP |
+| `agentic` | `<case>.agentic.case.ts` | discovery, tool contract, policy, MCP integration | `discovery()`, `context()`, `prompt()`, `tool()`, `test()` when surface exists | `mcp`, `rag`, `policy`, `examples` | `tool.execute()` delegates to a canonical surface; no shadow business logic; if the task requires the agentic layer, `/app` requires the full formal definition, not a partial stub |
 
 ### 5.2 Critical Surface Rules
 
@@ -203,6 +205,9 @@ view ↔ _viewmodel ↔ _service ↔ _repository
 
 - `mcp()` controls exposure and presentation; it does not redefine execution
 - `tool.execute()` must delegate to a canonical surface
+- if `agentic` is created or revised, `/app` requires the full formal contract to be materially defined: `discovery()`, `context()`, `prompt()`, `tool()`, and `test()`
+- include `policy()`, `mcp()`, `rag()`, and `examples()` whenever the capability semantics or host runtime require them; do not leave those concerns implicit
+- if the task requires app-level agentic operability, the skill must also formalize the host layer in `apps/agent/`; `agentic.case.ts` alone is not sufficient
 
 ## 6. Composition and Runtime
 
@@ -242,7 +247,40 @@ Use these playbooks for repository-structure tasks that are broader than a singl
 - create `apps/<app>/registry.ts` selecting only the Cases, providers, and packages that host actually needs
 - create `apps/<app>/app.ts` as the host bootstrap for that runtime
 - keep the semantic role the same across host types, but adapt bootstrap to the runtime: server, frontend, worker, lambda, or agent host
-- do not assume `backend`, `portal`, `chatbot`, `worker`, and `lambdas` share the same boot code; they share responsibilities, not identical implementation
+- prefer `agent` as the canonical generic host name for agentic runtimes; use `chatbot` only when the host is explicitly conversational
+- do not assume `backend`, `portal`, `agent`, `worker`, and `lambdas` share the same boot code; they share responsibilities, not identical implementation
+
+### Agent Host Completeness
+
+If the task creates or revises `apps/agent/`, `/app` MUST treat the agentic
+layer as a complete host concern, not as an optional enhancement.
+
+Required registry definition:
+
+- `AgenticRegistry` on top of `AppRegistry`
+- `listAgenticCases()`
+- `getAgenticSurface(ref)`
+- `instantiateAgentic(ref, ctx)`
+- `buildCatalog(ctx)`
+- `resolveTool(toolName, ctx)`
+- `listMcpEnabledTools(ctx)`
+
+Required `apps/agent/app.ts` responsibilities:
+
+- `bootstrap(config)`
+- `createAgenticContext(parent?)`
+- `buildAgentCatalog(parent?)`
+- `resolveTool(toolName, parent?)`
+- `executeTool(toolName, input, parent?)`
+- `validateAgenticRuntime()`
+
+Required runtime semantics:
+
+- tool publication derives from registered `agentic` surfaces
+- `AgenticContext` is materialized per execution
+- tool names are unique after MCP fallback resolution
+- `requireConfirmation` and `executionMode` are enforced by the host/runtime
+- a global host prompt must not override per-Case `agentic` semantics
 
 ### New `packages/` Entry
 
@@ -336,7 +374,7 @@ inspect → specify → create/implement → validate → review
 | If the task is... | Then the skill should... |
 | --- | --- |
 | new project bootstrap | inspect repo state, scaffold canonical layers, add first host app, and validate minimal APP topology |
-| new host app | inspect runtime needs, create `app.ts` + `registry.ts`, wire only needed Cases/providers/packages, then validate host semantics |
+| new host app | inspect runtime needs, create `app.ts` + `registry.ts`, wire only needed Cases/providers/packages, then validate host semantics; if the host is `agent`, require the complete formal agentic host definition |
 | package introduction | classify the shared code as `packages/`, expose it through `_packages`, and validate `ctx.packages` usage |
 | `core/shared/` addition | check whether it is truly protocol-level; if not, keep it out of `core/shared/` |
 | new canonical surface proposal | stop normal implementation and switch to protocol-evolution guidance |
@@ -358,6 +396,7 @@ inspect → specify → create/implement → validate → review
 - `domain` remains pure
 - every touched surface has `test()`
 - `<case>.us.md` exists when required by `/app`
+- if agentic work was requested, the full required agentic surface or host contract is present rather than partially scaffolded
 
 ### 9.2 Semantic
 
@@ -366,6 +405,7 @@ inspect → specify → create/implement → validate → review
 - declared invariants are enforced at a canonical point
 - composition uses `ctx.cases`
 - agentic delegates to a canonical surface
+- if app-level agentic behavior is in scope, `apps/agent/` semantics are explicit and complete rather than implied by Case-level metadata
 
 ### 9.3 Operational
 
@@ -376,6 +416,8 @@ inspect → specify → create/implement → validate → review
 - cross-case composition inherits the current operation context
 - each host app exposes only the Cases and packages it actually intends to load
 - existing-project adoption keeps APP boundaries explicit instead of silently mixing grammar
+- `apps/agent/` enforces `requireConfirmation` and `executionMode` at runtime
+- `apps/agent/` resolves and publishes tools through `AgenticRegistry`
 
 ## 10. Example: `usuario_criar`
 
@@ -434,6 +476,13 @@ In `/app`, `test()` is required for every surface the agent creates or edits.
 | `stream` | `subscribe()` shape when present; pipeline slots function; `handler()` processes a valid synthetic event |
 | `agentic` | definition integrity; schema and policy consistency; `tool.execute()` delegates and returns expected shape |
 
+When `apps/agent/` is touched, validation must also cover:
+
+- `AgenticRegistry` lookup and catalog behavior
+- host resolution from external tool name to canonical execution
+- runtime enforcement for confirmation and execution mode
+- per-execution `AgenticContext` materialization
+
 ## 12. Subagents
 
 If the platform supports subagents, delegation, or parallel work:
@@ -488,6 +537,7 @@ Rules:
 - never forget to create or update `<case>.us.md` when semantics change
 - never invent grammar outside canonical surfaces
 - never use agentic as a shadow implementation
+- never leave the agentic layer partially defined when the task requires agentic operability
 
 ### IF → THEN
 
@@ -498,6 +548,8 @@ Rules:
 | technical bug without semantic change | may fix directly, but still review `test()` |
 | contract change | update `<case>.us.md` and `test()` |
 | composition doubt | prefer atomic first; promote to composed only if needed |
+| agentic surface is required | fully define `discovery`, `context`, `prompt`, `tool`, and `test`, plus any required `policy` / `mcp` / `rag` / `examples` |
+| `apps/agent/` is required | fully define the formal agent host contract, not only the Case-level `agentic` surfaces |
 | platform supports subagents | use them when useful parallelism exists |
 | platform does not support subagents | ignore that capability |
 | automated tooling does not exist | validate manually with this skill checklist |
@@ -509,6 +561,7 @@ Before closing, confirm:
 - APP grammar was preserved
 - `<case>.us.md` was created or updated when required
 - `test()` was created or updated on touched surfaces
+- if agentic was in scope, the full formal Case-level and/or app-level agentic definition was implemented and validated
 - available validations were executed, or a justified reason was given when not
 - final review found no remaining inconsistencies
 

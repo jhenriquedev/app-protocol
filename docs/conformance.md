@@ -49,6 +49,7 @@ Typical examples:
 
 - validating runtime compatibility with `recoveryPolicy()`
 - ensuring `agentic.tool()` resolves to canonical execution
+- ensuring an `apps/agent/` host can honor confirmation, execution mode, and tool-publication semantics
 - refusing to register a stream surface whose declared semantics cannot be honored
 
 Typical mechanisms:
@@ -96,6 +97,9 @@ In that scenario:
 | `recoveryPolicy()` compatibility with runtime | runtime | app bootstrap validation |
 | dead-letter binding resolution | runtime | app bootstrap validation |
 | canonical execution from `agentic` to `api`/`stream` | runtime + review-level | host wiring + review |
+| published tool name uniqueness after MCP fallback | runtime | agent host bootstrap validation |
+| host enforcement of `requireConfirmation` / `executionMode` | runtime | agent host runtime guard |
+| fresh `AgenticContext` per tool execution | runtime | context factory validation |
 
 ## Conformance Checklist
 
@@ -116,6 +120,7 @@ In that scenario:
 - `_repository` is local integration, not hidden orchestration
 - `_composition` is explicit when orchestration exists
 - the app remains the composition root instead of leaking assembly into Cases
+- `agentic` app behavior is not being reimplemented as ad hoc glue outside registry/host responsibilities
 
 ### Runtime Checklist
 
@@ -125,6 +130,10 @@ In that scenario:
 - stream recovery contracts are validated against runtime capability
 - logical dead-letter destinations are bound before registration
 - hosts refuse to register capabilities whose declared semantics cannot be honored
+- `apps/agent/` derives published tools from registered `agentic` surfaces
+- tool names are unique after MCP fallback resolution
+- `requireConfirmation` and `executionMode` are enforced by the host/runtime
+- `AgenticContext` is materialized per execution rather than shared globally
 
 ## Evidence Model
 

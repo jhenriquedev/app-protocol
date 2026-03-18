@@ -6,6 +6,46 @@ All notable changes to this project should be documented in this file.
 
 - No unreleased changes yet.
 
+## v1.0.0
+
+### Added
+
+- `v1.0.0` release snapshot under [`versions/`](./versions)
+- Stable-release alignment across the protocol docs, installable `/app` skill package, and release automation for the first major APP publication
+
+### Changed
+
+- Root, examples, installer package, skill metadata, runtime headers, and host-visible version strings advanced to `1.0.0`
+- Active docs and release instructions now treat `v1.0.0` as the latest stable APP snapshot
+- `ROADMAP.md` now closes the v1 readiness phase and treats APP as having a stable baseline while leaving post-v1 tooling and ecosystem work open
+
+### Fixed
+
+- The `@app-protocol/skill-app` CLI now exposes `version`, `--version`, and `-v`, and the installer docs describe those entrypoints explicitly
+- Removed stale `0.0.11` and `0.0.12` version drift from current manifests, runtime headers, and release-facing documentation
+
+## v0.0.12
+
+### Added
+
+- `v0.0.12` release snapshot under [`versions/`](./versions)
+- RFC [`0002-agent-host-contracts.md`](./rfcs/0002-agent-host-contracts.md) to formalize app-level agentic host contracts
+- Normative `AgenticRegistry` and agent-host runtime responsibilities in [`spec.md`](./spec.md)
+
+### Changed
+
+- Root, example, installer package, skill metadata, and runtime headers advanced to `0.0.12`
+- The canonical generic host name for app-level agentic runtimes is now `agent`; `chatbot` remains only a conversational specialization or legacy example reference
+- Active docs and `/app` skill materials now distinguish Case-level `agentic.case.ts` from app-level agentic runtime responsibilities
+- Canonical architecture and philosophy docs now reflect the agent host in the execution model
+
+### Fixed
+
+- Removed version drift where the active `/app` skill still declared alignment with `v0.0.11` after the working draft had already moved beyond that snapshot
+- Removed documentation drift where the canonical agentic execution diagram omitted the host/runtime responsibilities now required by the spec
+- Removed wording drift that treated `agentic.case.ts` as sufficient for full app-level agentic operability
+- Removed ambiguity in host-app guidance that described `AgenticRegistry` as informal after it became a formal host contract in the spec
+
 ## v0.0.11
 
 ### Added

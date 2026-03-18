@@ -17,6 +17,11 @@ APP can be used in both:
 - new greenfield projects
 - existing projects through incremental adoption
 
+APP can also be agentic at two different layers:
+
+- Case level, through `agentic.case.ts`
+- app level, through an `apps/agent/` host that publishes and governs those capabilities
+
 ## APP in one sentence
 
 APP organizes software around `Cases`, each owning one capability and exposing
@@ -91,6 +96,7 @@ That includes:
 - materializing `ctx.cases`
 - exposing `ctx.packages`
 - binding routes, streams, and tools
+- enforcing app-level agentic policy when the host is `apps/agent/`
 
 ## What APP does not try to standardize
 

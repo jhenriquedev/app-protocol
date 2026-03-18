@@ -22,6 +22,14 @@ Validate the package before installing:
 npx @app-protocol/skill-app validate
 ```
 
+List commands and print the installer version:
+
+```bash
+npx @app-protocol/skill-app --help
+npx @app-protocol/skill-app --version
+npx @app-protocol/skill-app -v
+```
+
 ## Project-local install
 
 Install for every supported host inside the current project:
@@ -95,6 +103,7 @@ You can do the same with a globally installed CLI:
 
 ```bash
 npm install --global @app-protocol/skill-app
+app-skill --version
 app-skill upgrade codex --project .
 ```
 
