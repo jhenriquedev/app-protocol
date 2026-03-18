@@ -1,9 +1,10 @@
 {
   "name": "@app-protocol/skill-app",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Install the canonical /app skill into supported agent hosts.",
   "type": "module",
   "license": "Apache-2.0",
+  "homepage": "https://github.com/jhenriquedev/app-protocol/tree/main/tooling/skill-app",
   "publishConfig": {
     "access": "public"
   },

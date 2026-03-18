@@ -11,8 +11,8 @@ and improving scanability.
 
 ## Revision Metadata
 
-- Version: `0.0.7-prd`
-- Protocol: `app@v0.0.7`
+- Version: `0.0.8-prd`
+- Protocol: `app@v0.0.8`
 - Status: `prd`
 
 ### Suggested Triggers

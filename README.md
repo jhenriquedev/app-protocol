@@ -9,7 +9,7 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v0.0.7`](./versions/v0.0.7.md)
+- Latest released snapshot: [`v0.0.8`](./versions/v0.0.8.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: working protocol with TypeScript reference implementation
 
@@ -38,10 +38,49 @@ Canonical project layers:
 
 Infrastructure contracts in `core/shared/app_infra_contracts.ts` are minimal integration examples, not a complete infrastructure taxonomy. Host-specific concerns such as `auth`, `db`, and `queue` remain free for each language, project, and runtime to model.
 
+## Start Here
+
+If you are new to APP, use this order:
+
+1. [`docs/getting-started.md`](./docs/getting-started.md)
+2. [`docs/protocol-overview.md`](./docs/protocol-overview.md)
+3. [`docs/core-concepts.md`](./docs/core-concepts.md)
+4. [`docs/spec-guide.md`](./docs/spec-guide.md)
+5. [`docs/installing-app-skill.md`](./docs/installing-app-skill.md)
+6. [`docs/using-app-skill.md`](./docs/using-app-skill.md)
+
+Quick project-local install of the `/app` skill:
+
+```bash
+npx @app-protocol/skill-app install all --project .
+```
+
+Quick validation:
+
+```bash
+npx @app-protocol/skill-app validate
+```
+
+Quick example run:
+
+```bash
+npm --prefix examples/typescript ci
+npm --prefix examples/typescript run start
+```
+
 ## Repository Map
 
 - [`spec.md`](./spec.md): current working draft of the specification
 - [`versions/`](./versions): versioned snapshots of released specs
+- [`docs/getting-started.md`](./docs/getting-started.md): fastest path to install `/app` and run the reference implementation
+- [`docs/installing-app-skill.md`](./docs/installing-app-skill.md): installation modes for Codex, Claude, npm, and GitHub Release tarballs
+- [`docs/using-app-skill.md`](./docs/using-app-skill.md): when and how to use the canonical `/app` skill
+- [`docs/protocol-overview.md`](./docs/protocol-overview.md): high-level overview of APP as a protocol
+- [`docs/core-concepts.md`](./docs/core-concepts.md): canonical layers, surfaces, composition, and runtime model
+- [`docs/spec-guide.md`](./docs/spec-guide.md): how the spec, snapshots, and supporting docs fit together
+- [`docs/examples.md`](./docs/examples.md): example map and executable TypeScript reference walkthrough
+- [`docs/faq.md`](./docs/faq.md): frequent questions about APP and `/app`
+- [`docs/glossary.md`](./docs/glossary.md): canonical terminology
 - [`docs/philosophy.md`](./docs/philosophy.md): conceptual framing behind AI-first programming
 - [`docs/architectural-properties.md`](./docs/architectural-properties.md): APP-native architectural properties and how to interpret them
 - [`docs/architecture.md`](./docs/architecture.md): canonical architectural diagrams and explanatory walkthroughs
@@ -118,65 +157,25 @@ The paradigm declarations are formalized in [`spec.md` §2](./spec.md). Expanded
 
 The conceptual layer is now closed enough to be public and stable. The next cycle is operational hardening and validation: stabilize the `/app` skill beyond HML, ship Canonical Capability Adapter tooling, publish an end-to-end agentic proof-of-concept, expand multi-language references, and validate the protocol through real-world adoption.
 
-## Installing `/app`
+## Install and Publish
 
-The installable source of the `/app` skill lives in [`skills/app/`](./skills/app).
-Project-local host mirrors are synchronized into `.codex/skills/app/` and `.claude/skills/app/`.
+For installation details:
 
-Local install from this repo:
+- [`docs/installing-app-skill.md`](./docs/installing-app-skill.md)
+- [`tooling/skill-app/README.md`](./tooling/skill-app/README.md)
 
-```bash
-npm run skill:sync
-npm exec --yes --package ./tooling/skill-app app-skill -- install all --project .
-```
+For release and npm publishing:
 
-Published install pattern:
-
-```bash
-npx @app-protocol/skill-app install all --project .
-```
-
-Global install pattern:
-
-```bash
-npx @app-protocol/skill-app install codex --global
-npx @app-protocol/skill-app install claude --global
-```
-
-Release URL fallback before npm publish:
-
-```bash
-npm exec --yes --package https://github.com/jhenriquedev/app-protocol/releases/download/vX.Y.Z/app-protocol-skill-app-X.Y.Z.tgz app-skill -- install all --project .
-```
-
-## Publishing `/app`
-
-The repository now includes an automated release workflow in
-`.github/workflows/release-skill-app.yml`.
-
-Release pipeline behavior:
-
-1. trigger on `v*` tags or manual dispatch
-2. validate root, examples, and skill package alignment
-3. run typecheck, boundary validation, skill validation, and example scenario/tests
-4. pack and publish `tooling/skill-app/` to npm using Trusted Publishing
-5. create or update the GitHub Release and attach the package tarball
-
-One-time external setup is still required:
-
-- the npm scope in [`tooling/skill-app/package.json`](./tooling/skill-app/package.json) must belong to you or your npm organization
-- npm Trusted Publishing must be configured for this repository/workflow
-
-Setup details live in [`docs/publishing.md`](./docs/publishing.md).
-
-The GitHub Release tarball remains a valid fallback install channel.
+- [`docs/publishing.md`](./docs/publishing.md)
+- [`.github/workflows/release-skill-app.yml`](./.github/workflows/release-skill-app.yml)
 
 ## How To Read This Repo
 
 1. Start with [`README.md`](./README.md).
-2. Read [`spec.md`](./spec.md) for the current draft.
-3. Compare released snapshots in [`versions/`](./versions).
-4. Use [`rfcs/`](./rfcs) for substantive protocol changes.
+2. Read [`docs/getting-started.md`](./docs/getting-started.md) if you want the shortest practical path.
+3. Read [`spec.md`](./spec.md) for the current draft.
+4. Compare released snapshots in [`versions/`](./versions).
+5. Use [`rfcs/`](./rfcs) for substantive protocol changes.
 
 ## Contribution Model
 

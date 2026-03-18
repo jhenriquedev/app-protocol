@@ -4,16 +4,25 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+- No unreleased changes yet.
+
+## v0.0.8
+
 ### Added
 
+- `v0.0.8` release snapshot under [`versions/`](./versions)
+- Complete onboarding and operational documentation set under [`docs/`](./docs), including getting started, installation, usage, protocol overview, core concepts, examples, FAQ, glossary, and spec-reading guides
+- Package-level README for [`@app-protocol/skill-app`](./tooling/skill-app/README.md)
 - Automated GitHub Actions release workflow for the installable `/app` skill under [`.github/workflows/release-skill-app.yml`](./.github/workflows/release-skill-app.yml)
 - Release helpers for changelog extraction and version alignment verification under [`scripts/`](./scripts)
-- [`docs/publishing.md`](./docs/publishing.md) documenting npm Trusted Publishing setup and the release flow
 
 ### Changed
 
+- Root, example, and npm installer package versions advanced to `0.0.8`
+- README, spec, and versions index now align with `v0.0.8`
 - Root package scripts now expose `npm run release:notes` and `npm run release:verify`
 - README and development-flow docs now document the automated publish pipeline and the release tarball fallback
+- `docs/skill_v5.md`, `skills/app/skill.json`, and runtime metadata now align with `0.0.8`
 
 ## v0.0.7
 

@@ -1,11 +1,11 @@
 # Examples
 
-This directory will hold reference implementations and ecosystem-specific examples of APP.
+This directory holds the executable APP reference implementation and additional placeholder example targets for future ecosystems.
 
 Current status:
 
-- structure reserved
-- no reference implementations published yet
+- executable reference published in `examples/typescript/`
+- additional ecosystem folders reserved for future implementations
 
 Planned targets:
 
