@@ -91,6 +91,10 @@ Create case usuario_criar using /app.
 Use /app to review whether this API surface is still aligned with the protocol.
 ```
 
+```text
+Validate APP grammar in this repository using /app.
+```
+
 If you want the operational details, read [`using-app-skill.md`](./using-app-skill.md).
 
 ## Run the TypeScript example

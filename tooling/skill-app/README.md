@@ -2,6 +2,20 @@
 
 Install, update, downgrade, and remove the canonical `/app` skill for APP projects.
 
+`/app` is the canonical skill for applying the APP protocol in real projects.
+APP is the protocol layer of the AI-First Programming Paradigm.
+
+## What this package does
+
+This package installs the official `/app` operational workflow into supported AI coding hosts so they can:
+
+- inspect APP architecture
+- create or update Cases
+- implement `domain`, `api`, `ui`, `stream`, and `agentic` surfaces
+- maintain `<case>.us.md`
+- validate APP grammar
+- review structural drift
+
 ## Supported hosts
 
 The package installs the `app` skill into native skill directories for:
@@ -24,6 +38,20 @@ Project-local targets:
 
 ```bash
 npx @app-protocol/skill-app validate
+```
+
+## Quick start
+
+```bash
+npx @app-protocol/skill-app install all --project .
+```
+
+Then use prompts such as:
+
+```text
+inspect this project with /app
+create case usuario_criar
+validate app grammar in this repository
 ```
 
 ## Install into the current project
@@ -63,8 +91,8 @@ npx @app-protocol/skill-app update copilot --global
 
 ```bash
 npx @app-protocol/skill-app upgrade all --project .
-npx @app-protocol/skill-app downgrade all --project . --version 0.0.8
-npx @app-protocol/skill-app install all --project . --version 0.0.8
+npx @app-protocol/skill-app downgrade all --project . --version 0.0.9
+npx @app-protocol/skill-app install all --project . --version 0.0.9
 ```
 
 `upgrade` installs npm `latest` by default. `downgrade` requires `--version`. `install` and `update` also accept `--version` when you want an explicit published version.

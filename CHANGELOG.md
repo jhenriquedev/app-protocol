@@ -6,6 +6,18 @@ All notable changes to this project should be documented in this file.
 
 - No unreleased changes yet.
 
+## v0.0.10
+
+### Added
+
+- `v0.0.10` release snapshot under [`versions/`](./versions)
+- Stronger conversion-oriented npm README for [`@app-protocol/skill-app`](./tooling/skill-app/README.md), including explicit positioning, quick start, and prompt examples
+
+### Changed
+
+- Root, example, installer package, skill metadata, and runtime headers advanced to `0.0.10`
+- `/app` descriptions now emphasize inspecting architecture, creating or updating Cases, implementing surfaces, validating APP grammar, and reviewing drift
+- Getting started, skill usage, and package docs now explain APP as the protocol layer of the AI-First Programming Paradigm and improve first-use onboarding
 ## v0.0.9
 
 ### Added

@@ -1,9 +1,9 @@
 {
   "name": "app",
-  "version": "0.0.9",
-  "revision": "0.0.9-prd",
+  "version": "0.0.10",
+  "revision": "0.0.10-prd",
   "entry": "SKILL.md",
-  "description": "Use when working in APP projects to inspect structure, create and implement Cases, validate APP grammar, maintain <case>.us.md, and review architectural drift with the canonical /app workflow.",
+  "description": "Use when inspecting APP architecture, creating or updating Cases, implementing surfaces, maintaining <case>.us.md, validating APP grammar, and reviewing structural drift with the canonical /app workflow.",
   "hosts": {
     "codex": {
       "projectPath": ".codex/skills/app",

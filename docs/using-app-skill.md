@@ -28,6 +28,9 @@ Use `/app` when you want the agent to:
 
 If you do not know APP yet, `/app` should still be usable as a guided workflow rather than a protocol you must already know by heart.
 
+APP is the protocol layer of the AI-First Programming Paradigm.
+`/app` is the canonical operational skill for applying that protocol in real projects.
+
 ## How to trigger it
 
 Explicit trigger:
@@ -44,6 +47,10 @@ Create a new Case for user registration following APP.
 
 ```text
 Create case usuario_criar using /app.
+```
+
+```text
+Validate APP grammar in this repository using /app.
 ```
 
 ```text

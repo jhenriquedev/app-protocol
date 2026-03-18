@@ -85,8 +85,8 @@ Upgrade and downgrade are version-pinned reinstalls. The effective target versio
 
 ```bash
 npx @app-protocol/skill-app upgrade all --project .
-npx @app-protocol/skill-app downgrade all --project . --version 0.0.8
-npx @app-protocol/skill-app install all --project . --version 0.0.8
+npx @app-protocol/skill-app downgrade all --project . --version 0.0.9
+npx @app-protocol/skill-app install all --project . --version 0.0.9
 ```
 
 You can do the same with a globally installed CLI:

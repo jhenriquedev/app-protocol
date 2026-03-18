@@ -1,6 +1,6 @@
 ---
 name: app
-description: use when working in app projects to inspect structure, create and implement cases, validate app grammar, maintain <case>.us.md, and review architectural drift using the canonical /app workflow
+description: use when inspecting app architecture, creating or updating cases, implementing domain/api/ui/stream/agentic surfaces, maintaining <case>.us.md, validating app grammar, and reviewing structural drift with the canonical /app workflow
 ---
 
 # /app — Canonical Operational Skill for APP
@@ -11,8 +11,8 @@ and improving scanability.
 
 ## Revision Metadata
 
-- Version: `0.0.9-prd`
-- Protocol: `app@v0.0.9`
+- Version: `0.0.10-prd`
+- Protocol: `app@v0.0.10`
 - Status: `prd`
 
 ## What This Skill Does
@@ -25,6 +25,9 @@ and improving scanability.
 - create or update `<case>.us.md` when semantics, contracts, or composition change
 
 If you do not know APP yet, this skill should guide you through the canonical workflow instead of assuming prior protocol knowledge.
+
+APP is the protocol layer of the AI-First Programming Paradigm.
+`/app` is the canonical skill for applying that protocol in real projects.
 
 ### Example Prompts
 
