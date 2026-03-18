@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.4
+ * APP v0.0.5
  * core/agentic.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface agentic no APP.
@@ -540,15 +540,15 @@ export abstract class BaseAgenticCase<TInput = unknown, TOutput = unknown> {
   /**
    * Testa a surface agentic do Case.
    *
-   * Conformance Rule 6:
-   * "Every surface that implements a base contract provides a test() method."
+   * Recommended APP practice:
+   * surfaces ideally expose test() for self-contained contract validation.
    *
    * O teste deve verificar, no mínimo:
    * - definition() retorna contrato válido (validateDefinition)
    * - discovery, context, prompt e tool são consistentes entre si
    * - tool.execute() produz resultado esperado para inputs conhecidos
    */
-  public abstract test(): Promise<void>;
+  public async test(): Promise<void> {}
 
   /* ========================================================================
    * Seções opcionais

@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.4
+ * APP v0.0.5
  * core/domain.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface de domínio no APP.
@@ -216,13 +216,13 @@ export abstract class BaseDomainCase<TInput = unknown, TOutput = unknown> {
   /**
    * Teste interno da surface de domínio.
    *
-   * Obrigatório no APP — toda surface que implementa um contrato base
-   * deve fornecer um método test().
+   * Boa prática recomendada no APP — surfaces idealmente expõem um
+   * método test() para validação autocontida do contrato.
    *
    * Assinatura canônica: test(): Promise<void>
    * O teste valida schemas, invariantes e exemplos internamente.
    */
-  public abstract test(): Promise<void>;
+  public async test(): Promise<void> {}
 
   /* ========================================================================
    * Métodos utilitários públicos

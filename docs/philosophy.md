@@ -2,20 +2,45 @@
 
 ## AI-First Programming
 
-The **AI-First Programming Protocol (APP)** is based on a simple observation:
-modern software is no longer written and maintained only by humans.
-AI systems are increasingly participating in development, maintenance, and operation of software systems.
+**AI-First Programming** is a programming paradigm based on a simple observation: modern software is no longer written and maintained only by humans. AI systems are increasingly participating in development, maintenance, and operation of software systems.
 
-Traditional architectures were designed for human cognition.
-APP proposes a structure that works for **both humans and AI agents**.
+Traditional architectures were designed for human cognition. AI-First Programming proposes that software must be structured for **both humans and AI agents** from the ground up — not as an afterthought.
 
-APP is not only a code organization pattern.
-It is a **programming philosophy** for building systems that are:
+**APP** (AI-First Programming Protocol) is the protocol that operationalizes this paradigm. The relationship between these layers is:
 
-- understandable by humans
-- navigable by AI
-- operable by agents
-- evolvable over time
+```text
+AI-First Programming          ← paradigm (conceptual layer)
+  └─ APP                      ← protocol (normative layer)
+       └─ Implementations     ← concrete projects (execution layer)
+```
+
+APP is the first normative expression of the AI-First Programming paradigm, not the only one possible. Other protocols may emerge within the same paradigm.
+
+## Why "AI-First" and Not "AI-Driven" or "AI-Oriented"
+
+The naming choice is deliberate:
+
+"First" is an adverb of **priority**. It says: when designing software, AI is the first architectural consideration. The human remains present, but the structure is designed to be legible by both. It is prescriptive about design.
+
+"Driven" is a participle of **agency**. It says: AI conducts the process. This implies AI is the primary engine — which is not APP's thesis. APP does not say "let AI drive everything"; it says "structure software so that humans and agents can understand, generate, and operate it together." Additionally, `AI-Driven` is heavily saturated in the market (AWS AI-DLC, Softtek, IntechOpen, ACM) with incompatible definitions.
+
+"Oriented" designates the **structural atom** of a system in computational tradition (object in OOP, service in SOA, event in EDA). In APP, the structural atom is the Case, not AI. AI is a design constraint that shapes the structure, not the structure itself.
+
+## Paradigm Declarations
+
+The AI-First Programming paradigm is defined by five declarations:
+
+**Ontology** — A system is made of capabilities, each organized as a Case with predictable surfaces.
+
+**Composition** — Cases compose through explicit boundaries, never through implicit coupling.
+
+**Evolution** — A system grows by adding and separating Cases, not by scattering logic across generic layers.
+
+**Cognition** — The developer's primary question is "what capability am I creating?", not "what layer am I in?"
+
+**Operability** — Humans and agents are peers in understanding and operating the system. AI is a design priority, not a substitute for judgment.
+
+These declarations are formalized in [`spec.md` §2](../spec.md).
 
 ## Core Idea
 

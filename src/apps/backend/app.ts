@@ -13,7 +13,7 @@
  * Consome tudo via ctx e contratos de core/.
  * ========================================================================== */
 
-import { ApiContext } from "../../core/api.case";
+import { ApiContext, ApiResponse } from "../../core/api.case";
 import {
   AppStreamRecoveryPolicy,
   computeStreamRetryDelayMs,
@@ -26,6 +26,7 @@ import {
 } from "../../core/stream.case";
 import { AppLogger } from "../../core/shared/app_base_context";
 import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
+import { UserRegisterOutput } from "../../cases/users/user_register/user_register.domain.case";
 import {
   createRegistry,
   type BackendConfig,
@@ -59,11 +60,24 @@ function sleep(ms: number): Promise<void> {
  * Bootstrap
  * --------------------------------------------------------------------------
  * 1. Cria o registry (configura providers, registra cases e packages)
- * 2. Builda o mapa de Cases (boot-time, uma vez)
+ * 2. Cria wrappers de composição derivados do registry para cada execução
  * 3. Cria contextos por request usando os três slots do registry
  * ------------------------------------------------------------------------ */
 
 type CasesMap = Record<string, Record<string, Record<string, unknown>>>;
+
+interface ParentExecutionContext {
+  correlationId: string;
+  tenantId?: string;
+  userId?: string;
+  config?: ApiContext["config"];
+  auth?: ApiContext["auth"];
+  db?: ApiContext["db"];
+  storage?: ApiContext["storage"];
+  eventBus?: StreamContext["eventBus"];
+  queue?: StreamContext["queue"];
+  extra?: ApiContext["extra"];
+}
 
 type StreamSurfaceInstance = {
   handler(event: StreamEvent): Promise<void>;
@@ -71,59 +85,87 @@ type StreamSurfaceInstance = {
   recoveryPolicy?(): AppStreamRecoveryPolicy;
 };
 
+type RouteBinding = {
+  method: string;
+  path: string;
+  handler?: (request: unknown) => Promise<unknown> | unknown;
+};
+
+type SubscriptionBinding = {
+  topic: string;
+  handler?: (event: StreamEvent) => Promise<void> | void;
+};
+
+function isRouteBinding(value: unknown): value is RouteBinding {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "method" in value &&
+    "path" in value
+  );
+}
+
+function isSubscriptionBinding(value: unknown): value is SubscriptionBinding {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "topic" in value
+  );
+}
+
+function isApiResponse(value: unknown): value is ApiResponse<unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "success" in value
+  );
+}
+
 export function bootstrap(config: BackendConfig) {
   const registry = createRegistry(config);
   const streamRuntime = registry._providers.streamRuntime;
 
-  /* ........................................................................
-   * Build cases map (boot-time)
-   * ......................................................................
-   * Fase 1: cria container vazio e instancia cada Case com contexto de boot.
-   * Fase 2: quando o loop termina, o container está completo.
-   *         _composition via ctx.cases encontra todos os Cases disponíveis.
-   * ...................................................................... */
+  function createCasesMap(parent: ParentExecutionContext): CasesMap {
+    const cases: CasesMap = {};
 
-  const casesMap: CasesMap = {};
+    for (const [domain, domainCases] of Object.entries(registry._cases)) {
+      cases[domain] = {};
 
-  const bootCtx: ApiContext = {
-    correlationId: "boot",
-    logger,
-    cases: casesMap,
-    // _providers → propriedades diretas do contexto
-    cache: registry._providers.cache,
-    httpClient: registry._providers.httpClient,
-    // _packages → ctx.packages
-    packages: registry._packages,
-  };
+      for (const [caseName, _surfaces] of Object.entries(domainCases)) {
+        const surfaces = _surfaces as AppCaseSurfaces;
+        const entry: Record<string, unknown> = {};
 
-  for (const [domain, domainCases] of Object.entries(registry._cases)) {
-    casesMap[domain] = {};
-    for (const [caseName, _surfaces] of Object.entries(domainCases)) {
-      const surfaces = _surfaces as AppCaseSurfaces;
-      const entry: Record<string, unknown> = {};
+        if (surfaces.api) {
+          const ApiClass = surfaces.api;
+          entry.api = {
+            handler: async (input: unknown) => {
+              const ctx = createApiContext(parent);
+              const instance = new ApiClass(ctx) as {
+                handler(payload: unknown): Promise<unknown>;
+              };
+              return instance.handler(input);
+            },
+          };
+        }
 
-      if (surfaces.api) {
-        entry.api = new surfaces.api(bootCtx);
+        if (surfaces.stream) {
+          const StreamClass = surfaces.stream;
+          entry.stream = {
+            handler: async (event: unknown) => {
+              const ctx = createStreamContext(parent);
+              const instance = new StreamClass(ctx) as {
+                handler(payload: unknown): Promise<void>;
+              };
+              return instance.handler(event as StreamEvent);
+            },
+          };
+        }
+
+        cases[domain][caseName] = entry;
       }
-
-      if (surfaces.stream) {
-        const streamCtx: StreamContext = {
-          correlationId: "boot",
-          logger,
-          cases: casesMap,
-          cache: registry._providers.cache,
-          packages: registry._packages,
-        };
-        const instance = new surfaces.stream(streamCtx) as StreamSurfaceInstance;
-        const source = `${domain}/${caseName}/stream`;
-        const policy = instance.recoveryPolicy?.();
-        validateStreamRecoveryPolicy(source, policy);
-        validateStreamRuntimeCompatibility(source, policy, streamRuntime);
-        entry.stream = instance;
-      }
-
-      casesMap[domain][caseName] = entry;
     }
+
+    return cases;
   }
 
   /* ........................................................................
@@ -131,48 +173,64 @@ export function bootstrap(config: BackendConfig) {
    * ......................................................................
    * Cada request recebe contexto fresco com:
    * - correlationId único
-   * - cases: mapa pré-construído no boot (compartilhado)
+   * - cases: wrappers request-scoped derivados do registry
    * - providers: instâncias do registry (cache, httpClient)
    * - packages: bibliotecas puras do registry
    * ...................................................................... */
 
-  function createApiContext(parent?: Partial<ApiContext>): ApiContext {
-    return {
+  function createApiContext(parent?: Partial<ParentExecutionContext>): ApiContext {
+    const ctx: ApiContext = {
       correlationId: parent?.correlationId ?? generateId(),
       executionId: generateId(),
       tenantId: parent?.tenantId,
       userId: parent?.userId,
       config: parent?.config,
       logger,
+      auth: parent?.auth,
+      db: parent?.db,
+      storage: parent?.storage,
+      extra: parent?.extra,
       // _cases → ctx.cases
-      cases: casesMap,
+      cases: {},
       // _providers → propriedades diretas do ctx (contratos de core/)
       cache: registry._providers.cache,
       httpClient: registry._providers.httpClient,
       // _packages → ctx.packages
       packages: registry._packages,
     };
+
+    ctx.cases = createCasesMap(ctx);
+    return ctx;
   }
 
-  function createStreamContext(parent?: Partial<StreamContext>): StreamContext {
-    return {
+  function createStreamContext(
+    parent?: Partial<ParentExecutionContext>
+  ): StreamContext {
+    const ctx: StreamContext = {
       correlationId: parent?.correlationId ?? generateId(),
       executionId: generateId(),
       tenantId: parent?.tenantId,
       userId: parent?.userId,
       config: parent?.config,
       logger,
-      cases: casesMap,
+      eventBus: parent?.eventBus,
+      queue: parent?.queue,
+      db: parent?.db,
+      extra: parent?.extra,
+      cases: {},
       cache: registry._providers.cache,
       packages: registry._packages,
     };
+
+    ctx.cases = createCasesMap(ctx);
+    return ctx;
   }
 
   async function dispatchStream<TEvent>(
     domain: string,
     caseName: string,
     event: StreamEvent<TEvent>,
-    parent?: Partial<StreamContext>
+    parent?: Partial<ParentExecutionContext>
   ): Promise<void> {
     const registeredCases = registry._cases as Record<
       string,
@@ -243,6 +301,61 @@ export function bootstrap(config: BackendConfig) {
     }
   }
 
+  function buildPostSuccessEvent(
+    domain: string,
+    caseName: string,
+    result: ApiResponse<unknown>
+  ): StreamEvent | undefined {
+    if (!result.success || !result.data) {
+      return undefined;
+    }
+
+    if (domain === "users" && caseName === "user_register") {
+      const user = result.data as UserRegisterOutput;
+
+      return {
+        type: "user_registered",
+        payload: user,
+        idempotencyKey: `users.user_register:${user.id}`,
+        metadata: {
+          source: "backend",
+          domain,
+          caseName,
+        },
+      };
+    }
+
+    return undefined;
+  }
+
+  async function dispatchPostSuccessEvents(
+    domain: string,
+    caseName: string,
+    result: ApiResponse<unknown>,
+    ctx: ApiContext
+  ): Promise<void> {
+    const event = buildPostSuccessEvent(domain, caseName, result);
+    if (!event) return;
+
+    logger.info("Dispatching post-success stream event", {
+      domain,
+      caseName,
+      eventType: event.type,
+      correlationId: ctx.correlationId,
+    });
+
+    await dispatchStream(domain, caseName, event, {
+      correlationId: ctx.correlationId,
+      tenantId: ctx.tenantId,
+      userId: ctx.userId,
+      config: ctx.config,
+      auth: ctx.auth,
+      db: ctx.db,
+      storage: ctx.storage,
+      extra: ctx.extra,
+    });
+  }
+
   /* ........................................................................
    * Monolith startup
    * ...................................................................... */
@@ -256,17 +369,52 @@ export function bootstrap(config: BackendConfig) {
         const surfaces = _surfaces as AppCaseSurfaces;
 
         if (surfaces.api) {
-          const ctx = createApiContext();
-          const instance = new surfaces.api(ctx) as { router?(): unknown };
+          const ApiClass = surfaces.api;
+          const instance = new ApiClass(
+            createApiContext({ correlationId: "boot" })
+          ) as { router?(): unknown };
           if (instance.router) {
-            routes.push(instance.router());
-            logger.info(`Mounted API: ${domain}/${caseName}`);
+            const route = instance.router();
+            if (isRouteBinding(route)) {
+              routes.push({
+                ...route,
+                handler: async (request: unknown) => {
+                  const ctx = createApiContext();
+                  const runtimeInstance = new ApiClass(ctx) as {
+                    router?(): unknown;
+                    handler?(input: unknown): Promise<unknown>;
+                  };
+                  const runtimeRoute = runtimeInstance.router?.();
+                  let result: unknown;
+                  if (
+                    isRouteBinding(runtimeRoute) &&
+                    typeof runtimeRoute.handler === "function"
+                  ) {
+                    result = await runtimeRoute.handler(request);
+                  } else if (typeof runtimeInstance.handler === "function") {
+                    result = await runtimeInstance.handler(request);
+                  } else {
+                    throw new Error(
+                      `API route binding for ${domain}/${caseName} did not expose a handler`
+                    );
+                  }
+
+                  if (isApiResponse(result)) {
+                    await dispatchPostSuccessEvents(domain, caseName, result, ctx);
+                  }
+
+                  return result;
+                },
+              });
+              logger.info(`Mounted API: ${domain}/${caseName}`);
+            }
           }
         }
 
         if (surfaces.stream) {
-          const ctx = createStreamContext();
-          const instance = new surfaces.stream(ctx) as StreamSurfaceInstance;
+          const instance = new surfaces.stream(
+            createStreamContext({ correlationId: "boot" })
+          ) as StreamSurfaceInstance;
 
           // Protocol-level validation happens here.
           // Runtime-specific compatibility (DLQ bindings, jitter support,
@@ -282,8 +430,16 @@ export function bootstrap(config: BackendConfig) {
           );
 
           if (instance.subscribe) {
-            subscriptions.push(instance.subscribe());
-            logger.info(`Mounted Stream: ${domain}/${caseName}`);
+            const subscription = instance.subscribe();
+            if (isSubscriptionBinding(subscription)) {
+              subscriptions.push({
+                ...subscription,
+                handler: async (event: StreamEvent) => {
+                  await dispatchStream(domain, caseName, event);
+                },
+              });
+              logger.info(`Mounted Stream: ${domain}/${caseName}`);
+            }
           }
         }
       }
@@ -297,7 +453,6 @@ export function bootstrap(config: BackendConfig) {
 
   return {
     registry,
-    casesMap,
     createApiContext,
     createStreamContext,
     dispatchStream,

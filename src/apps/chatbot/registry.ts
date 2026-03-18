@@ -11,6 +11,7 @@ import { AppCaseSurfaces, InferCasesMap } from "../../core/shared/app_host_contr
 import { UserValidateApi } from "../../cases/users/user_validate/user_validate.api.case";
 import { UserValidateAgentic } from "../../cases/users/user_validate/user_validate.agentic.case";
 import { UserRegisterApi } from "../../cases/users/user_register/user_register.api.case";
+import { UserRegisterStream } from "../../cases/users/user_register/user_register.stream.case";
 import { UserRegisterAgentic } from "../../cases/users/user_register/user_register.agentic.case";
 
 /* --------------------------------------------------------------------------
@@ -21,7 +22,11 @@ export const registry = {
   _cases: {
     users: {
       user_validate: { api: UserValidateApi, agentic: UserValidateAgentic },
-      user_register: { api: UserRegisterApi, agentic: UserRegisterAgentic },
+      user_register: {
+        api: UserRegisterApi,
+        stream: UserRegisterStream,
+        agentic: UserRegisterAgentic,
+      },
     },
   } satisfies Record<string, Record<string, AppCaseSurfaces>>,
 

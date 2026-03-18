@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.4
+ * APP v0.0.5
  * core/api.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface de API no APP.
@@ -183,14 +183,14 @@ export abstract class BaseApiCase<TInput = unknown, TOutput = unknown> {
   /**
    * Teste interno da capacidade.
    *
-   * Obrigatório no APP — toda surface que implementa um contrato base
-   * deve fornecer um método test().
+   * Boa prática recomendada no APP — surfaces idealmente expõem um
+   * método test() para validação autocontida do contrato.
    *
    * Assinatura canônica: test(): Promise<void>
    * O teste invoca handler() internamente e faz assertions.
    * Não recebe input nem retorna resultado — é validação interna.
    */
-  public abstract test(): Promise<void>;
+  public async test(): Promise<void> {}
 
   /* =======================================================================
    * Hooks protegidos (opcionais)

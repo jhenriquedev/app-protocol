@@ -93,6 +93,20 @@ export class UserRegisterApi extends BaseApiCase<
     try { await this._validate!({ email: "", name: "", password: "" }); } catch { threw = true; }
     if (!threw) throw new Error("test: _validate should reject empty fields");
 
+    let shortPasswordRejected = false;
+    try {
+      await this._validate!({
+        email: "test@example.com",
+        name: "Test User",
+        password: "123",
+      });
+    } catch {
+      shortPasswordRejected = true;
+    }
+    if (!shortPasswordRejected) {
+      throw new Error("test: _validate should reject short passwords");
+    }
+
     await this._authorize!();
 
     // Phase 3 — Integrated execution
@@ -115,6 +129,9 @@ export class UserRegisterApi extends BaseApiCase<
     if (!input.email) errors.push("email is required");
     if (!input.name) errors.push("name is required");
     if (!input.password) errors.push("password is required");
+    if (input.password && input.password.length < 8) {
+      errors.push("password must have at least 8 characters");
+    }
     if (errors.length > 0) {
       throw new AppCaseError("VALIDATION_FAILED", errors.join("; "), { errors });
     }

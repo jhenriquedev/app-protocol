@@ -9,7 +9,7 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v0.0.4`](./versions/v0.0.4.md)
+- Latest released snapshot: [`v0.0.5`](./versions/v0.0.5.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: working protocol with TypeScript reference implementation
 
@@ -36,6 +36,8 @@ Canonical project layers:
 - `cases/` — business capabilities
 - `apps/` — composition roots and runtimes
 
+Infrastructure contracts in `core/shared/app_infra_contracts.ts` are minimal integration examples, not a complete infrastructure taxonomy. Host-specific concerns such as `auth`, `db`, and `queue` remain free for each language, project, and runtime to model.
+
 ## Repository Map
 
 - [`spec.md`](./spec.md): current working draft of the specification
@@ -46,6 +48,7 @@ Canonical project layers:
 - [`docs/agentic.md`](./docs/agentic.md): deeper notes on the agentic surface
 - [`docs/conformance.md`](./docs/conformance.md): conformance levels and validation criteria
 - [`docs/development-flow.md`](./docs/development-flow.md): how the spec evolves
+- [`docs/skill_v3.md`](./docs/skill_v3.md): current HML of the canonical `/app` operational skill
 - [`scripts/validate-boundaries.mjs`](./scripts/validate-boundaries.mjs): initial static boundary validator for `cases/`, `packages/`, and `registry.ts`
 - [`rfcs/`](./rfcs): proposal process for substantive changes
 - [`examples/`](./examples): executable TypeScript reference implementation and future ecosystem examples
@@ -92,20 +95,25 @@ It defines its own native architectural properties around:
 
 The normative version of these properties lives in [`spec.md`](./spec.md). Explanatory mappings and visual diagrams live in [`docs/architectural-properties.md`](./docs/architectural-properties.md) and [`docs/architecture.md`](./docs/architecture.md).
 
-## Naming Decision
+## Paradigm and Protocol
 
-`Protocol` is the right name for APP today.
+APP operates within a clear conceptual hierarchy:
 
-Reason:
+```text
+AI-First Programming          ← paradigm
+  └─ APP                      ← protocol
+       └─ Implementations     ← concrete projects
+```
 
-- the spec is normative, not only philosophical
-- it defines structure, contracts, allowed dependencies, and execution rules
-- `Paradigm` is broader and better used for the high-level worldview behind APP
+**AI-First Programming** is the paradigm — the conceptual worldview that software must be structured for both humans and AI agents from the ground up. It is defined by five declarations: Ontology, Composition, Evolution, Cognition, and Operability.
 
-Recommended positioning:
+**APP** is the protocol — the normative layer that operationalizes the paradigm with concrete structure, contracts, surfaces, and execution rules.
 
-- `AI-First Programming` = paradigm
-- `APP` = protocol
+APP is the first normative expression of the paradigm, not the only one possible.
+
+The paradigm declarations are formalized in [`spec.md` §2](./spec.md). Expanded philosophical framing lives in [`docs/philosophy.md`](./docs/philosophy.md).
+
+The conceptual layer is now closed enough to be public and stable. The next cycle is operational hardening and validation: stabilize the `/app` skill beyond HML, ship Canonical Capability Adapter tooling, publish an end-to-end agentic proof-of-concept, expand multi-language references, and validate the protocol through real-world adoption.
 
 ## How To Read This Repo
 
@@ -132,10 +140,10 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`GOVERNANCE.md`](./GOVERNANCE.md
 
 The next major steps for APP are:
 
-1. formalize the `agentic.case.ts` schema
-2. define a machine-validatable conformance model
-3. ship at least two reference implementations
-4. expand tooling for linting and scaffolding Cases
+1. harden skill `/app` from HML into stable operational tooling
+2. implement Canonical Capability Adapter (APP project → external tool runtime, such as an MCP server)
+3. end-to-end agentic proof-of-concept with real agents
+4. multi-language reference implementations (Python, Go, .NET)
 
 See [`ROADMAP.md`](./ROADMAP.md).
 

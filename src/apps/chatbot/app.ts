@@ -5,7 +5,7 @@
  *
  * This file demonstrates how an agentic host:
  * 1. Imports its registry (only Agentic surfaces)
- * 2. Builds a shared cases map at boot (API surfaces for canonical execution)
+ * 2. Builds request-scoped cases maps for canonical API execution
  * 3. Creates an AgenticContext per request with cases + MCP info
  * 4. Exposes tools for agent consumption (MCP, direct invocation, etc.)
  *
@@ -23,10 +23,12 @@
  * ========================================================================== */
 
 import { AgenticContext, BaseAgenticCase } from "../../core/agentic.case";
-import { ApiContext } from "../../core/api.case";
+import { ApiContext, ApiResponse } from "../../core/api.case";
+import { StreamContext, StreamEvent } from "../../core/stream.case";
 import { AppLogger } from "../../core/shared/app_base_context";
 import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
 import { AppError, AppResult } from "../../core/shared/app_structural_contracts";
+import { UserRegisterOutput } from "../../cases/users/user_register/user_register.domain.case";
 import { registry } from "./registry";
 
 /* --------------------------------------------------------------------------
@@ -49,20 +51,30 @@ function generateId(): string {
 }
 
 /* --------------------------------------------------------------------------
- * Boot — build cases map with API surfaces for canonical execution
+ * Runtime case map for canonical execution
  * --------------------------------------------------------------------------
  * Agentic tools resolve to API handler() via ctx.cases.
- * The chatbot host must instantiate the API surfaces and expose them
- * in the cases map so that tool.execute() works.
- *
- * This is the same two-phase pattern as backend/app.ts:
- * Phase 1: create empty container
- * Phase 2: populate with API instances that share the same container
+ * The chatbot host exposes wrappers request-scoped que instanciam
+ * a surface canônica com o contexto da execução atual.
  * ------------------------------------------------------------------------ */
 
 type CasesMap = Record<string, Record<string, Record<string, unknown>>>;
 
-function buildCasesMap(): CasesMap {
+interface ParentExecutionContext {
+  correlationId: string;
+  tenantId?: string;
+  userId?: string;
+  config?: ApiContext["config"];
+  auth?: ApiContext["auth"];
+  db?: ApiContext["db"];
+  storage?: ApiContext["storage"];
+  eventBus?: StreamContext["eventBus"];
+  queue?: StreamContext["queue"];
+  extra?: AgenticContext["extra"];
+  mcp?: AgenticContext["mcp"];
+}
+
+function createCasesMap(parent: ParentExecutionContext): CasesMap {
   const cases: CasesMap = {};
 
   for (const [domain, domainCases] of Object.entries(registry._cases)) {
@@ -73,12 +85,31 @@ function buildCasesMap(): CasesMap {
       const entry: Record<string, unknown> = {};
 
       if (typedSurfaces.api) {
-        const bootCtx: ApiContext = {
-          correlationId: "boot",
-          logger,
-          cases,
+        const ApiClass = typedSurfaces.api;
+        entry.api = {
+          handler: async (input: unknown) => {
+            const ctx = createApiContext(parent);
+            const instance = new ApiClass(ctx) as {
+              handler(payload: unknown): Promise<ApiResponse<unknown>>;
+            };
+            const result = await instance.handler(input);
+            await dispatchPostSuccessEvents(domain, caseName, result, ctx);
+            return result;
+          },
         };
-        entry.api = new typedSurfaces.api(bootCtx);
+      }
+
+      if (typedSurfaces.stream) {
+        const StreamClass = typedSurfaces.stream;
+        entry.stream = {
+          handler: async (event: unknown) => {
+            const ctx = createStreamContext(parent);
+            const instance = new StreamClass(ctx) as {
+              handler(payload: unknown): Promise<void>;
+            };
+            return instance.handler(event);
+          },
+        };
       }
 
       cases[domain][caseName] = entry;
@@ -88,24 +119,143 @@ function buildCasesMap(): CasesMap {
   return cases;
 }
 
-const casesMap = buildCasesMap();
-
 /* --------------------------------------------------------------------------
  * Context factories
  * ------------------------------------------------------------------------ */
 
-function createAgenticContext(): AgenticContext {
-  return {
-    correlationId: generateId(),
+function createApiContext(parent?: Partial<ParentExecutionContext>): ApiContext {
+  const ctx: ApiContext = {
+    correlationId: parent?.correlationId ?? generateId(),
+    executionId: generateId(),
+    tenantId: parent?.tenantId,
+    userId: parent?.userId,
+    config: parent?.config,
     logger,
-    cases: casesMap,
-    mcp: {
+    auth: parent?.auth,
+    db: parent?.db,
+    storage: parent?.storage,
+    extra: parent?.extra,
+    cases: {},
+  };
+
+  ctx.cases = createCasesMap(ctx);
+  return ctx;
+}
+
+function createStreamContext(
+  parent?: Partial<ParentExecutionContext>
+): StreamContext {
+  const ctx: StreamContext = {
+    correlationId: parent?.correlationId ?? generateId(),
+    executionId: generateId(),
+    tenantId: parent?.tenantId,
+    userId: parent?.userId,
+    config: parent?.config,
+    logger,
+    eventBus: parent?.eventBus,
+    queue: parent?.queue,
+    db: parent?.db,
+    extra: parent?.extra,
+    cases: {},
+  };
+
+  ctx.cases = createCasesMap(ctx);
+  return ctx;
+}
+
+function createAgenticContext(
+  parent?: Partial<ParentExecutionContext>
+): AgenticContext {
+  const ctx: AgenticContext = {
+    correlationId: generateId(),
+    executionId: generateId(),
+    tenantId: parent?.tenantId,
+    userId: parent?.userId,
+    config: parent?.config,
+    logger,
+    extra: parent?.extra,
+    mcp: parent?.mcp ?? {
       // MCP server info — host-specific, not protocol-mandated.
       // In practice: server name, version, transport config.
       serverName: "chatbot",
-      version: "0.0.4",
+      version: "0.0.5",
     },
   };
+
+  if (parent?.correlationId) {
+    ctx.correlationId = parent.correlationId;
+  }
+
+  ctx.cases = createCasesMap(ctx);
+  return ctx;
+}
+
+function buildPostSuccessEvent(
+  domain: string,
+  caseName: string,
+  result: ApiResponse<unknown>
+): StreamEvent | undefined {
+  if (!result.success || !result.data) {
+    return undefined;
+  }
+
+  if (domain === "users" && caseName === "user_register") {
+    const user = result.data as UserRegisterOutput;
+
+    return {
+      type: "user_registered",
+      payload: user,
+      idempotencyKey: `users.user_register:${user.id}`,
+      metadata: {
+        source: "agentic",
+        domain,
+        caseName,
+      },
+    };
+  }
+
+  return undefined;
+}
+
+async function dispatchPostSuccessEvents(
+  domain: string,
+  caseName: string,
+  result: ApiResponse<unknown>,
+  ctx: ApiContext
+): Promise<void> {
+  const event = buildPostSuccessEvent(domain, caseName, result);
+  if (!event) return;
+
+  const registeredCases = registry._cases as Record<
+    string,
+    Record<string, AppCaseSurfaces>
+  >;
+  const streamClass = registeredCases[domain]?.[caseName]?.stream;
+  if (!streamClass) {
+    throw new Error(`No stream surface registered for ${domain}/${caseName}`);
+  }
+
+  logger.info("Dispatching post-success stream event", {
+    domain,
+    caseName,
+    eventType: event.type,
+    correlationId: ctx.correlationId,
+  });
+
+  const streamCtx = createStreamContext({
+    correlationId: ctx.correlationId,
+    tenantId: ctx.tenantId,
+    userId: ctx.userId,
+    config: ctx.config,
+    db: ctx.db,
+    extra: ctx.extra,
+  });
+
+  const instance = new streamClass(streamCtx) as {
+    handler(payload: StreamEvent): Promise<void>;
+  };
+
+  await instance.handler(event);
 }
 
 /* --------------------------------------------------------------------------
@@ -137,9 +287,10 @@ function discoverTools(): Map<string, DiscoveredTool> {
     for (const [caseName, _surfaces] of Object.entries(domainCases)) {
       const surfaces = _surfaces as AppCaseSurfaces;
 
-      if (surfaces.agentic) {
-        const ctx = createAgenticContext();
-        const instance = new surfaces.agentic(ctx) as BaseAgenticCase;
+      const AgenticClass = surfaces.agentic;
+      if (AgenticClass) {
+        const discoveryCtx = createAgenticContext();
+        const instance = new AgenticClass(discoveryCtx) as BaseAgenticCase;
 
         const tool = instance.tool();
         const discovery = instance.discovery();
@@ -153,7 +304,9 @@ function discoverTools(): Map<string, DiscoveredTool> {
           requiresConfirmation: tool.requiresConfirmation ?? false,
           execute: async (input: unknown): Promise<AppResult<unknown>> => {
             try {
-              const result = await tool.execute(input, ctx);
+              const runtimeCtx = createAgenticContext();
+              const runtimeInstance = new AgenticClass(runtimeCtx) as BaseAgenticCase;
+              const result = await runtimeInstance.execute(input);
               return { success: true, data: result };
             } catch (err) {
               const error: AppError = {

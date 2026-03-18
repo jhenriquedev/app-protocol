@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.4
+ * APP v0.0.5
  * core/ui.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface de UI no APP.
@@ -178,10 +178,10 @@ export abstract class BaseUiCase<TState extends UIState = UIState> {
   /**
    * Teste interno da capacidade.
    *
-   * Obrigatório no APP — toda surface que implementa um contrato base
-   * deve fornecer um método test().
+   * Boa prática recomendada no APP — surfaces idealmente expõem um
+   * método test() para validação autocontida do contrato.
    */
-  public abstract test(): Promise<void>;
+  public async test(): Promise<void> {}
 
   /* =======================================================================
    * Slots canônicos internos

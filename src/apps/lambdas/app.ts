@@ -19,7 +19,7 @@
  * por eventos (SQS, EventBridge, etc.) em vez de HTTP.
  * ========================================================================== */
 
-import { ApiContext } from "../../core/api.case";
+import { ApiContext, ApiResponse } from "../../core/api.case";
 import {
   AppStreamRecoveryPolicy,
   computeStreamRetryDelayMs,
@@ -32,6 +32,7 @@ import {
 } from "../../core/stream.case";
 import { AppLogger } from "../../core/shared/app_base_context";
 import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
+import { UserRegisterOutput } from "../../cases/users/user_register/user_register.domain.case";
 import { registry, getFeature } from "./registry";
 
 /* --------------------------------------------------------------------------
@@ -59,16 +60,11 @@ function sleep(ms: number): Promise<void> {
 }
 
 /* --------------------------------------------------------------------------
- * Boot — build cases map per feature (once per cold start)
+ * Runtime case map per feature
  * --------------------------------------------------------------------------
- * Cada feature constrói seu mapa de Cases uma vez no cold start.
- * O mapa é compartilhado entre todas as invocações da lambda.
- *
- * Fase 1: cria o container vazio e instancia cada Case com um contexto
- *         de bootstrap que aponta para o container compartilhado.
- * Fase 2: quando o loop termina, o container está completo.
- *
- * Não há recursão nem referência circular problemática.
+ * Cada invocação materializa wrappers de composição para a feature atual.
+ * Esses wrappers preservam o correlationId e os dados do contexto pai,
+ * mas criam uma nova instância da surface canônica a cada salto.
  * ------------------------------------------------------------------------ */
 
 type FeatureCasesMap = Record<string, Record<string, Record<string, unknown>>>;
@@ -77,48 +73,62 @@ type StreamSurfaceInstance = {
   recoveryPolicy?(): AppStreamRecoveryPolicy;
 };
 
-const featureCasesCache = new Map<string, FeatureCasesMap>();
+interface ParentExecutionContext {
+  correlationId: string;
+  tenantId?: string;
+  userId?: string;
+  config?: ApiContext["config"];
+  auth?: ApiContext["auth"];
+  db?: ApiContext["db"];
+  storage?: ApiContext["storage"];
+  eventBus?: StreamContext["eventBus"];
+  queue?: StreamContext["queue"];
+  extra?: ApiContext["extra"];
+}
 
-function buildFeatureCasesMap(featureName: string): FeatureCasesMap {
-  const cached = featureCasesCache.get(featureName);
-  if (cached) return cached;
-
-  const cases: FeatureCasesMap = {};
-  cases[featureName] = {};
+function createCasesMap(
+  featureName: string,
+  parent: ParentExecutionContext
+): FeatureCasesMap {
+  const featureMap: Record<string, Record<string, unknown>> = {};
+  const cases: FeatureCasesMap = {
+    [featureName]: featureMap,
+  };
 
   const featureCases = getFeature(featureName);
-
-  const bootCtx: ApiContext = {
-    correlationId: "boot",
-    logger,
-    cases,
-  };
 
   for (const [caseName, surfaces] of Object.entries(featureCases)) {
     const entry: Record<string, unknown> = {};
 
     if (surfaces.api) {
-      entry.api = new surfaces.api(bootCtx);
+      const ApiClass = surfaces.api;
+      entry.api = {
+        handler: async (input: unknown) => {
+          const ctx = createApiContext(featureName, parent);
+          const instance = new ApiClass(ctx) as {
+            handler(payload: unknown): Promise<unknown>;
+          };
+          return instance.handler(input);
+        },
+      };
     }
 
     if (surfaces.stream) {
-      const streamCtx: StreamContext = { correlationId: "boot", logger, cases };
-      const instance = new surfaces.stream(streamCtx) as StreamSurfaceInstance;
-      const source = `${featureName}/${caseName}/stream`;
-      const policy = instance.recoveryPolicy?.();
-      validateStreamRecoveryPolicy(source, policy);
-      validateStreamRuntimeCompatibility(
-        source,
-        policy,
-        registry._providers.streamRuntime
-      );
-      entry.stream = instance;
+      const StreamClass = surfaces.stream;
+      entry.stream = {
+        handler: async (event: unknown) => {
+          const ctx = createStreamContext(featureName, parent);
+          const instance = new StreamClass(ctx) as {
+            handler(payload: unknown): Promise<void>;
+          };
+          return instance.handler(event);
+        },
+      };
     }
 
-    cases[featureName][caseName] = entry;
+    featureMap[caseName] = entry;
   }
 
-  featureCasesCache.set(featureName, cases);
   return cases;
 }
 
@@ -127,44 +137,58 @@ function buildFeatureCasesMap(featureName: string): FeatureCasesMap {
  * --------------------------------------------------------------------------
  * Cada invocação recebe um contexto fresco com:
  * - correlationId único (rastreabilidade da operação)
- * - cases: o mapa pré-construído no cold start (compartilhado)
+ * - cases: wrappers request-scoped derivados do registry da feature
  * ------------------------------------------------------------------------ */
 
 function createApiContext(
   feature: string,
-  parent?: Partial<ApiContext>
+  parent?: Partial<ParentExecutionContext>
 ): ApiContext {
-  return {
+  const ctx: ApiContext = {
     correlationId: parent?.correlationId ?? generateId(),
     executionId: generateId(),
     tenantId: parent?.tenantId,
     userId: parent?.userId,
     config: parent?.config,
     logger,
-    cases: buildFeatureCasesMap(feature),
+    auth: parent?.auth,
+    db: parent?.db,
+    storage: parent?.storage,
+    extra: parent?.extra,
+    cases: {},
   };
+
+  ctx.cases = createCasesMap(feature, ctx);
+  return ctx;
 }
 
 function createStreamContext(
   feature: string,
-  parent?: Partial<StreamContext>
+  parent?: Partial<ParentExecutionContext>
 ): StreamContext {
-  return {
+  const ctx: StreamContext = {
     correlationId: parent?.correlationId ?? generateId(),
     executionId: generateId(),
     tenantId: parent?.tenantId,
     userId: parent?.userId,
     config: parent?.config,
     logger,
-    cases: buildFeatureCasesMap(feature),
+    eventBus: parent?.eventBus,
+    queue: parent?.queue,
+    db: parent?.db,
+    extra: parent?.extra,
+    cases: {},
   };
+
+  ctx.cases = createCasesMap(feature, ctx);
+  return ctx;
 }
 
 async function dispatchFeatureStream(
   featureName: string,
   caseName: string,
   event: StreamEvent,
-  parent?: Partial<StreamContext>
+  parent?: Partial<ParentExecutionContext>
 ): Promise<void> {
   const surfaces = getFeature(featureName)[caseName];
   if (!surfaces?.stream) {
@@ -256,6 +280,86 @@ interface LambdaHttpResponse {
   headers?: Record<string, string>;
 }
 
+function mapAppErrorCodeToStatus(code?: string): number {
+  switch (code) {
+    case "VALIDATION_FAILED":
+      return 400;
+    case "UNAUTHORIZED":
+      return 401;
+    case "FORBIDDEN":
+      return 403;
+    case "NOT_FOUND":
+      return 404;
+    case "CONFLICT":
+      return 409;
+    default:
+      return 500;
+  }
+}
+
+function resolveApiStatusCode(result: ApiResponse<unknown>): number {
+  if (result.statusCode !== undefined) {
+    return result.statusCode;
+  }
+
+  return result.success ? 200 : mapAppErrorCodeToStatus(result.error?.code);
+}
+
+function buildPostSuccessEvent(
+  featureName: string,
+  caseName: string,
+  result: ApiResponse<unknown>
+): StreamEvent | undefined {
+  if (!result.success || !result.data) {
+    return undefined;
+  }
+
+  if (featureName === "users" && caseName === "user_register") {
+    const user = result.data as UserRegisterOutput;
+
+    return {
+      type: "user_registered",
+      payload: user,
+      idempotencyKey: `users.user_register:${user.id}`,
+      metadata: {
+        source: "http",
+        feature: featureName,
+        caseName,
+      },
+    };
+  }
+
+  return undefined;
+}
+
+async function dispatchPostSuccessEvents(
+  featureName: string,
+  caseName: string,
+  result: ApiResponse<unknown>,
+  ctx: ApiContext
+): Promise<void> {
+  const event = buildPostSuccessEvent(featureName, caseName, result);
+  if (!event) return;
+
+  logger.info("Dispatching post-success stream event", {
+    feature: featureName,
+    caseName,
+    eventType: event.type,
+    correlationId: ctx.correlationId,
+  });
+
+  await dispatchFeatureStream(featureName, caseName, event, {
+    correlationId: ctx.correlationId,
+    tenantId: ctx.tenantId,
+    userId: ctx.userId,
+    config: ctx.config,
+    auth: ctx.auth,
+    db: ctx.db,
+    storage: ctx.storage,
+    extra: ctx.extra,
+  });
+}
+
 /**
  * Cria o handler HTTP para uma feature.
  *
@@ -287,14 +391,15 @@ export function createFeatureHttpHandler(featureName: string) {
     try {
       const ctx = createApiContext(featureName);
       const instance = new (route.CaseClass as new (ctx: ApiContext) => unknown)(ctx) as {
-        handler(input: unknown): Promise<unknown>;
+        handler(input: unknown): Promise<ApiResponse<unknown>>;
       };
 
       const input = body ? JSON.parse(body) : {};
       const result = await instance.handler(input);
+      await dispatchPostSuccessEvents(featureName, route.caseName, result, ctx);
 
       return {
-        statusCode: 200,
+        statusCode: resolveApiStatusCode(result),
         body: JSON.stringify(result),
         headers: { "Content-Type": "application/json" },
       };

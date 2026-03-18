@@ -12,6 +12,7 @@
 
 import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
 import { AppHttpClient } from "../../core/shared/app_infra_contracts";
+import { AppError } from "../../core/shared/app_structural_contracts";
 
 // ── Cases ──────────────────────────────────────────────────────────────────
 import { UserValidateUi } from "../../cases/users/user_validate/user_validate.ui.case";
@@ -44,8 +45,43 @@ class FetchHttpAdapter implements AppHttpClient {
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    const result = (await response.json()) as { data: unknown };
-    return result.data;
+    const payload = (await response.json()) as
+      | {
+          success?: boolean;
+          data?: unknown;
+          error?: AppError;
+        }
+      | unknown;
+
+    if (
+      typeof payload === "object" &&
+      payload !== null &&
+      "success" in payload
+    ) {
+      const result = payload as {
+        success?: boolean;
+        data?: unknown;
+        error?: AppError;
+      };
+
+      if (result.success === false) {
+        throw new Error(result.error?.message ?? "APP request failed");
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          result.error?.message ?? `HTTP request failed with status ${response.status}`
+        );
+      }
+
+      return result.data;
+    }
+
+    if (!response.ok) {
+      throw new Error(`HTTP request failed with status ${response.status}`);
+    }
+
+    return payload;
   }
 }
 

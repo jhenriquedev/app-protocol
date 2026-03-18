@@ -53,6 +53,34 @@ interface ParentExecutionContext {
   config?: Record<string, unknown>;
 }
 
+type RouteBinding = {
+  method: string;
+  path: string;
+  handler?: (request: unknown) => Promise<unknown> | unknown;
+};
+
+type SubscriptionBinding = {
+  topic: string;
+  handler?: (event: StreamEvent) => Promise<void> | void;
+};
+
+function isRouteBinding(value: unknown): value is RouteBinding {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "method" in value &&
+    "path" in value
+  );
+}
+
+function isSubscriptionBinding(value: unknown): value is SubscriptionBinding {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "topic" in value
+  );
+}
+
 export function bootstrap() {
   const registry = createRegistry();
   const db = registry._providers.db;
@@ -142,19 +170,51 @@ export function bootstrap() {
     for (const [domain, domainCases] of Object.entries(registry._cases)) {
       for (const [caseName, surfaces] of Object.entries(domainCases)) {
         if (surfaces.api) {
-          const instance = new surfaces.api(createApiContext()) as {
+          const ApiClass = surfaces.api;
+          const instance = new ApiClass(
+            createApiContext({ correlationId: "boot" })
+          ) as {
             router?(): unknown;
+            handler?(input: unknown): Promise<unknown>;
           };
 
           if (instance.router) {
             const route = instance.router();
-            routes.push(route);
-            logger.info(`Mounted API: ${domain}/${caseName}`, { route });
+            if (isRouteBinding(route)) {
+              const mountedRoute: RouteBinding = {
+                ...route,
+                handler: async (request: unknown) => {
+                  const runtimeInstance = new ApiClass(createApiContext()) as {
+                    router?(): unknown;
+                    handler?(input: unknown): Promise<unknown>;
+                  };
+                  const runtimeRoute = runtimeInstance.router?.();
+                  if (
+                    isRouteBinding(runtimeRoute) &&
+                    typeof runtimeRoute.handler === "function"
+                  ) {
+                    return runtimeRoute.handler(request);
+                  }
+                  if (typeof runtimeInstance.handler === "function") {
+                    return runtimeInstance.handler(request);
+                  }
+                  throw new Error(
+                    `API route binding for ${domain}/${caseName} did not expose a handler`
+                  );
+                },
+              };
+              routes.push(mountedRoute);
+              logger.info(`Mounted API: ${domain}/${caseName}`, {
+                route: mountedRoute,
+              });
+            }
           }
         }
 
         if (surfaces.stream) {
-          const instance = new surfaces.stream(createStreamContext()) as {
+          const instance = new surfaces.stream(
+            createStreamContext({ correlationId: "boot" })
+          ) as {
             subscribe?(): unknown;
             recoveryPolicy?(): AppStreamRecoveryPolicy;
           };
@@ -175,8 +235,18 @@ export function bootstrap() {
 
           if (instance.subscribe) {
             const sub = instance.subscribe();
-            subscriptions.push(sub);
-            logger.info(`Mounted Stream: ${domain}/${caseName}`, { sub });
+            if (isSubscriptionBinding(sub)) {
+              const mountedSubscription: SubscriptionBinding = {
+                ...sub,
+                handler: async (event: StreamEvent) => {
+                  await dispatchStream(domain, caseName, event);
+                },
+              };
+              subscriptions.push(mountedSubscription);
+              logger.info(`Mounted Stream: ${domain}/${caseName}`, {
+                sub: mountedSubscription,
+              });
+            }
           }
         }
       }

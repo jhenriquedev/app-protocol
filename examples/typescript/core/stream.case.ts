@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v0.0.4
+ * APP v0.0.5
  * core/stream.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface de stream no APP.
@@ -405,14 +405,14 @@ export abstract class BaseStreamCase<TInput = unknown, TOutput = unknown> {
   /**
    * Teste interno da capacidade.
    *
-   * Obrigatório no APP — toda surface que implementa um contrato base
-   * deve fornecer um método test().
+   * Boa prática recomendada no APP — surfaces idealmente expõem um
+   * método test() para validação autocontida do contrato.
    *
    * Assinatura canônica: test(): Promise<void>
    * O teste cria eventos internamente e invoca handler()/pipeline().
    * Não recebe input — é validação interna.
    */
-  public abstract test(): Promise<void>;
+  public async test(): Promise<void> {}
 
   /* =======================================================================
    * Slots canônicos internos

@@ -47,7 +47,7 @@ A release snapshots the current accepted spec into `versions/`.
 1. Open an issue for the problem or proposal.
 2. If the change affects protocol semantics, structure, schema, or governance, create an RFC in `rfcs/`.
 3. Update `spec.md`.
-4. Update supporting docs in `docs/` when the change affects philosophy, architecture, conformance, or visual explanation.
+4. Update supporting docs in `docs/` when the change affects philosophy, architecture, conformance, visual explanation, or the `/app` operational profile.
 5. If accepted and release-worthy, publish a new version snapshot in `versions/`.
 6. Update `CHANGELOG.md`.
 
@@ -56,6 +56,7 @@ A release snapshots the current accepted spec into `versions/`.
 - `spec.md` is the living draft.
 - `versions/` contains historical snapshots.
 - `docs/` explains the model but does not override the spec.
+- `docs/skill_v3.md` is the current HML of the canonical `/app` skill; `.codex/skills/app/SKILL.md` and `.claude/skills/app/SKILL.md` mirror its entrypoint.
 - architectural explanations in `docs/` must remain aligned with the current working draft and must not introduce alternative semantics
 - `examples/` should demonstrate conformance once implementations exist.
 - `i18n/pt-br/` preserves native-language backup copies of Portuguese materials.
@@ -67,6 +68,7 @@ Do not cut a new version unless the change:
 - is internally consistent
 - has clear migration implications
 - is reflected in the working draft
+- is reflected in the active supporting docs and skill entrypoints when operational guidance changed
 - is captured in the changelog
 
 ## Medium-Term Process Improvements

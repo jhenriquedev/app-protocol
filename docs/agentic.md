@@ -26,11 +26,13 @@ export class UserValidateAgenticCase extends BaseAgenticCase<
   UserValidateInput,
   UserValidateOutput
 > {
-  // Required — 4 abstract methods + test
+  // Required — 4 abstract methods
   public discovery(): AgenticDiscovery { ... }
   public context(): AgenticExecutionContext { ... }
   public prompt(): AgenticPrompt { ... }
   public tool(): AgenticToolContract<UserValidateInput, UserValidateOutput> { ... }
+
+  // Recommended — self-contained conformance check
   public async test(): Promise<void> { ... }
 
   // Optional — have defaults in base class
@@ -49,7 +51,6 @@ export class UserValidateAgenticCase extends BaseAgenticCase<
 | `context()` | `AgenticExecutionContext` | auth, tenant, dependencies, preconditions, constraints |
 | `prompt()` | `AgenticPrompt` | purpose, whenToUse, whenNotToUse, constraints, reasoningHints, expectedOutcome |
 | `tool()` | `AgenticToolContract` | name, description, inputSchema, outputSchema, isMutating, requiresConfirmation, execute |
-| `test()` | `Promise<void>` | validates definition integrity, tool execution, contract consistency |
 
 ### Optional Members
 
@@ -59,6 +60,12 @@ export class UserValidateAgenticCase extends BaseAgenticCase<
 | `rag()` | `AgenticRagContract \| undefined` | topics, resources, hints, scope, mode |
 | `policy()` | `AgenticPolicy \| undefined` | requireConfirmation, requireAuth, requireTenant, riskLevel, executionMode, limits |
 | `examples()` | `AgenticExample[]` | name, description, input, output, notes |
+
+### Recommended Members
+
+| Method | Returns | Purpose |
+| --- | --- | --- |
+| `test()` | `Promise<void>` | validates definition integrity, tool execution, contract consistency |
 
 ### Utility Methods (inherited from base)
 
@@ -110,7 +117,16 @@ export class UserValidateAgenticCase extends BaseAgenticCase<
       inputSchema: this.domainInputSchema()!,
       outputSchema: this.domainOutputSchema()!,
       execute: async (input, ctx) => {
-        return ctx.cases?.users?.user_validate?.api?.handler(input);
+        const result = await ctx.cases?.users?.user_validate?.api?.handler(input);
+
+        if (!result?.success || !result.data) {
+          throw new Error(
+            result?.error?.message ??
+              "user_validate API surface did not return data"
+          );
+        }
+
+        return result.data;
       },
     };
   }

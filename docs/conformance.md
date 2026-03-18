@@ -57,6 +57,20 @@ Typical mechanisms:
 - runtime guards
 - host-level assertions
 
+## Operational Profiles
+
+APP defines the baseline protocol grammar and minimum conformance expectations.
+Projects, tools, and skills may adopt stricter operational profiles as long as
+they do not contradict the canonical grammar.
+
+The current canonical profile is skill `/app`.
+
+Representative differences:
+
+- baseline APP treats `test()` as strongly recommended; skill `/app` requires it for every surface the agent creates or edits
+- baseline APP treats `<case>.us.md` as an optional support artifact; skill `/app` may require it for new Cases or significant semantic changes
+- baseline APP does not require a fixed implementation workflow; skill `/app` standardizes `inspect → specify → create/implement → validate → review`
+
 ## Representative Rule Matrix
 
 | Rule | Level | Typical Enforcement |

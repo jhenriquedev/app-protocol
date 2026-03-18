@@ -6,6 +6,34 @@ All notable changes to this project should be documented in this file.
 
 - No unreleased changes yet.
 
+## v0.0.5
+
+### Added
+
+- `v0.0.5` release snapshot under [`versions/`](./versions)
+- `docs/skill_v3.md` as the first HML of the canonical `/app` operational skill
+- `.codex/skills/app/SKILL.md` and `.claude/skills/app/SKILL.md` as mirrored `/app` skill entrypoints
+- `<case>.us.md` as the canonical support artifact for stricter operational profiles
+- Explicit baseline-vs-profile language in conformance documentation for skill-driven enforcement
+
+### Changed
+
+- Root and example package versions advanced to `0.0.5`
+- README, spec, roadmap, and versions index now align with `v0.0.5`
+- Open Work now treats the first `/app` skill HML as delivered and moves remaining tooling hardening to the next cycle
+- Active documentation now frames `app_infra_contracts` as minimal illustrative integration contracts and keeps `auth`, `db`, and `queue` host-defined
+- Baseline APP now treats `test()` as strongly recommended while operational profiles such as `/app` may require it
+- `docs/skill_v3.md` was translated into the English-first active documentation set
+- Legacy `.docs/` materials were removed from the active repository tree; the current skill draft now lives under `docs/`
+
+### Fixed
+
+- Request-scoped `ctx.cases` materialization across backend, lambda, chatbot, and TypeScript example hosts to prevent boot-context leakage during cross-case composition
+- `user_register` API validation now rejects short passwords consistently with domain invariants
+- Lambda HTTP responses now derive status codes from structured APP results, and the portal adapter preserves APP error envelopes instead of discarding them
+- Backend, lambda, and chatbot hosts now dispatch the `user_registered` post-success event consistently
+- Public agentic examples now unwrap `ApiResponse` correctly before returning tool output
+
 ## v0.0.4
 
 ### Added
