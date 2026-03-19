@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v1.0.1
+ * APP v1.1.0
  * core/api.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface de API no APP.
@@ -96,7 +96,10 @@ export interface ApiContext extends AppBaseContext {
    * Packages de biblioteca registrados pelo host.
    *
    * Expostos via registry._packages.
-   * Bibliotecas puras de packages/ que o app disponibiliza.
+   * Bibliotecas puras (Money, DateUtils, Validators) de packages/
+   * que o app disponibiliza para seus Cases.
+   *
+   * O tipo concreto é derivado do registry de cada app.
    */
   packages?: Dict;
 

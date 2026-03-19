@@ -1,0 +1,81 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppProtocol.Example.DotNet.Core", "core\AppProtocol.Example.DotNet.Core.csproj", "{11DD7F65-146F-4BCD-A1C2-0C148D425CCE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "packages", "packages", "{5A5C013B-9F0D-4936-800A-4FA77A507B4B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppProtocol.Example.DotNet.Packages.Data", "packages\data\AppProtocol.Example.DotNet.Packages.Data.csproj", "{C68DBC7A-9230-45B9-9BD2-A7D3C883CFFA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppProtocol.Example.DotNet.Packages.DesignSystem", "packages\design_system\AppProtocol.Example.DotNet.Packages.DesignSystem.csproj", "{3C7FABDA-5CA2-4505-940C-C338486D035E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "cases", "cases", "{3DD6DDA9-D689-4609-9729-BAC78704AC13}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppProtocol.Example.DotNet.Cases.Tasks", "cases\tasks\AppProtocol.Example.DotNet.Cases.Tasks.csproj", "{B2EB2D52-43B1-4AD6-B17B-4B9851011F73}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "apps", "apps", "{CA83AA52-1261-45F3-993E-0ADB7FAF546B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppProtocol.Example.DotNet.Apps.Backend", "apps\backend\AppProtocol.Example.DotNet.Apps.Backend.csproj", "{F5EBFCE5-0140-4E45-8479-C5EE5C11A6E2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppProtocol.Example.DotNet.Apps.Portal", "apps\portal\AppProtocol.Example.DotNet.Apps.Portal.csproj", "{A512D14D-1F83-4DCB-8D9A-831A07C2CF00}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppProtocol.Example.DotNet.Apps.Agent", "apps\agent\AppProtocol.Example.DotNet.Apps.Agent.csproj", "{0B112574-B300-4281-AD6E-E5EDC2F1B7B5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{B6512440-228A-46FD-A84B-E9015F2176C3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppProtocol.Example.DotNet.SmokeRunner", "scripts\SmokeRunner\AppProtocol.Example.DotNet.SmokeRunner.csproj", "{E3534A37-4F17-4526-9885-C89E9A1628C7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{11DD7F65-146F-4BCD-A1C2-0C148D425CCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11DD7F65-146F-4BCD-A1C2-0C148D425CCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11DD7F65-146F-4BCD-A1C2-0C148D425CCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11DD7F65-146F-4BCD-A1C2-0C148D425CCE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C68DBC7A-9230-45B9-9BD2-A7D3C883CFFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C68DBC7A-9230-45B9-9BD2-A7D3C883CFFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C68DBC7A-9230-45B9-9BD2-A7D3C883CFFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C68DBC7A-9230-45B9-9BD2-A7D3C883CFFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C7FABDA-5CA2-4505-940C-C338486D035E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C7FABDA-5CA2-4505-940C-C338486D035E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C7FABDA-5CA2-4505-940C-C338486D035E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C7FABDA-5CA2-4505-940C-C338486D035E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2EB2D52-43B1-4AD6-B17B-4B9851011F73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2EB2D52-43B1-4AD6-B17B-4B9851011F73}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2EB2D52-43B1-4AD6-B17B-4B9851011F73}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2EB2D52-43B1-4AD6-B17B-4B9851011F73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5EBFCE5-0140-4E45-8479-C5EE5C11A6E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5EBFCE5-0140-4E45-8479-C5EE5C11A6E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5EBFCE5-0140-4E45-8479-C5EE5C11A6E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5EBFCE5-0140-4E45-8479-C5EE5C11A6E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A512D14D-1F83-4DCB-8D9A-831A07C2CF00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A512D14D-1F83-4DCB-8D9A-831A07C2CF00}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A512D14D-1F83-4DCB-8D9A-831A07C2CF00}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A512D14D-1F83-4DCB-8D9A-831A07C2CF00}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B112574-B300-4281-AD6E-E5EDC2F1B7B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B112574-B300-4281-AD6E-E5EDC2F1B7B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B112574-B300-4281-AD6E-E5EDC2F1B7B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B112574-B300-4281-AD6E-E5EDC2F1B7B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3534A37-4F17-4526-9885-C89E9A1628C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3534A37-4F17-4526-9885-C89E9A1628C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3534A37-4F17-4526-9885-C89E9A1628C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3534A37-4F17-4526-9885-C89E9A1628C7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C68DBC7A-9230-45B9-9BD2-A7D3C883CFFA} = {5A5C013B-9F0D-4936-800A-4FA77A507B4B}
+		{3C7FABDA-5CA2-4505-940C-C338486D035E} = {5A5C013B-9F0D-4936-800A-4FA77A507B4B}
+		{B2EB2D52-43B1-4AD6-B17B-4B9851011F73} = {3DD6DDA9-D689-4609-9729-BAC78704AC13}
+		{F5EBFCE5-0140-4E45-8479-C5EE5C11A6E2} = {CA83AA52-1261-45F3-993E-0ADB7FAF546B}
+		{A512D14D-1F83-4DCB-8D9A-831A07C2CF00} = {CA83AA52-1261-45F3-993E-0ADB7FAF546B}
+		{0B112574-B300-4281-AD6E-E5EDC2F1B7B5} = {CA83AA52-1261-45F3-993E-0ADB7FAF546B}
+		{E3534A37-4F17-4526-9885-C89E9A1628C7} = {B6512440-228A-46FD-A84B-E9015F2176C3}
+	EndGlobalSection
+EndGlobal

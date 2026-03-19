@@ -122,7 +122,7 @@ What it demonstrates:
 
 If you want the example map, read [`examples.md`](./examples.md).
 
-If you want the smaller illustrative TypeScript scenario, use:
+If you want the 100% TypeScript scenario, use:
 
 ```bash
 npm --prefix examples/typescript ci

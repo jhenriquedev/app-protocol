@@ -1,0 +1,50 @@
+{
+  "name": "app-protocol-example-angular",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ng": "ng",
+    "dev": "tsx scripts/dev.ts",
+    "dev:all": "tsx scripts/dev.ts",
+    "dev:http": "tsx scripts/dev.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && npm run build:portal",
+    "dev:api": "tsx watch apps/backend/server.ts",
+    "dev:backend": "tsx watch apps/backend/server.ts",
+    "start:api": "tsx apps/backend/server.ts",
+    "start:backend": "tsx apps/backend/server.ts",
+    "dev:front": "ng serve app-protocol-example-angular --host 0.0.0.0 --configuration production",
+    "dev:portal": "ng serve app-protocol-example-angular --host 0.0.0.0 --configuration production",
+    "start:front": "ng serve app-protocol-example-angular --host 0.0.0.0 --configuration production",
+    "start:portal": "ng serve app-protocol-example-angular --host 0.0.0.0 --configuration production",
+    "dev:agent": "tsx watch apps/agent/server.ts",
+    "start:agent": "tsx apps/agent/server.ts",
+    "dev:agent:mcp": "tsx watch apps/agent/mcp_server.ts",
+    "start:agent:mcp": "tsx apps/agent/mcp_server.ts",
+    "build:portal": "ng build app-protocol-example-angular",
+    "smoke": "tsx scripts/smoke.ts && tsx scripts/agentic_smoke.ts && tsx scripts/agent_mcp_smoke.ts && tsx scripts/agent_mcp_http_smoke.ts",
+    "smoke:backend": "tsx scripts/smoke.ts",
+    "smoke:agentic": "tsx scripts/agentic_smoke.ts",
+    "smoke:agent:mcp": "tsx scripts/agent_mcp_smoke.ts",
+    "smoke:agent:mcp:http": "tsx scripts/agent_mcp_http_smoke.ts"
+  },
+  "dependencies": {
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.2.3",
+    "@angular/cli": "^21.2.3",
+    "@angular/compiler-cli": "^21.2.0",
+    "@types/node": "^24.6.0",
+    "tsx": "^4.20.6",
+    "typescript": "~5.9.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

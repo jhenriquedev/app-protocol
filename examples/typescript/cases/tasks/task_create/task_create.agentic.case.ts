@@ -1,28 +1,22 @@
-/* ========================================================================== *
- * Example: task_create — Agentic Surface
- * --------------------------------------------------------------------------
- * Exposes task creation to agents. Execution resolves to the canonical
- * API surface via ctx.cases.
- * ========================================================================== */
-
 import {
-  AgenticContext,
-  AgenticDiscovery,
-  AgenticExecutionContext,
-  AgenticExample,
-  AgenticMcpContract,
-  AgenticPolicy,
-  AgenticPrompt,
-  AgenticRagContract,
-  AgenticToolContract,
   BaseAgenticCase,
+  type AgenticContext,
+  type AgenticDiscovery,
+  type AgenticExecutionContext,
+  type AgenticExample,
+  type AgenticMcpContract,
+  type AgenticPolicy,
+  type AgenticPrompt,
+  type AgenticRagContract,
+  type AgenticToolContract,
 } from "../../../core/agentic.case";
-import { ApiResponse } from "../../../core/api.case";
+import { type ApiResponse } from "../../../core/api.case";
+import { AppCaseError, toAppCaseError } from "../../../core/shared/app_structural_contracts";
 import {
-  AppCaseError,
-  toAppCaseError,
-} from "../../../core/shared/app_structural_contracts";
-import { TaskCreateDomain, TaskCreateInput, TaskCreateOutput } from "./task_create.domain.case";
+  TaskCreateDomain,
+  type TaskCreateInput,
+  type TaskCreateOutput,
+} from "./task_create.domain.case";
 
 type ExpectedCasesMap = {
   tasks?: {
@@ -45,55 +39,66 @@ export class TaskCreateAgentic extends BaseAgenticCase<
   public discovery(): AgenticDiscovery {
     return {
       name: this.domainCaseName() ?? "task_create",
-      description: this.domainDescription() ?? "Create a new task.",
+      description:
+        this.domainDescription() ??
+        "Create a new work item on the studio board.",
       category: "tasks",
-      tags: ["tasks", "creation", "productivity"],
-      capabilities: ["task_creation"],
-      intents: ["create a task", "add a new task", "make a todo"],
+      tags: ["tasks", "create", "board"],
+      intents: ["create a task", "capture a new work item"],
+      capabilities: ["task_create", "board_write"],
     };
   }
 
   public context(): AgenticExecutionContext {
     return {
       requiresAuth: false,
-      requiresTenant: false,
       dependencies: ["task_create.domain", "task_create.api"],
-      preconditions: ["Title must be provided."],
-      constraints: ["Execution follows canonical API flow."],
-      notes: ["New tasks are created in pending status in this example."],
+      constraints: [
+        "The title must be explicit and non-empty.",
+        "Execution must delegate to the canonical API surface.",
+      ],
+      notes: ["Creation starts in backlog automatically."],
     };
   }
 
   public prompt(): AgenticPrompt {
     return {
-      purpose: "Create a new task with a title and optional description.",
-      whenToUse: ["When a user wants to create or add a new task."],
-      whenNotToUse: ["When updating or completing an existing task."],
-      constraints: ["Do not invent persistence-managed fields such as id or createdAt."],
-      reasoningHints: ["Keep titles concise and use description only when the user supplied additional detail."],
-      expectedOutcome: "A new task object with id, title, status=pending, and createdAt.",
+      purpose: "Create a new work item on the board.",
+      whenToUse: [
+        "When the user wants to capture a new work item.",
+        "When the user gives a concrete title for planned work.",
+      ],
+      whenNotToUse: [
+        "When the user wants to move an existing item.",
+        "When the user has not described the new work item yet.",
+      ],
+      constraints: ["Do not invent missing titles."],
+      expectedOutcome: "A persisted work item in backlog status.",
     };
   }
 
   public tool(): AgenticToolContract<TaskCreateInput, TaskCreateOutput> {
     const inputSchema = this.domainInputSchema();
     const outputSchema = this.domainOutputSchema();
+
     if (!inputSchema || !outputSchema) {
-      throw new Error("task_create agentic requires domain schemas");
+      throw new Error("task_create.agentic requires domain schemas");
     }
 
     return {
       name: "task_create",
-      description: "Create a new task through the canonical API flow.",
+      description: "Create a new work item through the canonical API flow.",
       inputSchema,
       outputSchema,
-      isMutating: true,
       execute: async (input, ctx) => {
-        const cases = ctx.cases as ExpectedCasesMap | undefined;
-        const result = await cases?.tasks?.task_create?.api?.handler(input);
+        const result = await (ctx.cases as ExpectedCasesMap | undefined)?.tasks?.task_create?.api?.handler(
+          input
+        );
+
         if (!result?.success || !result.data) {
           throw toAppCaseError(result?.error, "task_create API failed");
         }
+
         return result.data;
       },
     };
@@ -103,19 +108,26 @@ export class TaskCreateAgentic extends BaseAgenticCase<
     return {
       enabled: true,
       name: "task_create",
-      title: "Create Task",
-      description: "Create a task through the canonical APP task_create flow.",
-      metadata: { category: "tasks", mutating: true },
+      title: "Create Work Item",
+      description: "Create a new work item through the APP task_create API flow.",
+      metadata: {
+        category: "tasks",
+        mutating: true,
+      },
     };
   }
 
   public rag(): AgenticRagContract {
     return {
-      topics: ["task_management", "productivity"],
+      topics: ["task_management", "work_intake"],
       resources: [
-        { kind: "case", ref: "tasks/task_create", description: "Task creation capability." },
+        {
+          kind: "case",
+          ref: "tasks/task_create",
+          description: "Canonical create capability.",
+        },
       ],
-      hints: ["Prefer the canonical task creation flow over ad hoc task mutations."],
+      hints: ["Prefer the provided title and keep the description literal."],
       scope: "project",
       mode: "optional",
     };
@@ -136,46 +148,37 @@ export class TaskCreateAgentic extends BaseAgenticCase<
   public async test(): Promise<void> {
     this.validateDefinition();
 
-    const def = this.definition();
-    if (def.discovery.name !== "task_create") {
-      throw new Error("Agentic discovery name mismatch");
-    }
-    if (!def.tool.inputSchema.properties) {
-      throw new Error("Tool must have input schema properties");
-    }
-
-    const example = this.examples()[0];
-    if (!example) {
-      throw new Error("task_create should expose at least one example");
-    }
-
-    let propagatedError: unknown;
-    try {
-      await this.tool().execute(example.input, {
-        correlationId: "task-create-agentic-failure-test",
-        logger: this.ctx.logger,
-        cases: {
-          tasks: {
-            task_create: {
-              api: {
-                handler: async () => ({
-                  success: false,
-                  error: {
-                    code: "VALIDATION_FAILED",
-                    message: "title is required",
-                  },
-                }),
-              },
+    const surface = new TaskCreateAgentic({
+      correlationId: "test-task-create-agentic",
+      logger: console,
+      cases: {
+        tasks: {
+          task_create: {
+            api: {
+              handler: async (input: TaskCreateInput) => ({
+                success: true,
+                data: {
+                  id: "item_agentic",
+                  title: input.title,
+                  description: input.description,
+                  status: "backlog",
+                  createdAt: "2026-03-18T12:00:00.000Z",
+                  updatedAt: "2026-03-18T12:00:00.000Z",
+                },
+              }),
             },
           },
         },
-      });
-    } catch (error: unknown) {
-      propagatedError = error;
-    }
+      },
+    } as AgenticContext);
 
-    if (!(propagatedError instanceof AppCaseError)) {
-      throw new Error("task_create must propagate structured AppCaseError failures");
+    const output = await surface.execute({
+      title: "Shape the public launch notes",
+      description: "Describe the public announcement flow.",
+    });
+
+    if (output.status !== "backlog") {
+      throw new Error("task_create.agentic test expected backlog output");
     }
   }
 }

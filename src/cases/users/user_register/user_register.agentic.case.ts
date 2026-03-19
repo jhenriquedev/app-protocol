@@ -23,11 +23,6 @@ import {
   AppCaseError,
   toAppCaseError,
 } from "../../../core/shared/app_structural_contracts";
-import { UserValidateApi } from "../user_validate/user_validate.api.case";
-import {
-  UserValidateInput,
-  UserValidateOutput,
-} from "../user_validate/user_validate.domain.case";
 import { UserRegisterApi } from "./user_register.api.case";
 import {
   UserRegisterDomain,
@@ -35,13 +30,23 @@ import {
   UserRegisterOutput,
 } from "./user_register.domain.case";
 
+type UserValidateInputLike = {
+  email: string;
+  name: string;
+};
+
+type UserValidateOutputLike = {
+  valid: boolean;
+  errors?: string[];
+};
+
 type UserRegisterCases = {
   users?: {
     user_validate?: {
       api?: {
         handler(
-          input: UserValidateInput
-        ): Promise<ApiResponse<UserValidateOutput>>;
+          input: UserValidateInputLike
+        ): Promise<ApiResponse<UserValidateOutputLike>>;
       };
     };
     user_register?: {
@@ -61,15 +66,27 @@ const testLogger: AppLogger = {
   error: () => undefined,
 };
 
+function validateUserForRegistration(
+  input: UserValidateInputLike
+): UserValidateOutputLike {
+  const errors: string[] = [];
+
+  if (!input.email.includes("@")) {
+    errors.push("Invalid email format");
+  }
+  if (input.name.length < 2) {
+    errors.push("Name must have at least 2 characters");
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+}
+
 function createTestCases(correlationId: string): UserRegisterCases {
   const cases: UserRegisterCases = {
     users: {},
-  };
-
-  const validateCtx: ApiContext = {
-    correlationId,
-    logger: testLogger,
-    cases,
   };
 
   const registerCtx: ApiContext = {
@@ -79,7 +96,14 @@ function createTestCases(correlationId: string): UserRegisterCases {
   };
 
   cases.users!.user_validate = {
-    api: new UserValidateApi(validateCtx),
+    api: {
+      handler: async (
+        input: UserValidateInputLike
+      ): Promise<ApiResponse<UserValidateOutputLike>> => ({
+        success: true,
+        data: validateUserForRegistration(input),
+      }),
+    },
   };
 
   cases.users!.user_register = {

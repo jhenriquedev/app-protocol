@@ -1,89 +1,93 @@
-/* ========================================================================== *
- * Example: task_create — API Surface
- * --------------------------------------------------------------------------
- * Atomic Case — uses _service, not _composition.
- * Persistence via ctx.db (injected by host).
- * ========================================================================== */
-
-import { ApiContext, ApiResponse, BaseApiCase } from "../../../core/api.case";
+import { BaseApiCase, type ApiContext, type ApiResponse } from "../../../core/api.case";
 import { AppCaseError } from "../../../core/shared/app_structural_contracts";
-import { Task, TaskCreateInput, TaskCreateOutput } from "./task_create.domain.case";
+import {
+  TaskCreateDomain,
+  type TaskCreateInput,
+  type TaskCreateOutput,
+} from "./task_create.domain.case";
 
-/* --------------------------------------------------------------------------
- * DB shape (provided by host via ctx.db)
- * ------------------------------------------------------------------------ */
-
-interface TaskDb {
-  tasks: Map<string, Task>;
+interface BoardStoreContract {
+  create(input: {
+    title: string;
+    description?: string;
+  }): Promise<TaskCreateOutput>;
 }
 
-/* --------------------------------------------------------------------------
- * API Case
- * ------------------------------------------------------------------------ */
+type ExpectedPackagesMap = {
+  data?: {
+    boardStore?: BoardStoreContract;
+  };
+};
 
-export class TaskCreateApi extends BaseApiCase<
-  TaskCreateInput,
-  TaskCreateOutput
-> {
-  constructor(ctx: ApiContext) {
-    super(ctx);
+function getBoardStore(ctx: ApiContext): BoardStoreContract {
+  const store = (ctx.packages as ExpectedPackagesMap | undefined)?.data?.boardStore;
+  if (!store) {
+    throw new AppCaseError(
+      "INTERNAL",
+      "task_create.api requires ctx.packages.data.boardStore"
+    );
   }
 
-  public async handler(
-    input: TaskCreateInput
-  ): Promise<ApiResponse<TaskCreateOutput>> {
+  return store;
+}
+
+export class TaskCreateApi extends BaseApiCase<TaskCreateInput, TaskCreateOutput> {
+  private readonly taskCreateDomain = new TaskCreateDomain();
+
+  public async handler(input: TaskCreateInput): Promise<ApiResponse<TaskCreateOutput>> {
     return this.execute(input);
   }
 
-  public router(): unknown {
-    return {
-      method: "POST",
-      path: "/tasks",
-      handler: (req: { body: TaskCreateInput }) => this.handler(req.body),
-    };
-  }
-
-  public async test(): Promise<void> {
-    if (!this._service) {
-      throw new Error("test: _service must be implemented (atomic Case)");
-    }
-
-    await this._validate!({ title: "Test task" });
-
-    let threw = false;
-    try { await this._validate!({ title: "" }); } catch { threw = true; }
-    if (!threw) throw new Error("test: _validate should reject empty title");
-
-    const result = await this.handler({ title: "Test task", description: "A test" });
-    if (!result.success) throw new Error("test: handler returned failure");
-    if (!result.data?.task.id) throw new Error("test: created task must have an id");
-    if (result.data.task.status !== "pending") throw new Error("test: new task must be pending");
-  }
-
   protected async _validate(input: TaskCreateInput): Promise<void> {
-    if (!input.title || input.title.trim().length === 0) {
-      throw new AppCaseError("VALIDATION_FAILED", "title is required", {
-        field: "title",
-      });
-    }
+    this.taskCreateDomain.validate?.(input);
+  }
+
+  protected _repository(): BoardStoreContract {
+    return getBoardStore(this.ctx);
   }
 
   protected async _service(input: TaskCreateInput): Promise<TaskCreateOutput> {
-    const db = this.ctx.db as TaskDb | undefined;
-    const id = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
-
-    const task: Task = {
-      id,
+    return this._repository().create({
       title: input.title.trim(),
-      description: input.description,
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    };
+      description: input.description?.trim() || undefined,
+    });
+  }
 
-    db?.tasks.set(id, task);
+  public async test(): Promise<void> {
+    const created: TaskCreateOutput[] = [];
+    const api = new TaskCreateApi({
+      correlationId: "test-task-create-api",
+      logger: console,
+      packages: {
+        data: {
+          boardStore: {
+            create: async (input: {
+              title: string;
+              description?: string;
+            }) => {
+              const result: TaskCreateOutput = {
+                id: "item_created",
+                title: input.title,
+                description: input.description,
+                status: "backlog",
+                createdAt: "2026-03-18T12:00:00.000Z",
+                updatedAt: "2026-03-18T12:00:00.000Z",
+              };
+              created.push(result);
+              return result;
+            },
+          },
+        },
+      },
+    });
 
-    this.ctx.logger.info("Task created", { taskId: id, title: task.title });
+    const result = await api.handler({
+      title: "Capture onboarding notes",
+      description: "Summarize decisions from the onboarding workshop.",
+    });
 
-    return { task };
+    if (!result.success || !result.data || created.length !== 1) {
+      throw new Error("task_create.api test expected a persisted work item");
+    }
   }
 }

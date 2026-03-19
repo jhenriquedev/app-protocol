@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v1.0.1
+ * APP v1.1.0
  * core/ui.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface de UI no APP.
@@ -81,7 +81,8 @@ export interface UiContext extends AppBaseContext {
    * Packages de biblioteca registrados pelo host.
    *
    * Expostos via registry._packages.
-   * Bibliotecas puras de packages/ que o app disponibiliza.
+   * Bibliotecas puras de packages/ (ex: DesignSystem, DateUtils)
+   * que o app disponibiliza para seus Cases de UI.
    */
   packages?: Dict;
 

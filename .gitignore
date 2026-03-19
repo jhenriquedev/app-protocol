@@ -1,11 +1,52 @@
 .DS_Store
 .idea/
 .vscode/
+
+# JavaScript / TypeScript / Deno
 node_modules/
+.next/
+.nuxt/
+.turbo/
+.vercel/
+.cache/
+.vite/
+.angular/
 dist/
 coverage/
+out/
+*.tsbuildinfo
+
+# JVM / .NET / Flutter / Python
+target/
+build/
+.gradle/
+.kotlin/
+.settings/
+kotlin-js-store/
+bin/
+obj/
+.dart_tool/
+.pub/
+.pub-cache/
+.fvm/
+.metadata
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Scratch
+tmp/
+
+# Runtime data
+examples/node/packages/data/tasks.json
+examples/node/packages/data/tasks.json.lock
+examples/node/packages/data/tasks.json.*.tmp
+examples/python/packages/data/tasks.json
+examples/python/packages/data/tasks.json.lock
+examples/python/packages/data/tasks.json.*.tmp
+
 *.log
 
 
 .docs/
-

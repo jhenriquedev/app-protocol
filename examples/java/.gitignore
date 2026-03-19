@@ -1,0 +1,12 @@
+/target/
+/build/
+/dist/
+/out/
+/coverage/
+/node_modules/
+/tmp/
+/.idea/
+/.vscode/
+/.settings/
+.DS_Store
+*.log

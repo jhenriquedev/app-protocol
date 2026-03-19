@@ -1,68 +1,77 @@
-/* ========================================================================== *
- * Portal App — Registry (Unified)
- * --------------------------------------------------------------------------
- * Registro único do app com três slots canônicos:
- *
- * - _cases:     surfaces de UI carregadas pelo portal
- * - _providers: adapter de HTTP montado pelo host
- * - _packages:  design system + date utils expostos via ctx.packages
- * ========================================================================== */
-
-import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
-import { AppHttpClient } from "../../core/shared/app_infra_contracts";
-
+import { type AppHttpClient } from "../../core/shared/app_infra_contracts";
+import { type AppCaseSurfaces } from "../../core/shared/app_host_contracts";
+import * as designSystem from "../../packages/design_system/index";
 import { TaskCreateUi } from "../../cases/tasks/task_create/task_create.ui.case";
-import { TaskCompleteUi } from "../../cases/tasks/task_complete/task_complete.ui.case";
 import { TaskListUi } from "../../cases/tasks/task_list/task_list.ui.case";
-import { DateUtils } from "../../packages/date-utils/format";
-import { DesignSystem } from "../../packages/design-system/index";
-import { FetchClient, type FetchClientConfig } from "../../packages/http-fetch/client";
-
-class FetchHttpAdapter implements AppHttpClient {
-  constructor(private readonly client: FetchClient) {}
-
-  async request(config: unknown): Promise<unknown> {
-    const { method, url, body } = config as {
-      method: string;
-      url: string;
-      body?: unknown;
-    };
-
-    const response = await this.client.request(method, url, body);
-    return response.data;
-  }
-}
+import { TaskMoveUi } from "../../cases/tasks/task_move/task_move.ui.case";
 
 export interface PortalConfig {
-  apiBaseURL: string;
+  port?: number;
+  backendBaseUrl?: string;
 }
 
-export function createRegistry(config: PortalConfig) {
-  const clientConfig: FetchClientConfig = {
-    baseURL: config.apiBaseURL,
+function createPortalHttpClient(baseUrl: string): AppHttpClient {
+  return {
+    async request(config: unknown): Promise<unknown> {
+      const request = (config ?? {}) as {
+        method?: string;
+        url?: string;
+        headers?: Record<string, string>;
+        body?: string;
+        input?: unknown;
+      };
+
+      if (!request.url) {
+        throw new Error("Portal HTTP client requires a url");
+      }
+
+      const url = new URL(request.url, baseUrl);
+      const response = await fetch(url, {
+        method: request.method ?? "GET",
+        headers: {
+          "content-type": "application/json",
+          ...(request.headers ?? {}),
+        },
+        body:
+          request.body ??
+          (request.input !== undefined &&
+          request.method &&
+          request.method !== "GET"
+            ? JSON.stringify(request.input)
+            : undefined),
+      });
+
+      return (await response.json()) as unknown;
+    },
   };
+}
+
+export function createRegistry(config: PortalConfig = {}) {
+  const backendBaseUrl = config.backendBaseUrl ?? "http://localhost:3300";
 
   return {
     _cases: {
       tasks: {
-        task_create: { ui: TaskCreateUi },
-        task_complete: { ui: TaskCompleteUi },
-        task_list: { ui: TaskListUi },
+        task_create: {
+          ui: TaskCreateUi,
+        },
+        task_list: {
+          ui: TaskListUi,
+        },
+        task_move: {
+          ui: TaskMoveUi,
+        },
       },
     } satisfies Record<string, Record<string, AppCaseSurfaces>>,
-
     _providers: {
-      httpClient: new FetchHttpAdapter(new FetchClient(clientConfig)) as AppHttpClient,
+      port: config.port ?? 3310,
+      backendBaseUrl,
+      httpClient: createPortalHttpClient(backendBaseUrl),
     },
-
     _packages: {
-      designSystem: DesignSystem,
-      dateUtils: DateUtils,
+      designSystem,
     },
   } as const;
 }
 
 export type PortalRegistry = ReturnType<typeof createRegistry>;
-export type PortalCases = PortalRegistry["_cases"];
-export type PortalProviders = PortalRegistry["_providers"];
-export type PortalPackages = PortalRegistry["_packages"];

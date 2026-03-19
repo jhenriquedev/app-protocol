@@ -1,90 +1,92 @@
-/* ========================================================================== *
- * Backend App — Bootstrap
- * --------------------------------------------------------------------------
- * Monolith host: API routes + stream subscriptions.
- *
- * Consome o registry unificado:
- * - registry._cases     → ctx.cases
- * - registry._providers → ctx.db
- * - registry._packages  → ctx.packages
- *
- * Importante:
- * ctx.cases é ligado ao contexto da execução atual. Cada salto de composição
- * cria uma nova instância do Case, mas preserva o correlationId da operação.
- * ========================================================================== */
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { type ApiContext, type ApiResponse } from "../../core/api.case";
+import { type AppLogger } from "../../core/shared/app_base_context";
+import { AppCaseError } from "../../core/shared/app_structural_contracts";
+import { type AppCaseSurfaces } from "../../core/shared/app_host_contracts";
+import { createRegistry, type BackendConfig } from "./registry";
 
-import { ApiContext } from "../../core/api.case";
-import {
-  AppStreamRecoveryPolicy,
-  computeStreamRetryDelayMs,
-  createStreamFailureEnvelope,
-  isStreamErrorRetryable,
-  StreamContext,
-  StreamEvent,
-  validateStreamRecoveryPolicy,
-  validateStreamRuntimeCompatibility,
-} from "../../core/stream.case";
-import { AppLogger } from "../../core/shared/app_base_context";
-import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";
-import { createRegistry } from "./registry";
-
-const logger: AppLogger = {
-  debug: (msg, meta) => console.log("[DEBUG]", msg, meta),
-  info: (msg, meta) => console.log("[INFO]", msg, meta),
-  warn: (msg, meta) => console.warn("[WARN]", msg, meta),
-  error: (msg, meta) => console.error("[ERROR]", msg, meta),
-};
-
-function generateId(): string {
-  return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
-}
-
-function sleep(ms: number): Promise<void> {
-  if (ms <= 0) return Promise.resolve();
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-type CasesMap = Record<string, Record<string, Record<string, unknown>>>;
-
-interface ParentExecutionContext {
+type ParentExecutionContext = {
   correlationId: string;
   tenantId?: string;
   userId?: string;
-  config?: Record<string, unknown>;
-}
-
-type RouteBinding = {
-  method: string;
-  path: string;
-  handler?: (request: unknown) => Promise<unknown> | unknown;
+  config?: ApiContext["config"];
+  auth?: ApiContext["auth"];
+  db?: ApiContext["db"];
+  storage?: ApiContext["storage"];
+  extra?: ApiContext["extra"];
 };
 
-type SubscriptionBinding = {
-  topic: string;
-  handler?: (event: StreamEvent) => Promise<void> | void;
+type CasesMap = Record<string, Record<string, Record<string, unknown>>>;
+
+const logger: AppLogger = {
+  debug: (message, meta) => console.debug("[typescript/backend]", message, meta),
+  info: (message, meta) => console.info("[typescript/backend]", message, meta),
+  warn: (message, meta) => console.warn("[typescript/backend]", message, meta),
+  error: (message, meta) => console.error("[typescript/backend]", message, meta),
 };
 
-function isRouteBinding(value: unknown): value is RouteBinding {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "method" in value &&
-    "path" in value
-  );
+function generateId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
 
-function isSubscriptionBinding(value: unknown): value is SubscriptionBinding {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "topic" in value
-  );
+function toHttpStatus(code?: string): number {
+  switch (code) {
+    case "VALIDATION_FAILED":
+      return 400;
+    case "UNAUTHORIZED":
+      return 401;
+    case "NOT_FOUND":
+      return 404;
+    case "CONFLICT":
+      return 409;
+    default:
+      return 500;
+  }
 }
 
-export function bootstrap() {
-  const registry = createRegistry();
-  const db = registry._providers.db;
-  const streamRuntime = registry._providers.streamRuntime;
+async function readTextBody(request: IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+async function readJsonBody(request: IncomingMessage): Promise<unknown> {
+  const text = await readTextBody(request);
+  if (text.trim().length === 0) {
+    return {};
+  }
+
+  return JSON.parse(text) as unknown;
+}
+
+function sendJson(
+  response: ServerResponse,
+  statusCode: number,
+  payload: unknown
+): void {
+  response.writeHead(statusCode, {
+    "content-type": "application/json; charset=utf-8",
+  });
+  response.end(`${JSON.stringify(payload, null, 2)}\n`);
+}
+
+function sendApiResult(
+  response: ServerResponse,
+  result: ApiResponse<unknown>,
+  successStatusCode = 200
+): void {
+  if (result.success) {
+    sendJson(response, result.statusCode ?? successStatusCode, result);
+    return;
+  }
+
+  sendJson(response, result.statusCode ?? toHttpStatus(result.error?.code), result);
+}
+
+export function bootstrap(config: BackendConfig = {}) {
+  const registry = createRegistry(config);
 
   function createCasesMap(parent: ParentExecutionContext): CasesMap {
     const cases: CasesMap = {};
@@ -92,37 +94,23 @@ export function bootstrap() {
     for (const [domain, domainCases] of Object.entries(registry._cases)) {
       cases[domain] = {};
 
-      for (const [caseName, surfaces] of Object.entries(domainCases)) {
-        const entry: Record<string, unknown> = {};
-        const typedSurfaces = surfaces as AppCaseSurfaces;
+      for (const [caseName, entry] of Object.entries(domainCases)) {
+        const surfaces = entry as AppCaseSurfaces;
+        const instanceMap: Record<string, unknown> = {};
 
-        if (typedSurfaces.api) {
-          const ApiClass = typedSurfaces.api;
-          entry.api = {
+        if (surfaces.api) {
+          const ApiClass = surfaces.api;
+          instanceMap.api = {
             handler: async (input: unknown) => {
-              const ctx = createApiContext(parent);
-              const instance = new ApiClass(ctx) as {
-                handler(payload: unknown): Promise<unknown>;
+              const api = new ApiClass(createApiContext(parent)) as {
+                handler(payload: unknown): Promise<ApiResponse<unknown>>;
               };
-              return instance.handler(input);
+              return api.handler(input);
             },
           };
         }
 
-        if (typedSurfaces.stream) {
-          const StreamClass = typedSurfaces.stream;
-          entry.stream = {
-            handler: async (event: unknown) => {
-              const ctx = createStreamContext(parent);
-              const instance = new StreamClass(ctx) as {
-                handler(payload: unknown): Promise<void>;
-              };
-              return instance.handler(event);
-            },
-          };
-        }
-
-        cases[domain][caseName] = entry;
+        cases[domain][caseName] = instanceMap;
       }
     }
 
@@ -137,219 +125,170 @@ export function bootstrap() {
       userId: parent?.userId,
       config: parent?.config,
       logger,
-      db,
+      auth: parent?.auth,
+      db: parent?.db,
+      storage: parent?.storage,
+      extra: parent?.extra,
       packages: registry._packages,
+      cases: {},
     };
 
     ctx.cases = createCasesMap(ctx);
     return ctx;
   }
 
-  function createStreamContext(
-    parent?: Partial<ParentExecutionContext>
-  ): StreamContext {
-    const ctx: StreamContext = {
-      correlationId: parent?.correlationId ?? generateId(),
-      executionId: generateId(),
-      tenantId: parent?.tenantId,
-      userId: parent?.userId,
-      config: parent?.config,
-      logger,
-      db,
-      packages: registry._packages,
-    };
-
-    ctx.cases = createCasesMap(ctx);
-    return ctx;
-  }
-
-  async function startBackend(): Promise<void> {
-    const routes: unknown[] = [];
-    const subscriptions: unknown[] = [];
-
-    for (const [domain, domainCases] of Object.entries(registry._cases)) {
-      for (const [caseName, surfaces] of Object.entries(domainCases)) {
-        if (surfaces.api) {
-          const ApiClass = surfaces.api;
-          const instance = new ApiClass(
-            createApiContext({ correlationId: "boot" })
-          ) as {
-            router?(): unknown;
-            handler?(input: unknown): Promise<unknown>;
-          };
-
-          if (instance.router) {
-            const route = instance.router();
-            if (isRouteBinding(route)) {
-              const mountedRoute: RouteBinding = {
-                ...route,
-                handler: async (request: unknown) => {
-                  const runtimeInstance = new ApiClass(createApiContext()) as {
-                    router?(): unknown;
-                    handler?(input: unknown): Promise<unknown>;
-                  };
-                  const runtimeRoute = runtimeInstance.router?.();
-                  if (
-                    isRouteBinding(runtimeRoute) &&
-                    typeof runtimeRoute.handler === "function"
-                  ) {
-                    return runtimeRoute.handler(request);
-                  }
-                  if (typeof runtimeInstance.handler === "function") {
-                    return runtimeInstance.handler(request);
-                  }
-                  throw new Error(
-                    `API route binding for ${domain}/${caseName} did not expose a handler`
-                  );
-                },
-              };
-              routes.push(mountedRoute);
-              logger.info(`Mounted API: ${domain}/${caseName}`, {
-                route: mountedRoute,
-              });
-            }
-          }
-        }
-
-        if (surfaces.stream) {
-          const instance = new surfaces.stream(
-            createStreamContext({ correlationId: "boot" })
-          ) as {
-            subscribe?(): unknown;
-            recoveryPolicy?(): AppStreamRecoveryPolicy;
-          };
-
-          const label = `${domain}/${caseName}.stream`;
-          const policy = instance.recoveryPolicy?.();
-          validateStreamRecoveryPolicy(label, policy);
-          validateStreamRuntimeCompatibility(label, policy, streamRuntime);
-
-          if (policy) {
-            logger.info(`${label}: recovery policy declared`, {
-              retry: !!policy.retry,
-              deadLetter: !!policy.deadLetter,
-              maxAttempts: policy.retry?.maxAttempts,
-              destination: policy.deadLetter?.destination,
-            });
-          }
-
-          if (instance.subscribe) {
-            const sub = instance.subscribe();
-            if (isSubscriptionBinding(sub)) {
-              const mountedSubscription: SubscriptionBinding = {
-                ...sub,
-                handler: async (event: StreamEvent) => {
-                  await dispatchStream(domain, caseName, event);
-                },
-              };
-              subscriptions.push(mountedSubscription);
-              logger.info(`Mounted Stream: ${domain}/${caseName}`, {
-                sub: mountedSubscription,
-              });
-            }
-          }
-        }
-      }
-    }
-
-    logger.info("Backend started", {
-      routes: routes.length,
-      subscriptions: subscriptions.length,
+  async function handleHealth(_request: IncomingMessage, response: ServerResponse) {
+    sendJson(response, 200, {
+      ok: true,
+      host: "backend",
+      port: registry._providers.port,
     });
   }
 
-  async function dispatchStream<TEvent>(
-    domain: string,
-    caseName: string,
-    event: StreamEvent<TEvent>,
-    parent?: Partial<ParentExecutionContext>
-  ): Promise<void> {
-    const registeredCases = registry._cases as Record<
-      string,
-      Record<string, AppCaseSurfaces>
-    >;
-    const surfaces = registeredCases[domain]?.[caseName];
-    if (!surfaces?.stream) {
-      throw new Error(`No stream surface registered for ${domain}/${caseName}`);
-    }
+  async function handleManifest(
+    _request: IncomingMessage,
+    response: ServerResponse
+  ) {
+    sendJson(response, 200, {
+      host: "backend",
+      routes: [
+        "GET /health",
+        "GET /manifest",
+        "GET /tasks",
+        "POST /tasks",
+        "PATCH /tasks/:id/status",
+      ],
+      domains: Object.keys(registry._cases),
+    });
+  }
 
-    const label = `${domain}/${caseName}.stream`;
-    const correlationId = parent?.correlationId ?? generateId();
-    const firstAttemptAt = new Date().toISOString();
-    let attempts = 0;
+  async function handleTaskList(
+    _request: IncomingMessage,
+    response: ServerResponse
+  ) {
+    const api = new registry._cases.tasks.task_list.api(createApiContext());
+    const result = await api.handler({});
+    sendApiResult(response, result);
+  }
 
-    while (true) {
-      attempts += 1;
-      const ctx = createStreamContext({
-        ...parent,
-        correlationId,
-      });
-      const instance = new surfaces.stream(ctx) as {
-        handler(payload: StreamEvent<TEvent>): Promise<void>;
-        recoveryPolicy?(): AppStreamRecoveryPolicy;
-      };
-      const policy = instance.recoveryPolicy?.();
-      validateStreamRecoveryPolicy(label, policy);
-      validateStreamRuntimeCompatibility(label, policy, streamRuntime);
+  async function handleTaskCreate(
+    request: IncomingMessage,
+    response: ServerResponse
+  ) {
+    const input = await readJsonBody(request);
+    const api = new registry._cases.tasks.task_create.api(createApiContext());
+    const result = await api.handler(input as never);
+    sendApiResult(response, result, 201);
+  }
 
-      try {
-        await instance.handler(event);
+  async function handleTaskMove(
+    request: IncomingMessage,
+    response: ServerResponse,
+    itemId: string
+  ) {
+    const body = (await readJsonBody(request)) as {
+      targetStatus?: string;
+    };
+    const api = new registry._cases.tasks.task_move.api(createApiContext());
+    const result = await api.handler({
+      itemId,
+      targetStatus: body.targetStatus as never,
+    });
+    sendApiResult(response, result);
+  }
+
+  async function handle(request: IncomingMessage, response: ServerResponse) {
+    const url = new URL(request.url ?? "/", "http://localhost");
+
+    try {
+      if (request.method === "GET" && url.pathname === "/health") {
+        await handleHealth(request, response);
         return;
-      } catch (error) {
-        const retry = policy?.retry;
-        const canRetry =
-          !!retry &&
-          attempts < retry.maxAttempts &&
-          isStreamErrorRetryable(error, retry.retryableErrors);
-
-        if (canRetry) {
-          const delayMs = computeStreamRetryDelayMs(retry, attempts);
-          logger.warn(`${label}: retry scheduled`, {
-            attempts,
-            delayMs,
-            correlationId,
-          });
-          await sleep(delayMs);
-          continue;
-        }
-
-        if (policy?.deadLetter) {
-          const binding = streamRuntime.deadLetters?.[policy.deadLetter.destination];
-          if (binding) {
-            await binding.publish(
-              createStreamFailureEnvelope(
-                `${domain}/${caseName}`,
-                event,
-                error,
-                attempts,
-                correlationId,
-                firstAttemptAt,
-                new Date().toISOString()
-              )
-            );
-          }
-        }
-
-        throw error;
       }
+
+      if (request.method === "GET" && url.pathname === "/manifest") {
+        await handleManifest(request, response);
+        return;
+      }
+
+      if (request.method === "GET" && url.pathname === "/tasks") {
+        await handleTaskList(request, response);
+        return;
+      }
+
+      if (request.method === "POST" && url.pathname === "/tasks") {
+        await handleTaskCreate(request, response);
+        return;
+      }
+
+      if (
+        request.method === "PATCH" &&
+        /^\/tasks\/[^/]+\/status$/.test(url.pathname)
+      ) {
+        const [, , itemId] = url.pathname.split("/");
+        await handleTaskMove(request, response, itemId);
+        return;
+      }
+
+      sendJson(response, 404, {
+        success: false,
+        error: {
+          code: "NOT_FOUND",
+          message: `No backend route matched ${request.method} ${url.pathname}`,
+        },
+      });
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        sendJson(response, 400, {
+          success: false,
+          error: {
+            code: "VALIDATION_FAILED",
+            message: "Request body is not valid JSON",
+          },
+        });
+        return;
+      }
+
+      const appError =
+        error instanceof AppCaseError
+          ? error
+          : new AppCaseError(
+              "INTERNAL",
+              error instanceof Error ? error.message : "Unexpected backend error"
+            );
+
+      logger.error("backend request failed", {
+        path: request.url,
+        code: appError.code,
+        message: appError.message,
+      });
+
+      sendJson(response, toHttpStatus(appError.code), {
+        success: false,
+        error: appError.toAppError(),
+      });
     }
+  }
+
+  function start() {
+    const server = createServer((request, response) => {
+      void handle(request, response);
+    });
+
+    return new Promise<typeof server>((resolve) => {
+      server.listen(registry._providers.port, () => {
+        logger.info("backend listening", {
+          port: registry._providers.port,
+        });
+        resolve(server);
+      });
+    });
   }
 
   return {
     registry,
-    db,
     createApiContext,
-    createStreamContext,
-    dispatchStream,
-    startBackend,
+    handle,
+    start,
   };
 }
-
-const app = bootstrap();
-
-export const registry = app.registry;
-export const db = app.db;
-export const createApiContext = app.createApiContext;
-export const createStreamContext = app.createStreamContext;
-export const dispatchStream = app.dispatchStream;
-export const startBackend = app.startBackend;

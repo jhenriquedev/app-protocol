@@ -4,6 +4,26 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## v1.1.0
+
+### Added
+
+- Self-contained `examples/typescript/` as a full 100% TypeScript APP companion with `backend`, `portal`, and `agent` hosts plus HTTP, MCP `stdio`, and remote MCP HTTP publication
+- Companion runnable references for Next.js, Node.js, Go, Deno, .NET, Angular, Flutter, Java, Kotlin, and Python under `examples/`
+- Release snapshot [`versions/v1.1.0.md`](./versions/v1.1.0.md) for the current working draft
+
+### Changed
+
+- Root baseline `src/` now centers the canonical `apps/agent/` host and shared MCP contracts, with the legacy root `chatbot` host removed
+- `/app` review and validation flow now hardens boundary checking, agent-host completeness, and `.us.md` coverage across the active references
+- Repository, examples, skill metadata, and host-visible version strings advance to `1.1.0`
+
+### Fixed
+
+- Removed remaining drift where `examples/typescript/` depended structurally on root `src/core` instead of keeping a local APP `core/`
+- Completed semantic-resource publication, system prompt projection, and confirmation enforcement across the TypeScript `apps/agent/` host and its MCP smoke coverage
+- Corrected stale example documentation that still described `examples/typescript/` as a compact legacy-style reference
+
 ## v1.0.1
 
 ### Added

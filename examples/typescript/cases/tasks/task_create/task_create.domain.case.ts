@@ -1,146 +1,141 @@
-/* ========================================================================== *
- * Example: task_create — Domain Surface
- * ========================================================================== */
-
-import { AppSchema, BaseDomainCase, DomainExample } from "../../../core/domain.case";
-
-/* --------------------------------------------------------------------------
- * Types
- * ------------------------------------------------------------------------ */
-
-export interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  status: "pending" | "done";
-  createdAt: string;
-}
+import {
+  BaseDomainCase,
+  type DomainExample,
+  type AppSchema,
+} from "../../../core/domain.case";
+import { AppCaseError } from "../../../core/shared/app_structural_contracts";
 
 export interface TaskCreateInput {
   title: string;
   description?: string;
 }
 
-export interface TaskCreateOutput {
-  task: Task;
-}
+export type TaskBoardStatus = "backlog" | "active" | "complete";
 
-/* --------------------------------------------------------------------------
- * Domain Case
- * ------------------------------------------------------------------------ */
+export interface TaskCreateOutput {
+  id: string;
+  title: string;
+  description?: string;
+  status: TaskBoardStatus;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export class TaskCreateDomain extends BaseDomainCase<
   TaskCreateInput,
   TaskCreateOutput
 > {
-  caseName(): string {
+  public caseName(): string {
     return "task_create";
   }
 
-  description(): string {
-    return "Creates a new task with title and optional description.";
+  public description(): string {
+    return "Create a new work item for the task studio board.";
   }
 
-  inputSchema(): AppSchema {
+  public inputSchema(): AppSchema {
     return {
       type: "object",
+      description: "Input required to create a work item.",
       properties: {
-        title: { type: "string", description: "Task title" },
-        description: { type: "string", description: "Optional task description" },
+        title: {
+          type: "string",
+          description: "Visible title of the work item.",
+        },
+        description: {
+          type: "string",
+          description: "Optional detail that gives context to the work item.",
+        },
       },
       required: ["title"],
+      additionalProperties: false,
     };
   }
 
-  outputSchema(): AppSchema {
+  public outputSchema(): AppSchema {
     return {
       type: "object",
+      description: "Created work item persisted to the studio board.",
       properties: {
-        task: {
-          type: "object",
-          properties: {
-            id: { type: "string" },
-            title: { type: "string" },
-            description: { type: "string" },
-            status: { type: "string", enum: ["pending", "done"] },
-            createdAt: { type: "string" },
-          },
-          required: ["id", "title", "status", "createdAt"],
+        id: { type: "string" },
+        title: { type: "string" },
+        description: { type: "string" },
+        status: {
+          type: "string",
+          enum: ["backlog", "active", "complete"],
         },
+        createdAt: { type: "string" },
+        updatedAt: { type: "string" },
       },
-      required: ["task"],
+      required: ["id", "title", "status", "createdAt", "updatedAt"],
+      additionalProperties: false,
     };
   }
 
-  validate(input: TaskCreateInput): void {
-    if (!input.title || typeof input.title !== "string") {
-      throw new Error("title is required and must be a string");
+  public validate(input: TaskCreateInput): void {
+    if (typeof input.title !== "string" || input.title.trim().length === 0) {
+      throw new AppCaseError(
+        "VALIDATION_FAILED",
+        "task_create requires a non-empty title"
+      );
     }
-    if (input.title.trim().length === 0) {
-      throw new Error("title must not be empty");
+
+    if (
+      input.description !== undefined &&
+      typeof input.description !== "string"
+    ) {
+      throw new AppCaseError(
+        "VALIDATION_FAILED",
+        "task_create description must be a string when provided"
+      );
     }
   }
 
-  invariants(): string[] {
+  public invariants(): string[] {
     return [
-      "Title must be a non-empty string",
-      "New tasks always start with status 'pending'",
-      "createdAt is set at creation time and never changes",
+      "New items always start in backlog.",
+      "The title is mandatory and trimmed before persistence.",
+      "createdAt and updatedAt are emitted as ISO timestamps.",
     ];
   }
 
-  examples(): DomainExample<TaskCreateInput, TaskCreateOutput>[] {
+  public examples(): DomainExample<TaskCreateInput, TaskCreateOutput>[] {
     return [
       {
-        name: "simple_task",
-        description: "Create a task with title only",
-        input: { title: "Buy groceries" },
-        output: {
-          task: {
-            id: "example-id",
-            title: "Buy groceries",
-            status: "pending",
-            createdAt: "2026-01-01T00:00:00.000Z",
-          },
+        name: "new_brief",
+        description: "Create a planning item with both title and description.",
+        input: {
+          title: "Write launch brief",
+          description: "Capture the launch narrative for the next release.",
         },
-      },
-      {
-        name: "task_with_description",
-        description: "Create a task with title and description",
-        input: { title: "Deploy v2", description: "Deploy the new version to production" },
         output: {
-          task: {
-            id: "example-id",
-            title: "Deploy v2",
-            description: "Deploy the new version to production",
-            status: "pending",
-            createdAt: "2026-01-01T00:00:00.000Z",
-          },
+          id: "item_demo",
+          title: "Write launch brief",
+          description: "Capture the launch narrative for the next release.",
+          status: "backlog",
+          createdAt: "2026-03-18T12:00:00.000Z",
+          updatedAt: "2026-03-18T12:00:00.000Z",
         },
       },
     ];
   }
 
-  async test(): Promise<void> {
-    // Phase 1 — Definition integrity
-    const def = this.definition();
-    if (!def.caseName) throw new Error("test: caseName is empty");
-    if (!def.description) throw new Error("test: description is empty");
-    if (!def.inputSchema.properties) throw new Error("test: inputSchema has no properties");
-    if (!def.outputSchema.properties) throw new Error("test: outputSchema has no properties");
+  public async test(): Promise<void> {
+    this.validate({
+      title: "Draft roadmap",
+      description: "Sequence the next quarter initiatives.",
+    });
 
-    // Phase 2 — Validation behavior
-    this.validate!({ title: "Valid task" });
+    let failed = false;
+    try {
+      this.validate({ title: "   " });
+    } catch (error: unknown) {
+      failed =
+        error instanceof AppCaseError && error.code === "VALIDATION_FAILED";
+    }
 
-    let threw = false;
-    try { this.validate!({ title: "" }); } catch { threw = true; }
-    if (!threw) throw new Error("test: validate should reject empty title");
-
-    // Phase 3 — Examples consistency
-    const examples = this.examples();
-    if (!examples || examples.length === 0) throw new Error("test: no examples defined");
-    for (const ex of examples) {
-      this.validate!(ex.input);
+    if (!failed) {
+      throw new Error("task_create.domain test expected blank titles to fail");
     }
   }
 }

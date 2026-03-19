@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v1.0.1
+ * APP v1.1.0
  * core/shared/app_host_contracts.ts
  * ----------------------------------------------------------------------------
  * Contratos de registry do APP.
@@ -23,7 +23,11 @@ import { Dict } from "../domain.case";
 import { ApiContext } from "../api.case";
 import { UiContext } from "../ui.case";
 import { StreamContext } from "../stream.case";
-import { AgenticContext } from "../agentic.case";
+import {
+  AgenticContext,
+  BaseAgenticCase,
+  type AgenticDefinition,
+} from "../agentic.case";
 
 /* ==========================================================================
  * AppCaseSurfaces
@@ -61,14 +65,14 @@ export interface AppCaseSurfaces {
  * - _cases:     Cases ativos neste app (domínio → case → surfaces).
  *               Cada entry é um construtor de surface importado de cases/.
  *
- * - _providers: Providers e adapters montados pelo host.
- *               Podem satisfazer contratos de core/shared/app_infra_contracts
- *               ou expor providers específicos do projeto.
+ * - _providers: Adapters de infraestrutura (packages/ → contratos de core/).
+ *               Cada entry satisfaz um contrato de core/shared/app_infra_contracts.
+ *               Adapters são classes privadas ao registry — não exportadas.
  *
  * - _packages:  Bibliotecas puras compartilhadas de packages/.
  *               Expostas aos Cases via ctx.packages.
  *
- * Nenhum slot é obrigatório além de _cases.
+ * Nenhum slot é obrigatório. App sem packages não declara _packages.
  *
  * Uso:
  *   export function createRegistry(config) {
@@ -87,15 +91,57 @@ export interface AppRegistry {
   _cases: Dict<Dict<AppCaseSurfaces>>;
 
   /**
-   * Providers e adapters montados pelo host.
+   * Providers de infraestrutura.
+   * Adapters que conectam packages/ protocol-agnostic aos contratos de core/.
+   * Cada entry satisfaz um contrato de core/shared/ (AppCache, AppHttpClient, etc).
    */
   _providers?: Dict;
 
   /**
    * Packages de biblioteca.
-   * Código compartilhado puro exposto aos Cases via ctx.packages.
+   * Código compartilhado puro (Money, DateUtils, DesignSystem).
+   * Expostos aos Cases via ctx.packages.
    */
   _packages?: Dict;
+}
+
+/* ==========================================================================
+ * AgenticRegistry
+ * --------------------------------------------------------------------------
+ * Extensão formal de AppRegistry para hosts agentic.
+ *
+ * O host continua usando `_cases`, `_providers` e `_packages` como fonte
+ * canônica. A especialização agentic adiciona apenas publicação, resolução
+ * e instanciação das surfaces agentic registradas.
+ * ========================================================================== */
+
+export interface AgenticCaseRef {
+  domain: string;
+  caseName: string;
+}
+
+export interface AgenticCatalogEntry<TInput = unknown, TOutput = unknown> {
+  ref: AgenticCaseRef;
+  publishedName: string;
+  definition: AgenticDefinition<TInput, TOutput>;
+  isMcpEnabled: boolean;
+  requiresConfirmation: boolean;
+  executionMode: "suggest-only" | "manual-approval" | "direct-execution";
+}
+
+export interface AgenticRegistry extends AppRegistry {
+  listAgenticCases(): AgenticCaseRef[];
+  getAgenticSurface(ref: AgenticCaseRef): AppCaseSurfaces["agentic"] | undefined;
+  instantiateAgentic(
+    ref: AgenticCaseRef,
+    ctx: AgenticContext
+  ): BaseAgenticCase;
+  buildCatalog(ctx: AgenticContext): AgenticCatalogEntry[];
+  resolveTool(
+    toolName: string,
+    ctx: AgenticContext
+  ): AgenticCatalogEntry | undefined;
+  listMcpEnabledTools(ctx: AgenticContext): AgenticCatalogEntry[];
 }
 
 /* ==========================================================================

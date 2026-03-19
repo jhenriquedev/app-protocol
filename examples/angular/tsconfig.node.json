@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": [
+    "apps/backend/**/*.ts",
+    "apps/agent/**/*.ts",
+    "cases/**/*.ts",
+    "core/**/*.ts",
+    "packages/**/*.ts",
+    "scripts/**/*.ts"
+  ],
+  "exclude": [
+    "apps/portal/**/*",
+    "**/*.spec.ts",
+    "dist",
+    "node_modules"
+  ]
+}

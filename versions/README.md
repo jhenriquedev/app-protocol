@@ -13,6 +13,7 @@ Conventions:
 
 Current snapshots:
 
+- [`v1.1.0`](./v1.1.0.md)
 - [`v1.0.1`](./v1.0.1.md)
 - [`v1.0.0`](./v1.0.0.md)
 - [`v0.0.12`](./v0.0.12.md)
@@ -29,6 +30,7 @@ Current snapshots:
 
 Note:
 
+- `v1.1.0` consolidates the multi-runtime reference wave: the root baseline now centers the canonical `apps/agent/` host, the repository ships a self-contained 100% TypeScript companion reference, and companion examples across Next.js, Node.js, Go, Deno, .NET, Angular, Flutter, Java, Kotlin, and Python are aligned under the current `/app` profile.
 - `v1.0.1` closes the first post-stable APP refinement cycle: the `/app` skill and the working draft now normatize registry-driven projection of the complete agentic contract, host-built global prompts, and MCP semantic resources for complete `apps/agent/` publication.
 - `v1.0.0` is the first stable APP release. It packages the current protocol baseline, the formal app-level agentic host contract, aligned release tooling, and the installer/runtime version cleanup required for stable publication.
 - `v0.0.12` formalizes app-level agentic host contracts, `apps/agent/` as the canonical generic host name for agentic runtimes, and the supporting documentation alignment needed to close drift between Case-level and app-level operability.

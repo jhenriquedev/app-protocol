@@ -1,66 +1,79 @@
-/* ========================================================================== *
- * Example: task_list — API Surface
- * --------------------------------------------------------------------------
- * Atomic Case — uses _service, not _composition.
- * Persistence via ctx.db (injected by host).
- * ========================================================================== */
+import { BaseApiCase, type ApiContext, type ApiResponse } from "../../../core/api.case";
+import { AppCaseError } from "../../../core/shared/app_structural_contracts";
+import {
+  TaskListDomain,
+  type TaskListInput,
+  type TaskListItem,
+  type TaskListOutput,
+} from "./task_list.domain.case";
 
-import { ApiContext, ApiResponse, BaseApiCase } from "../../../core/api.case";
-import { Task } from "../task_create/task_create.domain.case";
-import { TaskListInput, TaskListOutput } from "./task_list.domain.case";
-
-/* --------------------------------------------------------------------------
- * DB shape (provided by host via ctx.db)
- * ------------------------------------------------------------------------ */
-
-interface TaskDb {
-  tasks: Map<string, Task>;
+interface BoardStoreContract {
+  list(): Promise<TaskListItem[]>;
 }
 
-/* --------------------------------------------------------------------------
- * API Case
- * ------------------------------------------------------------------------ */
+type ExpectedPackagesMap = {
+  data?: {
+    boardStore?: BoardStoreContract;
+  };
+};
 
-export class TaskListApi extends BaseApiCase<
-  TaskListInput,
-  TaskListOutput
-> {
-  constructor(ctx: ApiContext) {
-    super(ctx);
+function getBoardStore(ctx: ApiContext): BoardStoreContract {
+  const store = (ctx.packages as ExpectedPackagesMap | undefined)?.data?.boardStore;
+  if (!store) {
+    throw new AppCaseError(
+      "INTERNAL",
+      "task_list.api requires ctx.packages.data.boardStore"
+    );
   }
 
-  public async handler(
-    input: TaskListInput
-  ): Promise<ApiResponse<TaskListOutput>> {
+  return store;
+}
+
+export class TaskListApi extends BaseApiCase<TaskListInput, TaskListOutput> {
+  private readonly taskListDomain = new TaskListDomain();
+
+  public async handler(input: TaskListInput): Promise<ApiResponse<TaskListOutput>> {
     return this.execute(input);
   }
 
-  public router(): unknown {
+  protected async _validate(input: TaskListInput): Promise<void> {
+    this.taskListDomain.validate?.(input);
+  }
+
+  protected _repository(): BoardStoreContract {
+    return getBoardStore(this.ctx);
+  }
+
+  protected async _service(): Promise<TaskListOutput> {
     return {
-      method: "GET",
-      path: "/tasks",
-      handler: (req: { query: TaskListInput }) => this.handler(req.query),
+      items: await this._repository().list(),
     };
   }
 
   public async test(): Promise<void> {
-    if (!this._service) {
-      throw new Error("test: _service must be implemented (atomic Case)");
+    const api = new TaskListApi({
+      correlationId: "test-task-list-api",
+      logger: console,
+      packages: {
+        data: {
+          boardStore: {
+            list: async () => [
+              {
+                id: "item_listed",
+                title: "Review portal layout",
+                status: "active",
+                createdAt: "2026-03-18T12:00:00.000Z",
+                updatedAt: "2026-03-18T12:10:00.000Z",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const result = await api.handler({});
+    if (!result.success || !result.data || result.data.items.length !== 1) {
+      throw new Error("task_list.api test expected a single returned item");
     }
-
-    const result = await this.handler({});
-    if (!result.success) throw new Error("test: handler returned failure");
-    if (!Array.isArray(result.data?.tasks)) throw new Error("test: tasks must be an array");
-  }
-
-  protected async _service(input: TaskListInput): Promise<TaskListOutput> {
-    const db = this.ctx.db as TaskDb | undefined;
-    const allTasks = [...(db?.tasks.values() ?? [])];
-
-    const tasks = input.status
-      ? allTasks.filter((t) => t.status === input.status)
-      : allTasks;
-
-    return { tasks };
   }
 }

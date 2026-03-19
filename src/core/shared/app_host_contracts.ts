@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v1.0.1
+ * APP v1.1.0
  * core/shared/app_host_contracts.ts
  * ----------------------------------------------------------------------------
  * Contratos de registry do APP.
@@ -23,7 +23,11 @@ import { Dict } from "../domain.case";
 import { ApiContext } from "../api.case";
 import { UiContext } from "../ui.case";
 import { StreamContext } from "../stream.case";
-import { AgenticContext } from "../agentic.case";
+import {
+  AgenticContext,
+  BaseAgenticCase,
+  type AgenticDefinition,
+} from "../agentic.case";
 
 /* ==========================================================================
  * AppCaseSurfaces
@@ -99,6 +103,45 @@ export interface AppRegistry {
    * Expostos aos Cases via ctx.packages.
    */
   _packages?: Dict;
+}
+
+/* ==========================================================================
+ * AgenticRegistry
+ * --------------------------------------------------------------------------
+ * Extensão formal de AppRegistry para hosts agentic.
+ *
+ * O host continua usando `_cases`, `_providers` e `_packages` como fonte
+ * canônica. A especialização agentic adiciona apenas publicação, resolução
+ * e instanciação das surfaces agentic registradas.
+ * ========================================================================== */
+
+export interface AgenticCaseRef {
+  domain: string;
+  caseName: string;
+}
+
+export interface AgenticCatalogEntry<TInput = unknown, TOutput = unknown> {
+  ref: AgenticCaseRef;
+  publishedName: string;
+  definition: AgenticDefinition<TInput, TOutput>;
+  isMcpEnabled: boolean;
+  requiresConfirmation: boolean;
+  executionMode: "suggest-only" | "manual-approval" | "direct-execution";
+}
+
+export interface AgenticRegistry extends AppRegistry {
+  listAgenticCases(): AgenticCaseRef[];
+  getAgenticSurface(ref: AgenticCaseRef): AppCaseSurfaces["agentic"] | undefined;
+  instantiateAgentic(
+    ref: AgenticCaseRef,
+    ctx: AgenticContext
+  ): BaseAgenticCase;
+  buildCatalog(ctx: AgenticContext): AgenticCatalogEntry[];
+  resolveTool(
+    toolName: string,
+    ctx: AgenticContext
+  ): AgenticCatalogEntry | undefined;
+  listMcpEnabledTools(ctx: AgenticContext): AgenticCatalogEntry[];
 }
 
 /* ==========================================================================

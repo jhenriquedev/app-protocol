@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/app",
+    "types": []
+  },
+  "files": [
+    "apps/portal/src/main.ts"
+  ],
+  "include": [
+    "apps/portal/src/**/*.ts",
+    "apps/portal/app.ts",
+    "apps/portal/registry.ts",
+    "cases/**/*.ts",
+    "core/**/*.ts",
+    "packages/design_system/**/*.ts"
+  ],
+  "exclude": [
+    "**/*.spec.ts",
+    "apps/backend/**/*",
+    "apps/agent/**/*",
+    "scripts/**/*",
+    "dist",
+    "node_modules"
+  ]
+}

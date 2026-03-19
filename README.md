@@ -9,7 +9,7 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v1.0.1`](./versions/v1.0.1.md)
+- Latest released snapshot: [`v1.1.0`](./versions/v1.1.0.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: stable protocol baseline with TypeScript reference implementation
 
@@ -82,6 +82,8 @@ npm --prefix examples/react run smoke
 
 The React example is the active cross-client agentic reference: agent HTTP,
 MCP `stdio`, and remote MCP over HTTP all come from the same host runtime.
+The root `src/` baseline now mirrors the formal agent-host contract as well,
+with canonical `apps/agent/` and shared MCP contracts in `core/shared/`.
 
 ## Repository Map
 
@@ -97,7 +99,7 @@ MCP `stdio`, and remote MCP over HTTP all come from the same host runtime.
 - [`docs/protocol-overview.md`](./docs/protocol-overview.md): high-level overview of APP as a protocol
 - [`docs/core-concepts.md`](./docs/core-concepts.md): canonical layers, surfaces, composition, and runtime model
 - [`docs/spec-guide.md`](./docs/spec-guide.md): how the spec, snapshots, and supporting docs fit together
-- [`docs/examples.md`](./docs/examples.md): example map and executable TypeScript reference walkthrough
+- [`docs/examples.md`](./docs/examples.md): example map and executable multi-runtime reference walkthroughs
 - [`docs/faq.md`](./docs/faq.md): frequent questions about APP and `/app`
 - [`docs/glossary.md`](./docs/glossary.md): canonical terminology
 - [`docs/philosophy.md`](./docs/philosophy.md): conceptual framing behind AI-first programming
@@ -112,7 +114,8 @@ MCP `stdio`, and remote MCP over HTTP all come from the same host runtime.
 - [`tooling/skill-app/`](./tooling/skill-app): npm-publishable installer package for the `/app` skill with install, update, upgrade, downgrade, and uninstall commands
 - [`scripts/validate-boundaries.mjs`](./scripts/validate-boundaries.mjs): initial static boundary validator for `cases/`, `packages/`, and `registry.ts`
 - [`rfcs/`](./rfcs): proposal process for substantive changes
-- [`examples/`](./examples): executable TypeScript reference implementation and future ecosystem examples
+- [`src/`](./src): minimal TypeScript protocol baseline with canonical `apps/agent/`, `backend`, `portal`, `lambdas`, and user Cases
+- [`examples/`](./examples): executable APP references across React, Next.js, Node.js, Go, .NET, and TypeScript
 - [`i18n/pt-br/`](./i18n/pt-br/): backup copies of native Portuguese materials
 
 ## Core Model
@@ -219,7 +222,7 @@ The next major steps for APP are:
 1. harden conformance tooling beyond the initial static boundary validator
 2. generalize the reference MCP-capable agent host into reusable capability-adapter tooling
 3. end-to-end agentic proof-of-concept with real agents
-4. multi-language reference implementations (Python, Go, .NET)
+4. expand the multi-language reference set further, especially Python and additional ecosystems
 
 See [`ROADMAP.md`](./ROADMAP.md).
 

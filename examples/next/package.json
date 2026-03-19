@@ -1,0 +1,46 @@
+{
+  "name": "app-protocol-example-next",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx scripts/dev.ts",
+    "dev:all": "tsx scripts/dev.ts",
+    "dev:http": "tsx scripts/dev.ts",
+    "typecheck": "next typegen && tsc --noEmit",
+    "dev:api": "tsx watch apps/backend/server.ts",
+    "dev:backend": "tsx watch apps/backend/server.ts",
+    "start:api": "tsx apps/backend/server.ts",
+    "start:backend": "tsx apps/backend/server.ts",
+    "dev:front": "next dev --port 3002",
+    "dev:portal": "next dev --port 3002",
+    "start:front": "next start --port 3002",
+    "start:portal": "next start --port 3002",
+    "dev:agent": "tsx watch apps/agent/server.ts",
+    "start:agent": "tsx apps/agent/server.ts",
+    "dev:agent:mcp": "tsx watch apps/agent/mcp_server.ts",
+    "start:agent:mcp": "tsx apps/agent/mcp_server.ts",
+    "build:portal": "next build",
+    "smoke": "tsx scripts/portal_smoke.ts && tsx scripts/smoke.ts && tsx scripts/agentic_smoke.ts && tsx scripts/agent_mcp_smoke.ts && tsx scripts/agent_mcp_http_smoke.ts",
+    "smoke:portal": "tsx scripts/portal_smoke.ts",
+    "smoke:backend": "tsx scripts/smoke.ts",
+    "smoke:agentic": "tsx scripts/agentic_smoke.ts",
+    "smoke:agent:mcp": "tsx scripts/agent_mcp_smoke.ts",
+    "smoke:agent:mcp:http": "tsx scripts/agent_mcp_http_smoke.ts"
+  },
+  "dependencies": {
+    "next": "^16.2.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

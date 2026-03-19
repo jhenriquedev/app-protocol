@@ -1,0 +1,12 @@
+[project]
+name = "app-protocol-example-python"
+version = "1.1.0"
+description = "APP v1.1.0 reference implementation in Python — task board with backend, portal (tkinter), and agent hosts"
+requires-python = ">=3.12"
+readme = "README.md"
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+include = ["core", "cases", "packages", "apps"]
+exclude = ["__pycache__"]

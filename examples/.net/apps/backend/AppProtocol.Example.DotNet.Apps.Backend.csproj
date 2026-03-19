@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\core\AppProtocol.Example.DotNet.Core.csproj" />
+    <ProjectReference Include="..\..\cases\tasks\AppProtocol.Example.DotNet.Cases.Tasks.csproj" />
+    <ProjectReference Include="..\..\packages\data\AppProtocol.Example.DotNet.Packages.Data.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

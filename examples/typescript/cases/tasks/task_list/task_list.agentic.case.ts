@@ -1,28 +1,21 @@
-/* ========================================================================== *
- * Example: task_list — Agentic Surface
- * --------------------------------------------------------------------------
- * Exposes task listing to agents. Execution resolves to the canonical
- * API surface via ctx.cases.
- * ========================================================================== */
-
 import {
-  AgenticContext,
-  AgenticDiscovery,
-  AgenticExecutionContext,
-  AgenticExample,
-  AgenticMcpContract,
-  AgenticPolicy,
-  AgenticPrompt,
-  AgenticRagContract,
-  AgenticToolContract,
   BaseAgenticCase,
+  type AgenticContext,
+  type AgenticDiscovery,
+  type AgenticExecutionContext,
+  type AgenticMcpContract,
+  type AgenticPolicy,
+  type AgenticPrompt,
+  type AgenticRagContract,
+  type AgenticToolContract,
 } from "../../../core/agentic.case";
-import { ApiResponse } from "../../../core/api.case";
+import { type ApiResponse } from "../../../core/api.case";
+import { toAppCaseError } from "../../../core/shared/app_structural_contracts";
 import {
-  AppCaseError,
-  toAppCaseError,
-} from "../../../core/shared/app_structural_contracts";
-import { TaskListDomain, TaskListInput, TaskListOutput } from "./task_list.domain.case";
+  TaskListDomain,
+  type TaskListInput,
+  type TaskListOutput,
+} from "./task_list.domain.case";
 
 type ExpectedCasesMap = {
   tasks?: {
@@ -34,10 +27,7 @@ type ExpectedCasesMap = {
   };
 };
 
-export class TaskListAgentic extends BaseAgenticCase<
-  TaskListInput,
-  TaskListOutput
-> {
+export class TaskListAgentic extends BaseAgenticCase<TaskListInput, TaskListOutput> {
   protected domain(): TaskListDomain {
     return new TaskListDomain();
   }
@@ -45,11 +35,13 @@ export class TaskListAgentic extends BaseAgenticCase<
   public discovery(): AgenticDiscovery {
     return {
       name: this.domainCaseName() ?? "task_list",
-      description: this.domainDescription() ?? "List tasks with optional filter.",
+      description:
+        this.domainDescription() ??
+        "Load current work items from the task studio board.",
       category: "tasks",
-      tags: ["tasks", "listing", "query"],
-      capabilities: ["task_listing", "task_search"],
-      intents: ["list tasks", "show my tasks", "what tasks do I have"],
+      tags: ["tasks", "list", "board"],
+      intents: ["show the board", "list tasks", "inspect work status"],
+      capabilities: ["task_list", "board_read"],
     };
   }
 
@@ -57,45 +49,45 @@ export class TaskListAgentic extends BaseAgenticCase<
     return {
       requiresAuth: false,
       dependencies: ["task_list.domain", "task_list.api"],
-      preconditions: ["The task collection must be readable."],
-      constraints: ["This capability is read-only."],
-      notes: ["Use task_list as a grounding step before ambiguous task mutations."],
+      constraints: ["Execution must delegate to the canonical API surface."],
+      notes: ["Use this before choosing a move target when the user is ambiguous."],
     };
   }
 
   public prompt(): AgenticPrompt {
     return {
-      purpose: "List tasks, optionally filtered by status (pending or done).",
+      purpose: "Load the current work items on the board.",
       whenToUse: [
-        "When a user wants to see their tasks.",
-        "When searching for pending or completed tasks.",
+        "When the user asks for current work status.",
+        "When another tool needs the current board state first.",
       ],
-      whenNotToUse: ["When creating or modifying tasks."],
-      constraints: ["Only the supported status filter may be applied when the user requested it."],
-      reasoningHints: ["Use listing to ground subsequent task_complete calls when the user did not provide an exact task id."],
-      expectedOutcome: "An array of task objects.",
+      whenNotToUse: ["When the user wants to create or move an item."],
+      expectedOutcome: "The full list of work items with their current board status.",
     };
   }
 
   public tool(): AgenticToolContract<TaskListInput, TaskListOutput> {
     const inputSchema = this.domainInputSchema();
     const outputSchema = this.domainOutputSchema();
+
     if (!inputSchema || !outputSchema) {
-      throw new Error("task_list agentic requires domain schemas");
+      throw new Error("task_list.agentic requires domain schemas");
     }
 
     return {
       name: "task_list",
-      description: "List tasks through the canonical API flow.",
+      description: "Load work items through the canonical API flow.",
       inputSchema,
       outputSchema,
-      isMutating: false,
       execute: async (input, ctx) => {
-        const cases = ctx.cases as ExpectedCasesMap | undefined;
-        const result = await cases?.tasks?.task_list?.api?.handler(input);
+        const result = await (ctx.cases as ExpectedCasesMap | undefined)?.tasks?.task_list?.api?.handler(
+          input
+        );
+
         if (!result?.success || !result.data) {
           throw toAppCaseError(result?.error, "task_list API failed");
         }
+
         return result.data;
       },
     };
@@ -105,20 +97,25 @@ export class TaskListAgentic extends BaseAgenticCase<
     return {
       enabled: true,
       name: "task_list",
-      title: "List Tasks",
-      description: "List tasks through the canonical APP task_list flow.",
-      metadata: { category: "tasks" },
+      title: "List Work Items",
+      description: "Load the current board state through the APP task_list API flow.",
+      metadata: {
+        category: "tasks",
+        mutating: false,
+      },
     };
   }
 
   public rag(): AgenticRagContract {
     return {
-      topics: ["task_management"],
+      topics: ["task_management", "board_visibility"],
       resources: [
-        { kind: "case", ref: "tasks/task_list", description: "Task listing capability." },
-        { kind: "case", ref: "tasks/task_create", description: "Related: task creation." },
+        {
+          kind: "case",
+          ref: "tasks/task_list",
+          description: "Canonical board read capability.",
+        },
       ],
-      hints: ["Use status filter to narrow results when the user specifies."],
       scope: "project",
       mode: "optional",
     };
@@ -132,53 +129,39 @@ export class TaskListAgentic extends BaseAgenticCase<
     };
   }
 
-  public examples(): AgenticExample<TaskListInput, TaskListOutput>[] {
-    return super.examples();
-  }
-
   public async test(): Promise<void> {
     this.validateDefinition();
 
-    const def = this.definition();
-    if (def.discovery.name !== "task_list") {
-      throw new Error("Agentic discovery name mismatch");
-    }
-    if (def.tool.isMutating !== false) {
-      throw new Error("task_list should not be mutating");
-    }
-
-    const example = this.examples()[0];
-    if (!example) {
-      throw new Error("task_list should expose at least one example");
-    }
-
-    let propagatedError: unknown;
-    try {
-      await this.tool().execute(example.input, {
-        correlationId: "task-list-agentic-failure-test",
-        logger: this.ctx.logger,
-        cases: {
-          tasks: {
-            task_list: {
-              api: {
-                handler: async () => ({
-                  success: false,
-                  error: {
-                    code: "INTERNAL",
-                    message: "task store is invalid",
-                  },
-                }),
-              },
+    const surface = new TaskListAgentic({
+      correlationId: "test-task-list-agentic",
+      logger: console,
+      cases: {
+        tasks: {
+          task_list: {
+            api: {
+              handler: async () => ({
+                success: true,
+                data: {
+                  items: [
+                    {
+                      id: "item_agentic_list",
+                      title: "Audit the board copy",
+                      status: "complete",
+                      createdAt: "2026-03-18T12:00:00.000Z",
+                      updatedAt: "2026-03-18T12:15:00.000Z",
+                    },
+                  ],
+                },
+              }),
             },
           },
         },
-      });
-    } catch (error: unknown) {
-      propagatedError = error;
-    }
+      },
+    } as AgenticContext);
 
-    if (!(propagatedError instanceof AppCaseError)) {
-      throw new Error("task_list must propagate structured AppCaseError failures");
+    const output = await surface.execute({});
+    if (output.items.length !== 1) {
+      throw new Error("task_list.agentic test expected one returned item");
     }
   }
 }

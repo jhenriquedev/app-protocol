@@ -1,56 +1,46 @@
-/* ========================================================================== *
- * Example: task_list — Domain Surface
- * ========================================================================== */
+import { BaseDomainCase, type AppSchema, type DomainExample } from "../../../core/domain.case";
 
-import { AppSchema, BaseDomainCase, DomainExample } from "../../../core/domain.case";
-import { Task } from "../task_create/task_create.domain.case";
+export type TaskBoardStatus = "backlog" | "active" | "complete";
 
-/* --------------------------------------------------------------------------
- * Types
- * ------------------------------------------------------------------------ */
+export interface TaskListInput {}
 
-export interface TaskListInput {
-  status?: "pending" | "done";
+export interface TaskListItem {
+  id: string;
+  title: string;
+  description?: string;
+  status: TaskBoardStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TaskListOutput {
-  tasks: Task[];
+  items: TaskListItem[];
 }
 
-/* --------------------------------------------------------------------------
- * Domain Case
- * ------------------------------------------------------------------------ */
-
-export class TaskListDomain extends BaseDomainCase<
-  TaskListInput,
-  TaskListOutput
-> {
-  caseName(): string {
+export class TaskListDomain extends BaseDomainCase<TaskListInput, TaskListOutput> {
+  public caseName(): string {
     return "task_list";
   }
 
-  description(): string {
-    return "Lists tasks with optional status filter.";
+  public description(): string {
+    return "Load the current work items for the studio board.";
   }
 
-  inputSchema(): AppSchema {
+  public inputSchema(): AppSchema {
     return {
       type: "object",
-      properties: {
-        status: {
-          type: "string",
-          enum: ["pending", "done"],
-          description: "Filter by task status",
-        },
-      },
+      description: "task_list currently does not require filters.",
+      properties: {},
+      additionalProperties: false,
     };
   }
 
-  outputSchema(): AppSchema {
+  public outputSchema(): AppSchema {
     return {
       type: "object",
+      description: "Current board items grouped only by the client.",
       properties: {
-        tasks: {
+        items: {
           type: "array",
           items: {
             type: "object",
@@ -58,58 +48,54 @@ export class TaskListDomain extends BaseDomainCase<
               id: { type: "string" },
               title: { type: "string" },
               description: { type: "string" },
-              status: { type: "string", enum: ["pending", "done"] },
+              status: {
+                type: "string",
+                enum: ["backlog", "active", "complete"],
+              },
               createdAt: { type: "string" },
+              updatedAt: { type: "string" },
             },
-            required: ["id", "title", "status", "createdAt"],
+            required: ["id", "title", "status", "createdAt", "updatedAt"],
+            additionalProperties: false,
           },
         },
       },
-      required: ["tasks"],
+      required: ["items"],
+      additionalProperties: false,
     };
   }
 
-  validate(input: TaskListInput): void {
-    if (input.status && !["pending", "done"].includes(input.status)) {
-      throw new Error("status must be 'pending' or 'done'");
-    }
-  }
-
-  invariants(): string[] {
+  public invariants(): string[] {
     return [
-      "Returns all tasks when no filter is provided",
-      "When status filter is provided, returns only matching tasks",
+      "task_list is read-only.",
+      "Returned items always use one of the three board statuses.",
     ];
   }
 
-  examples(): DomainExample<TaskListInput, TaskListOutput>[] {
+  public examples(): DomainExample<TaskListInput, TaskListOutput>[] {
     return [
       {
-        name: "list_all",
-        description: "List all tasks without filter",
+        name: "filled_board",
         input: {},
-        output: { tasks: [] },
-        notes: ["Empty list when no tasks exist"],
-      },
-      {
-        name: "list_pending",
-        description: "List only pending tasks",
-        input: { status: "pending" },
-        output: { tasks: [] },
+        output: {
+          items: [
+            {
+              id: "item_alpha",
+              title: "Draft visual direction",
+              status: "active",
+              createdAt: "2026-03-18T12:00:00.000Z",
+              updatedAt: "2026-03-18T12:05:00.000Z",
+            },
+          ],
+        },
       },
     ];
   }
 
-  async test(): Promise<void> {
-    const def = this.definition();
-    if (!def.caseName) throw new Error("test: caseName is empty");
-    if (!def.inputSchema.properties) throw new Error("test: inputSchema has no properties");
-
-    this.validate!({});
-    this.validate!({ status: "pending" });
-
-    let threw = false;
-    try { this.validate!({ status: "invalid" as "pending" }); } catch { threw = true; }
-    if (!threw) throw new Error("test: validate should reject invalid status");
+  public async test(): Promise<void> {
+    const definition = this.definition();
+    if (definition.caseName !== "task_list") {
+      throw new Error("task_list.domain test expected canonical name");
+    }
   }
 }

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "b94db31b-c3c3-487b-af5e-628cd8065b65",
+    "title": "tarefa 02",
+    "description": "uma nova task",
+    "status": "done",
+    "createdAt": "2026-03-18T14:24:40.105Z",
+    "updatedAt": "2026-03-18T14:24:44.030Z"
+  },
+  {
+    "id": "4e048c35-bffc-4a17-83b9-41b4993778af",
+    "title": "tarefa 01",
+    "description": "uma tarefa nova que precisa ser feita",
+    "status": "doing",
+    "createdAt": "2026-03-18T14:24:06.990Z",
+    "updatedAt": "2026-03-18T14:24:41.995Z"
+  }
+]
