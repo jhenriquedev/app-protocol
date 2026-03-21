@@ -1,7 +1,7 @@
 {
   "name": "app",
-  "version": "1.1.0",
-  "revision": "1.1.0-prd",
+  "version": "1.1.1",
+  "revision": "1.1.1-prd",
   "entry": "SKILL.md",
   "description": "Use when setting up APP projects, adding host apps, creating or updating Cases, introducing packages, classifying shared code across cases/packages/core/shared, maintaining <case>.us.md, validating APP grammar, reviewing structural drift, and adapting existing projects incrementally with the canonical /app workflow.",
   "hosts": {

@@ -38,7 +38,7 @@ import {
 import { type UserRegisterOutput } from "../../cases/users/user_register/user_register.domain.case";
 import { createRegistry, type AgentConfig } from "./registry";
 
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.1.1";
 const MCP_PROTOCOL_VERSION = "2025-11-25";
 const MCP_SUPPORTED_PROTOCOL_VERSIONS = [
   MCP_PROTOCOL_VERSION,
@@ -358,6 +358,13 @@ function buildPostSuccessEvent(
 
 export function bootstrap(config: AgentConfig = {}) {
   const registry = createRegistry(config);
+  let runtimeValidationPromise:
+    | Promise<{
+        tools: number;
+        mcpEnabled: number;
+        requireConfirmation: number;
+      }>
+    | undefined;
 
   function createCasesMap(parent: ParentExecutionContext): CasesMap {
     const cases: CasesMap = {};
@@ -601,11 +608,24 @@ export function bootstrap(config: AgentConfig = {}) {
     return registry.resolveTool(toolName, createAgenticContext(parent));
   }
 
+  async function ensureAgenticRuntimeValidated() {
+    if (!runtimeValidationPromise) {
+      runtimeValidationPromise = validateAgenticRuntime().catch((error) => {
+        runtimeValidationPromise = undefined;
+        throw error;
+      });
+    }
+
+    return runtimeValidationPromise;
+  }
+
   async function executeTool(
     toolName: string,
     input: unknown,
     parent?: Partial<ParentExecutionContext>
   ): Promise<unknown> {
+    await ensureAgenticRuntimeValidated();
+
     const entry = resolveTool(toolName, parent);
 
     if (!entry) {
@@ -663,6 +683,8 @@ export function bootstrap(config: AgentConfig = {}) {
     params?: AppMcpInitializeParams,
     parent?: Partial<AppMcpRequestContext>
   ): Promise<AppMcpInitializeResult> {
+    await ensureAgenticRuntimeValidated();
+
     if (
       params?.protocolVersion &&
       !MCP_SUPPORTED_PROTOCOL_VERSIONS.includes(
@@ -698,7 +720,7 @@ export function bootstrap(config: AgentConfig = {}) {
     };
   }
 
-  async function listMcpTools(
+  async function listMcpToolsRaw(
     parent?: Partial<AppMcpRequestContext>
   ): Promise<AppMcpToolDescriptor[]> {
     const ctx = createAgenticContext({
@@ -708,7 +730,14 @@ export function bootstrap(config: AgentConfig = {}) {
     return registry.listMcpEnabledTools(ctx).map(toMcpToolDescriptor);
   }
 
-  async function listMcpResources(
+  async function listMcpTools(
+    parent?: Partial<AppMcpRequestContext>
+  ): Promise<AppMcpToolDescriptor[]> {
+    await ensureAgenticRuntimeValidated();
+    return listMcpToolsRaw(parent);
+  }
+
+  async function listMcpResourcesRaw(
     parent?: Partial<AppMcpRequestContext>
   ): Promise<AppMcpResourceDescriptor[]> {
     const ctx = createAgenticContext({
@@ -721,10 +750,19 @@ export function bootstrap(config: AgentConfig = {}) {
     return [toMcpSystemPromptDescriptor(), ...resources];
   }
 
+  async function listMcpResources(
+    parent?: Partial<AppMcpRequestContext>
+  ): Promise<AppMcpResourceDescriptor[]> {
+    await ensureAgenticRuntimeValidated();
+    return listMcpResourcesRaw(parent);
+  }
+
   async function readMcpResource(
     uri: string,
     parent?: Partial<AppMcpRequestContext>
   ): Promise<AppMcpReadResourceResult> {
+    await ensureAgenticRuntimeValidated();
+
     if (uri === buildSystemPromptResourceUri()) {
       return {
         contents: [
@@ -781,6 +819,8 @@ export function bootstrap(config: AgentConfig = {}) {
     args: unknown,
     parent?: Partial<AppMcpRequestContext>
   ): Promise<AppMcpCallResult> {
+    await ensureAgenticRuntimeValidated();
+
     const envelope = toExecutionEnvelope(args);
 
     try {
@@ -883,7 +923,7 @@ export function bootstrap(config: AgentConfig = {}) {
       throw new Error("apps/agent must project a non-empty global system prompt");
     }
 
-    const resources = await listMcpResources({
+    const resources = await listMcpResourcesRaw({
       transport: "validation",
     });
     if (resources.length < catalog.filter((entry) => entry.isMcpEnabled).length + 1) {
@@ -913,13 +953,14 @@ export function bootstrap(config: AgentConfig = {}) {
   }
 
   async function publishMcp(): Promise<void> {
-    await validateAgenticRuntime();
+    await ensureAgenticRuntimeValidated();
     await registry._providers.mcpAdapters.stdio.serve(createMcpServer());
   }
 
   async function handleMcpHttp(
     exchange: AppMcpHttpExchange
   ): Promise<AppMcpHttpResponse | undefined> {
+    await ensureAgenticRuntimeValidated();
     return registry._providers.mcpAdapters.http.handle(
       exchange,
       createMcpServer()

@@ -61,11 +61,24 @@ export class UserValidateUi extends BaseUiCase<UserValidateState> {
    * ===================================================================== */
 
   public async test(): Promise<void> {
+    const previousApi = this.ctx.api;
+    this.ctx.api = {
+      request: async () => ({
+        valid: true,
+        errors: [],
+      }),
+    };
+
     this.setState({ email: "test@example.com", name: "Test User", age: "25" });
-    await this._service();
-    const vm = this._viewmodel();
-    if (!vm.feedback || vm.feedback.type !== "success") {
-      throw new Error("Expected validation to succeed for valid input");
+
+    try {
+      await this._service();
+      const vm = this._viewmodel();
+      if (!vm.feedback || vm.feedback.type !== "success") {
+        throw new Error("Expected validation to succeed for valid input");
+      }
+    } finally {
+      this.ctx.api = previousApi;
     }
   }
 

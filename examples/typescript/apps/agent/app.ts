@@ -24,7 +24,7 @@ import {
 } from "../../core/shared/app_mcp_contracts";
 import { createRegistry, type AgentConfig } from "./registry";
 
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.1.1";
 const DEFAULT_MCP_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_MCP_PROTOCOL_VERSIONS = [
   DEFAULT_MCP_PROTOCOL_VERSION,

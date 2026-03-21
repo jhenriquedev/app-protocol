@@ -28,7 +28,7 @@ import app.protocol.examples.kotlin.core.shared.AppMcpToolDescriptor
 import kotlinx.serialization.json.JsonElement
 import java.util.UUID
 
-private const val APP_VERSION = "1.1.0"
+private const val APP_VERSION = "1.1.1"
 private const val MCP_PROTOCOL_VERSION = "2025-11-25"
 private val MCP_SUPPORTED_PROTOCOL_VERSIONS = setOf(MCP_PROTOCOL_VERSION, "2025-06-18")
 

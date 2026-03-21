@@ -65,15 +65,30 @@ export class UserRegisterUi extends BaseUiCase<UserRegisterState> {
    * ===================================================================== */
 
   public async test(): Promise<void> {
+    const previousApi = this.ctx.api;
+    this.ctx.api = {
+      request: async () => ({
+        id: "test-user-id",
+        email: "new@example.com",
+        name: "New User",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      }),
+    };
+
     this.setState({
       email: "new@example.com",
       name: "New User",
       password: "securepass123",
       confirmPassword: "securepass123",
     });
-    await this._service();
-    if (!this.state.result) {
-      throw new Error("Expected registration to produce a result");
+
+    try {
+      await this._service();
+      if (!this.state.result) {
+        throw new Error("Expected registration to produce a result");
+      }
+    } finally {
+      this.ctx.api = previousApi;
     }
   }
 

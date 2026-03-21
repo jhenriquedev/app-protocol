@@ -31,7 +31,7 @@ import {
 } from "../../core/shared/app_host_contracts";
 import { createRegistry, type AgentConfig } from "./registry";
 
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.1.1";
 const MCP_PROTOCOL_VERSION = "2025-11-25";
 const MCP_SUPPORTED_PROTOCOL_VERSIONS = [
   MCP_PROTOCOL_VERSION,

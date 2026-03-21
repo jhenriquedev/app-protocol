@@ -1,5 +1,5 @@
 # ==========================================================================
-# APP v1.1.0
+# APP v1.1.1
 # apps/agent/app.py
 # --------------------------------------------------------------------------
 # Agent host bootstrap.
@@ -53,7 +53,7 @@ from apps.agent.registry import AgentConfig, create_registry
 _MCP_PROTOCOL_VERSION = "2025-03-26"
 _MCP_SUPPORTED_VERSIONS = ["2024-11-05", "2025-03-26"]
 _MCP_SERVER_NAME = "app-python-agent"
-_MCP_SERVER_VERSION = "1.1.0"
+_MCP_SERVER_VERSION = "1.1.1"
 
 
 # ==========================================================================

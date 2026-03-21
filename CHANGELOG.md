@@ -4,6 +4,26 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## v1.1.1
+
+### Added
+
+- Exact canonical class templates for `domain`, atomic/composed `api`, `ui`, atomic/composed `stream`, and `agentic` in the active `/app` skill materials
+- Release snapshot [`versions/v1.1.1.md`](./versions/v1.1.1.md) for the current working draft
+
+### Changed
+
+- Repository, example manifests, skill metadata, and host-visible version strings advance to `1.1.1`
+- Docs CI now validates APP boundaries and the installable skill package in addition to typecheck
+- The active `/app` documentation set is synchronized across `skills/app/`, installable skill mirrors, and `docs/skill_v5.md`
+- Example index/docs now point to the maintained Deno companion and remove stale `.NET` references that were no longer backed by a current example directory
+- The canonical agent host now validates its runtime once and enforces that validation before tool execution and MCP operations
+
+### Fixed
+
+- `user_register.ui.case.ts` and `user_validate.ui.case.ts` tests no longer depend on ambient host HTTP clients; they stub and restore `ctx.api` locally
+- Removed ambiguity in `/app` around the exact class shape required for each Case surface
+
 ## v1.1.0
 
 ### Added

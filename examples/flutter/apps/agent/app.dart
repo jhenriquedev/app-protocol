@@ -10,7 +10,7 @@ import '../../core/shared/app_mcp_contracts.dart';
 import '../../core/shared/app_structural_contracts.dart';
 import 'registry.dart';
 
-const String appVersion = '1.1.0';
+const String appVersion = '1.1.1';
 const String mcpProtocolVersion = '2025-11-25';
 const List<String> mcpSupportedProtocolVersions = <String>[
   mcpProtocolVersion,

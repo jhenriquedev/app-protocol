@@ -42,7 +42,7 @@ import java.util.UUID;
 
 public final class AgentApp {
   private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final String APP_VERSION = "1.1.0";
+  private static final String APP_VERSION = "1.1.1";
   private static final String MCP_PROTOCOL_VERSION = "2025-11-25";
   private static final List<String> MCP_SUPPORTED_PROTOCOL_VERSIONS = List.of(
       MCP_PROTOCOL_VERSION,

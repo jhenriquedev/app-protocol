@@ -9,7 +9,7 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v1.1.0`](./versions/v1.1.0.md)
+- Latest released snapshot: [`v1.1.1`](./versions/v1.1.1.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: stable protocol baseline with TypeScript reference implementation
 
@@ -115,7 +115,7 @@ with canonical `apps/agent/` and shared MCP contracts in `core/shared/`.
 - [`scripts/validate-boundaries.mjs`](./scripts/validate-boundaries.mjs): initial static boundary validator for `cases/`, `packages/`, and `registry.ts`
 - [`rfcs/`](./rfcs): proposal process for substantive changes
 - [`src/`](./src): minimal TypeScript protocol baseline with canonical `apps/agent/`, `backend`, `portal`, `lambdas`, and user Cases
-- [`examples/`](./examples): executable APP references across React, Next.js, Node.js, Go, .NET, and TypeScript
+- [`examples/`](./examples): executable APP references across React, Next.js, Node.js, Go, Deno, and TypeScript, plus additional ecosystem references under `examples/`
 - [`i18n/pt-br/`](./i18n/pt-br/): backup copies of native Portuguese materials
 
 ## Core Model

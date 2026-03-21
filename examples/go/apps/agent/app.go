@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	AppVersion           = "1.1.0"
+	AppVersion           = "1.1.1"
 	MCPProtocolVersion   = "2025-11-25"
 	MCPLegacyVersion     = "2025-06-18"
 	AgentServerName      = "go-task-board-agent"

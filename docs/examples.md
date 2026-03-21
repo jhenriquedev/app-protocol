@@ -58,14 +58,6 @@ This recreates the complete task-board capability of the React example in Deno,
 including `backend`, `portal`, and `agent` hosts, JSON persistence, HTTP
 publication, MCP `stdio`, and remote MCP HTTP publication.
 
-.NET-first companion reference:
-
-- [`../examples/.net/`](../examples/.net/)
-
-This recreates the complete task-board capability of the React example in .NET
-and C#, including `backend`, `portal`, and `agent` hosts, JSON persistence, HTTP
-publication, MCP `stdio`, and remote MCP HTTP publication.
-
 ## What the React example demonstrates
 
 - canonical project structure
@@ -102,15 +94,6 @@ publication, MCP `stdio`, and remote MCP HTTP publication.
   semantics
 - HTTP, MCP `stdio`, and remote MCP publication from the same agent host
 - end-to-end validation across backend, portal, and agent runtime boundaries
-
-## What the .NET example demonstrates
-
-- canonical project structure
-- `backend`, `portal`, and `agent` hosts
-- domain, API, UI, and agentic surfaces in C#
-- a .NET-native portal host that still preserves canonical APP `ui` semantics
-- HTTP, MCP `stdio`, and remote MCP publication from the same agent host
-- end-to-end validation across backend and agent runtime boundaries
 
 ## Run the React example
 
@@ -170,21 +153,6 @@ deno task --cwd ../examples/deno smoke
 Expected output:
 
 - backend and agent host boot logs
-- backend smoke passing
-- agentic HTTP smoke passing
-- MCP stdio smoke passing
-- remote MCP HTTP smoke passing
-
-## Run the .NET example
-
-```bash
-dotnet build ../examples/.net/app-protocol-example-dotnet.sln
-dotnet run --project ../examples/.net/scripts/SmokeRunner/AppProtocol.Example.DotNet.SmokeRunner.csproj
-```
-
-Expected output:
-
-- backend and agent host builds passing
 - backend smoke passing
 - agentic HTTP smoke passing
 - MCP stdio smoke passing
@@ -303,21 +271,12 @@ Use the Go example when you want to:
 Use the Deno example when you want to:
 
 - inspect a full APP implementation on the Deno runtime
-- compare the same task-board capability against the React, Go, and .NET
+- compare the same task-board capability against the React, Node.js, and Go
   companions with a Deno-native backend and agent host
 - validate HTTP, remote MCP, and stdio MCP behavior against a runnable Deno
   reference
 - study how the APP host/bootstrap model maps into Deno `serve`, Deno
   subprocesses, and Deno-managed npm/jsr dependencies
-
-Use the .NET example when you want to:
-
-- inspect a full APP implementation in C# with multi-project solution boundaries
-- compare APP host/runtime semantics across React, Node.js, Go, and .NET
-- validate HTTP, remote MCP, and stdio MCP behavior against a runnable .NET
-  reference
-- study how `packages/`, `ctx.packages`, and `ctx.cases` map into idiomatic
-  ASP.NET Core and Blazor without breaking APP grammar
 
 Use the Next.js example when you want to:
 
@@ -338,6 +297,5 @@ Use the Next.js example when you want to:
 - [`../examples/node/README.md`](../examples/node/README.md)
 - [`../examples/go/README.md`](../examples/go/README.md)
 - [`../examples/deno/README.md`](../examples/deno/README.md)
-- [`../examples/.net/README.md`](../examples/.net/README.md)
 - [`../examples/next/README.md`](../examples/next/README.md)
 - [`../examples/typescript/README.md`](../examples/typescript/README.md)

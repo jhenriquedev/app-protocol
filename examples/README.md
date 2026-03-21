@@ -9,7 +9,7 @@ Current status:
 - full Next.js web reference published in `examples/next/`
 - full Node.js portal companion reference published in `examples/node/`
 - full Go task-board companion reference published in `examples/go/`
-- full .NET and C# task-board companion reference published in `examples/.net/`
+- full Deno task-board companion reference published in `examples/deno/`
 - full 100% TypeScript companion reference published in `examples/typescript/`
 - complete secondary references published in `examples/angular/`,
   `examples/flutter/`, `examples/java/`, and `examples/kotlin/`
@@ -21,7 +21,7 @@ The React reference currently demonstrates an `agent` host with HTTP, MCP
 The Go reference recreates the same task-board capability in a Go-native stack
 with `backend`, `portal`, and `agent` hosts plus the same MCP publication model.
 
-The .NET reference recreates the same task-board capability in a C#-native
+The Deno reference recreates the same task-board capability in a Deno-native
 stack with `backend`, `portal`, and `agent` hosts plus the same MCP publication
 model, including MCP `stdio` and remote MCP over HTTP.
 
@@ -32,7 +32,7 @@ Additional targets:
 - React
 - Next.js
 - Go
-- .NET
+- Deno
 - Angular
 - Flutter
 - Java

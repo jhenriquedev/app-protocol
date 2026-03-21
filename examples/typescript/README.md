@@ -10,7 +10,7 @@ stdio, and remote MCP HTTP publication.
 Goal:
 
 - demonstrate APP in 100% TypeScript
-- keep the project faithful to `app@v1.1.0` and `/app@1.1.0-prd`
+- keep the project faithful to `app@v1.1.1` and `/app@1.1.1-prd`
 - avoid framework-specific UI dependencies while preserving `ui.case.ts`
 - show that the same Cases can power backend, portal, and agent hosts
 

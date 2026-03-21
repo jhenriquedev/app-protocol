@@ -25,6 +25,12 @@ jobs:
       - name: Type check
         run: npm run typecheck
 
+      - name: Validate APP boundaries
+        run: npm run validate:boundaries
+
+      - name: Validate installable skill package
+        run: node tooling/skill-app/bin/app-skill.mjs validate
+
   markdown:
     runs-on: ubuntu-latest
     steps:
