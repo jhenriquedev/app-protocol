@@ -58,8 +58,9 @@ jobs:
       - name: Validate installable skill package
         run: node tooling/skill-app/bin/app-skill.mjs validate
 
-      - name: Run example scenario and tests
-        run: npm --prefix examples/typescript run start
+      - name: Run example smoke suite
+        timeout-minutes: 10
+        run: npm --prefix examples/typescript run smoke
 
       - name: Extract release notes
         run: npm run release:notes -- "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
