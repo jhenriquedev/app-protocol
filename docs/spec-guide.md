@@ -83,7 +83,7 @@ APP allows operational profiles that are stricter than baseline protocol conform
 
 The main example in this repository is:
 
-- `/app`, documented in [`skill_v5.md`](./skill_v5.md) and packaged through [`../skills/app/`](../skills/app/)
+- `/app`, documented in [`skill_v6.md`](./skill_v6.md) and packaged through [`../skills/app/`](../skills/app/)
 
 That profile does not replace the protocol.
 It operationalizes it for agent workflows.

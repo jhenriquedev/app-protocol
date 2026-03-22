@@ -28,6 +28,7 @@ List commands and print the installer version:
 npx @app-protocol/skill-app --help
 npx @app-protocol/skill-app --version
 npx @app-protocol/skill-app -v
+npx @app-protocol/skill-app outdated all --project .
 ```
 
 ## Project-local install
@@ -151,14 +152,23 @@ find .windsurf/skills/app -maxdepth 3 -type f | sort
 find .agents/skills/app -maxdepth 3 -type f | sort
 ```
 
+Check whether the installed skill is behind the latest published version:
+
+```bash
+npx @app-protocol/skill-app outdated all --project .
+```
+
 Minimum expected files per host:
 
 - `SKILL.md`
+- `spec.md`
 - `skill.json`
+- `agents/openai.yaml`
 
 ## What the installer does
 
 The installer copies the canonical skill package into the host-specific skill directory.
+That package includes `SKILL.md`, the adjacent installed `spec.md`, and host prompt metadata.
 
 It does not:
 
@@ -166,6 +176,10 @@ It does not:
 - change the APP protocol
 - update already installed skills automatically unless you run install again
 - guess a downgrade target version without an explicit package version
+
+Operational expectation after install:
+
+- agents should read both `SKILL.md` and the adjacent `spec.md` before acting with `/app`
 
 ## Troubleshooting
 

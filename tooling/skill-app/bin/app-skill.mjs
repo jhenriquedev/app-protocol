@@ -34,6 +34,8 @@ function printHelp() {
 Usage:
   app-skill [--help|-h|--version|-v]
   app-skill version
+  app-skill outdated [${hostList}] [--project <path>]
+  app-skill outdated [${hostList}] --global
   app-skill install [${hostList}] [--project <path>] [--version <version>]
   app-skill install [${hostList}] --global [--version <version>]
   app-skill update [${hostList}] [--project <path>] [--version <version>]
@@ -61,6 +63,7 @@ Compatibility:
 Examples:
   app-skill install all --project .
   app-skill install codex --global
+  app-skill outdated all --project .
   app-skill update copilot --project .
   app-skill upgrade all --project .
   app-skill uninstall windsurf --global
@@ -124,7 +127,7 @@ function parseArgs(argv) {
 
   const [command = "help", maybeHost, ...rest] = argv;
   const args = {
-    command,
+    command: command === "check-updates" ? "outdated" : command,
     host: maybeHost && !maybeHost.startsWith("--") ? maybeHost : "all",
     project: process.cwd(),
     global: false,
@@ -244,11 +247,10 @@ function runCommand(command, args, options = {}) {
 
 async function runNpm(args) {
   if (process.platform === "win32") {
-    await runCommand("npm", args, { shell: true });
-    return;
+    return runCommand("npm", args, { shell: true });
   }
 
-  await runCommand("npm", args);
+  return runCommand("npm", args);
 }
 
 function describeTransition(command, previousVersion, nextVersion) {
@@ -403,13 +405,16 @@ async function uninstall(host, projectRoot, isGlobal) {
 }
 
 async function validatePackage() {
+  const specEntry = typeof manifest.specEntry === "string" ? manifest.specEntry : null;
   const requiredFiles = [
     path.join(skillDir, manifest.entry),
     path.join(skillDir, "skill.json"),
     path.join(skillDir, "agents", "openai.yaml"),
+    specEntry ? path.join(skillDir, specEntry) : null,
   ];
 
   for (const file of requiredFiles) {
+    if (!file) continue;
     await readFile(file, "utf8");
   }
 
@@ -421,6 +426,20 @@ async function validatePackage() {
     throw new Error("Expected at least three supported hosts in the manifest.");
   }
 
+  if (specEntry !== "spec.md") {
+    throw new Error('Expected manifest.specEntry to be "spec.md".');
+  }
+
+  if (
+    !Array.isArray(manifest.requiredReads) ||
+    !manifest.requiredReads.includes(manifest.entry) ||
+    !manifest.requiredReads.includes(specEntry)
+  ) {
+    throw new Error(
+      `Expected manifest.requiredReads to include "${manifest.entry}" and "${specEntry}".`
+    );
+  }
+
   for (const [host, config] of Object.entries(manifest.hosts)) {
     if (!config.projectPath || !config.globalPathFallback || !config.globalPathEnv) {
       throw new Error(`Host "${host}" is missing install path configuration.`);
@@ -428,6 +447,43 @@ async function validatePackage() {
   }
 
   console.log(`validated ${manifest.name}@${manifest.version}`);
+}
+
+async function fetchLatestPublishedVersion() {
+  const { stdout } = await runNpm(["view", packageManifest.name, "version"]);
+  const latest = stdout.trim();
+
+  if (!latest) {
+    throw new Error(`Could not resolve the latest published version for ${packageManifest.name}.`);
+  }
+
+  return latest;
+}
+
+async function printOutdated(host, projectRoot, isGlobal) {
+  const latestPublishedVersion = await fetchLatestPublishedVersion();
+  console.log(
+    `package ${packageManifest.name} current=${manifest.version} latest=${latestPublishedVersion}`
+  );
+
+  const targets = resolveTargets(host, projectRoot, isGlobal);
+  for (const { host: targetHost, target } of targets) {
+    const installedVersion = await readInstalledVersion(target);
+    const comparison = installedVersion
+      ? compareVersions(installedVersion, latestPublishedVersion)
+      : null;
+    const state = installedVersion
+      ? comparison < 0
+        ? "update-available"
+        : comparison > 0
+          ? "ahead-of-latest"
+          : "up-to-date"
+      : "not-installed";
+
+    console.log(
+      `${targetHost} installed=${installedVersion ?? "none"} latest=${latestPublishedVersion} state=${state} path=${target}`
+    );
+  }
 }
 
 async function main() {
@@ -440,6 +496,9 @@ async function main() {
       return;
     case "version":
       printVersion();
+      return;
+    case "outdated":
+      await printOutdated(host, path.resolve(args.project), args.global);
       return;
     case "manifest":
       console.log(JSON.stringify(manifest, null, 2));

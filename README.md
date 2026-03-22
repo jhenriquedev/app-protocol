@@ -9,7 +9,7 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v1.1.1`](./versions/v1.1.1.md)
+- Latest released snapshot: [`v1.1.2`](./versions/v1.1.2.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: stable protocol baseline with TypeScript reference implementation
 
@@ -58,6 +58,8 @@ Quick project-local install of the `/app` skill:
 ```bash
 npx @app-protocol/skill-app install all --project .
 ```
+
+Each installed skill now includes both `SKILL.md` and the current `spec.md` copy so agents can read the operational profile and the normative protocol together.
 
 Supported host mirrors:
 
@@ -109,9 +111,9 @@ with canonical `apps/agent/` and shared MCP contracts in `core/shared/`.
 - [`docs/conformance.md`](./docs/conformance.md): conformance levels and validation criteria
 - [`docs/development-flow.md`](./docs/development-flow.md): how the spec evolves
 - [`docs/publishing.md`](./docs/publishing.md): release and publishing flow for the installable `/app` skill
-- [`docs/skill_v5.md`](./docs/skill_v5.md): current revision of the canonical `/app` operational skill
+- [`docs/skill_v6.md`](./docs/skill_v6.md): current revision of the canonical `/app` operational skill
 - [`skills/app/`](./skills/app): canonical installable `/app` skill package
-- [`tooling/skill-app/`](./tooling/skill-app): npm-publishable installer package for the `/app` skill with install, update, upgrade, downgrade, and uninstall commands
+- [`tooling/skill-app/`](./tooling/skill-app): npm-publishable installer package for the `/app` skill with install, update, upgrade, downgrade, uninstall, and `outdated` commands
 - [`scripts/validate-boundaries.mjs`](./scripts/validate-boundaries.mjs): initial static boundary validator for `cases/`, `packages/`, and `registry.ts`
 - [`rfcs/`](./rfcs): proposal process for substantive changes
 - [`src/`](./src): minimal TypeScript protocol baseline with canonical `apps/agent/`, `backend`, `portal`, `lambdas`, and user Cases
@@ -134,10 +136,14 @@ Canonical surfaces:
 - `domain.case.ts`
 - `api.case.ts`
 - `ui.case.ts`
+- `web.case.ts`
+- `mobile.case.ts`
 - `stream.case.ts`
 - `agentic.case.ts`
 
 Not every Case needs every surface.
+
+`ui.case.ts` remains the general visual surface. `web.case.ts` and `mobile.case.ts` are specialized visual surfaces in the same family and may use their own concrete contracts.
 
 `stream.case.ts` now uses a declarative `recoveryPolicy()` contract for retry and dead-letter semantics. The Case declares recovery intent; the app host validates and binds that policy to the concrete runtime during bootstrap.
 

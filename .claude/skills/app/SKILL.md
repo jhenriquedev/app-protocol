@@ -10,8 +10,8 @@ and improving scanability.
 
 ## Revision Metadata
 
-- Version: `1.1.1-prd`
-- Protocol: `app@v1.1.1`
+- Version: `1.1.2-prd`
+- Protocol: `app@v1.1.2`
 - Status: `prd`
 
 ## What This Skill Does
@@ -20,7 +20,7 @@ and improving scanability.
 - set up a new APP project with canonical layers and the first host app
 - add a new host app such as `backend`, `portal`, `agent`, `worker`, or `lambdas`
 - create a new Case such as `usuario_criar`
-- implement or revise `domain`, `api`, `ui`, `stream`, and `agentic` surfaces
+- implement or revise `domain`, `api`, `ui`, `web`, `mobile`, `stream`, and `agentic` surfaces
 - introduce `packages/` and expose them correctly through host registries
 - classify whether a new artifact belongs in `cases/`, `packages/`, `core/shared/`, or requires protocol evolution
 - validate APP grammar and host runtime rules
@@ -56,7 +56,7 @@ APP is the protocol layer of the AI-First Programming Paradigm.
 
 ### Scope
 
-- self-sufficient for agent operation
+- operates with the adjacent installed `spec.md` as its normative protocol reference
 - operationalizes the current APP protocol version
 - may be stricter than baseline APP conformance
 - must not contradict canonical APP grammar
@@ -85,6 +85,7 @@ APP defines baseline protocol grammar.
 ### Core Rules
 
 - start unknown work with `inspect`
+- on every `/app` turn, read this `SKILL.md` and the adjacent installed `spec.md` before acting; if `spec.md` is missing, report incomplete skill installation or drift
 - keep `handler()` thin and free of business logic
 - create or update `<case>.us.md` when semantics change
 - add or update `test()` on every touched surface
@@ -167,7 +168,9 @@ Implement only the surfaces the task needs.
 | ----------- | -------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `domain`  | `<case>.domain.case.ts`  | pure semantics, invariants, validation, schemas, examples | `caseName()`, `description()`, `inputSchema()`, `outputSchema()`, `test()`     | `validate`, `invariants`, `valueObjects`, `enums`, `examples`, `definition` | no I/O; consumed manually by other surfaces; no auto-wiring of `domain.validate()`                                                                                                    |
 | `api`     | `<case>.api.case.ts`     | backend execution, auth, orchestration, response          | `handler(input)`, `test()`, one execution center: `_service` or `_composition`   | `router`, `_validate`, `_authorize`, `_repository`                              | `handler()` receives business input; `router()` only binds transport; `_composition` uses `ctx.cases`                                                                           |
-| `ui`      | `<case>.ui.case.ts`      | self-contained visual unit                                | `view()`, `test()`                                                                   | `_viewmodel`, `_service`, `_repository`, `setState`                             | UI must not do direct cross-case composition                                                                                                                                            |
+| `ui`      | `<case>.ui.case.ts`      | self-contained visual unit                                | `view()`, `test()`                                                                   | `_viewmodel`, `_service`, `_repository`, `setState`                             | general visual surface; must not do direct cross-case composition                                                                                                                       |
+| `web`     | `<case>.web.case.ts`     | self-contained visual unit for web runtimes               | `view()`, `test()`                                                                   | `_viewmodel`, `_service`, `_repository`, `setState`                             | specialized visual surface; shares APP grammar but not a required concrete contract with `ui` or `mobile`                                                                              |
+| `mobile`  | `<case>.mobile.case.ts`  | self-contained visual unit for mobile runtimes            | `view()`, `test()`                                                                   | `_viewmodel`, `_service`, `_repository`, `setState`                             | specialized visual surface; shares APP grammar but not a required concrete contract with `ui` or `web`                                                                                 |
 | `stream`  | `<case>.stream.case.ts`  | event consumption, publication, declarative recovery      | `handler(event)`, `test()`, one execution center: `_service` or `_composition`   | `subscribe`, `recoveryPolicy`, `_consume`, `_repository`, `_publish`          | `subscribe()` and `recoveryPolicy()` are declarative; `recoveryPolicy()` must be deterministic and free of I/O                                                                    |
 | `agentic` | `<case>.agentic.case.ts` | discovery, tool contract, policy, MCP integration         | `discovery()`, `context()`, `prompt()`, `tool()`, `test()` when surface exists | `mcp`, `rag`, `policy`, `examples`                                              | `tool.execute()` delegates to a canonical surface; no shadow business logic; if the task requires the agentic layer, `/app` requires the full formal definition, not a partial stub |
 
@@ -193,6 +196,33 @@ Grammar:
 ```text
 view ↔ _viewmodel ↔ _service ↔ _repository
 ```
+
+- `ui` is the general visual surface in APP
+- `ui` must not do direct cross-case composition
+
+#### web
+
+Grammar:
+
+```text
+view ↔ _viewmodel ↔ _service ↔ _repository
+```
+
+- `web` is the visual surface specialized for web runtimes
+- `web` shares the APP visual grammar, but it is not required to reuse the same concrete contract as `ui`
+- `web` must not do direct cross-case composition
+
+#### mobile
+
+Grammar:
+
+```text
+view ↔ _viewmodel ↔ _service ↔ _repository
+```
+
+- `mobile` is the visual surface specialized for mobile runtimes
+- `mobile` shares the APP visual grammar, but it is not required to reuse the same concrete contract as `ui` or `web`
+- `mobile` must not do direct cross-case composition
 
 #### stream
 
@@ -542,7 +572,169 @@ Non-negotiable interpretation:
 - use `setState()` for local state transitions
 - `ui` does not define `_composition` and must not perform direct cross-case orchestration
 
-#### 5.3.5 `stream` — exact template for atomic Case
+#### 5.3.5 `web` — exact template
+
+This is the canonical shape of `<case>.web.case.ts`.
+
+```ts
+import {
+  BaseWebCase,
+  WebContext,
+  WebState,
+} from "../../../core/web.case";
+
+interface MyCaseState extends WebState {
+  value: string;
+  loading: boolean;
+  error: string | null;
+}
+
+export class MyCaseWeb extends BaseWebCase<MyCaseState> {
+  constructor(ctx: WebContext) {
+    super(ctx, {
+      value: "",
+      loading: false,
+      error: null,
+    });
+  }
+
+  public view(): unknown {
+    const vm = this._viewmodel();
+
+    return {
+      type: "form",
+      fields: vm.fields,
+      submitDisabled: vm.submitDisabled,
+      feedback: vm.feedback,
+      onSubmit: () => this._service(),
+    };
+  }
+
+  public async test(): Promise<void> {
+    this.setState({ value: "x" });
+    await this._service();
+  }
+
+  protected _viewmodel() {
+    const { value, loading, error } = this.state;
+
+    return {
+      fields: [{ name: "value", value, label: "Value", type: "text" }],
+      submitDisabled: loading || !value,
+      feedback: error ? { type: "error", message: error } : null,
+    };
+  }
+
+  protected async _service(): Promise<void> {
+    this.setState({ loading: true, error: null });
+
+    try {
+      await this._repository({ value: this.state.value });
+      this.setState({ loading: false });
+    } catch (err) {
+      this.setState({ loading: false, error: (err as Error).message });
+    }
+  }
+
+  protected async _repository(input: { value: string }): Promise<unknown> {
+    return this.ctx.api?.request({
+      method: "POST",
+      url: "/my-case",
+      body: input,
+    });
+  }
+}
+```
+
+Non-negotiable interpretation:
+
+- `view()` is the required public entrypoint
+- canonical Web flow is `view ↔ _viewmodel ↔ _service ↔ _repository`
+- `web` may define browser/web-specific context details without reusing the `ui` contract
+- `web` does not define `_composition` and must not perform direct cross-case orchestration
+
+#### 5.3.6 `mobile` — exact template
+
+This is the canonical shape of `<case>.mobile.case.ts`.
+
+```ts
+import {
+  BaseMobileCase,
+  MobileContext,
+  MobileState,
+} from "../../../core/mobile.case";
+
+interface MyCaseState extends MobileState {
+  value: string;
+  loading: boolean;
+  error: string | null;
+}
+
+export class MyCaseMobile extends BaseMobileCase<MyCaseState> {
+  constructor(ctx: MobileContext) {
+    super(ctx, {
+      value: "",
+      loading: false,
+      error: null,
+    });
+  }
+
+  public view(): unknown {
+    const vm = this._viewmodel();
+
+    return {
+      type: "form",
+      fields: vm.fields,
+      submitDisabled: vm.submitDisabled,
+      feedback: vm.feedback,
+      onSubmit: () => this._service(),
+    };
+  }
+
+  public async test(): Promise<void> {
+    this.setState({ value: "x" });
+    await this._service();
+  }
+
+  protected _viewmodel() {
+    const { value, loading, error } = this.state;
+
+    return {
+      fields: [{ name: "value", value, label: "Value", type: "text" }],
+      submitDisabled: loading || !value,
+      feedback: error ? { type: "error", message: error } : null,
+    };
+  }
+
+  protected async _service(): Promise<void> {
+    this.setState({ loading: true, error: null });
+
+    try {
+      await this._repository({ value: this.state.value });
+      this.setState({ loading: false });
+    } catch (err) {
+      this.setState({ loading: false, error: (err as Error).message });
+    }
+  }
+
+  protected async _repository(input: { value: string }): Promise<unknown> {
+    return this.ctx.api?.request({
+      method: "POST",
+      url: "/my-case",
+      body: input,
+    });
+  }
+}
+```
+
+Non-negotiable interpretation:
+
+- `view()` is the required public entrypoint
+- canonical Mobile flow is `view ↔ _viewmodel ↔ _service ↔ _repository`
+- `mobile` may define mobile-specific context details without reusing the `web` or `ui` contract
+- `mobile` does not define `_composition` and must not perform direct cross-case orchestration
+
+#### 5.3.7 `stream` — exact template for atomic Case
 
 This is the canonical shape of `<case>.stream.case.ts` when the Case is atomic.
 
@@ -621,7 +813,7 @@ export class MyCaseStream extends BaseStreamCase<
 }
 ```
 
-#### 5.3.6 `stream` — exact template for composed Case
+#### 5.3.8 `stream` — exact template for composed Case
 
 This is the canonical shape of `<case>.stream.case.ts` when the stream Case
 orchestrates other Cases.
@@ -707,7 +899,7 @@ Non-negotiable interpretation:
 - atomic flow is `_consume → _service → _publish`
 - composed flow uses `_composition(event)` and resolves other Cases via `ctx.cases`
 
-#### 5.3.7 `agentic` — exact template
+#### 5.3.9 `agentic` — exact template
 
 This is the canonical shape of `<case>.agentic.case.ts`.
 
@@ -1058,7 +1250,7 @@ inspect → specify → create/implement → validate → review
 ### 9.2 Semantic
 
 - `domain` reflects the correct capability
-- `api`, `ui`, `stream`, and `agentic` do not contradict the domain
+- `api`, `ui`, `web`, `mobile`, `stream`, and `agentic` do not contradict the domain
 - declared invariants are enforced at a canonical point
 - composition uses `ctx.cases`
 - agentic delegates to a canonical surface
@@ -1135,6 +1327,8 @@ In `/app`, `test()` is required for every surface the agent creates or edits.
 | `domain`  | `definition()` integrity; `validate()` behavior when present; `examples()` consistency when present                           |
 | `api`     | availability of `_service` or `_composition`; validation/authorization when present; integrated execution through `handler()` |
 | `ui`      | `view()` returns a valid visual unit; local slots function; basic integrated flow closes                                          |
+| `web`     | `view()` returns a valid web visual unit; local slots function; basic integrated flow closes                                      |
+| `mobile`  | `view()` returns a valid mobile visual unit; local slots function; basic integrated flow closes                                   |
 | `stream`  | `subscribe()` shape when present; pipeline slots function; `handler()` processes a valid synthetic event                        |
 | `agentic` | definition integrity; schema and policy consistency;`tool.execute()` delegates and returns expected shape                         |
 

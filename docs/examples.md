@@ -23,7 +23,7 @@ Pure TypeScript companion reference:
 
 This is the full 100% TypeScript reference without React. It keeps
 `backend`, `portal`, and `agent` hosts in plain TypeScript, uses
-server-rendered HTML in the portal host, and exposes the same canonical
+server-rendered HTML in the web visual host (`apps/portal/`), and exposes the same canonical
 agent catalog through HTTP, MCP `stdio`, and remote MCP HTTP.
 
 Full-stack Next.js reference:
@@ -31,7 +31,7 @@ Full-stack Next.js reference:
 - [`../examples/next/`](../examples/next/)
 
 This is the full Next.js web reference when you want the same task-board
-capability set as `examples/react/`, but with the portal host running through
+capability set as `examples/react/`, but with the web visual host running through
 Next.js App Router while preserving the APP host bootstrap in `apps/portal/`.
 
 Node-first companion reference:
@@ -39,8 +39,8 @@ Node-first companion reference:
 - [`../examples/node/`](../examples/node/)
 
 This mirrors the complete task-board capability of the React example while
-replacing the frontend runtime with a Node.js portal host that serves
-server-rendered HTML through canonical APP UI Cases.
+replacing the frontend runtime with a Node.js web visual host that serves
+server-rendered HTML through canonical APP `ui` Cases.
 
 Go-first companion reference:
 
@@ -62,7 +62,7 @@ publication, MCP `stdio`, and remote MCP HTTP publication.
 
 - canonical project structure
 - `backend`, `portal`, and `agent` hosts
-- domain, API, UI, and agentic surfaces
+- domain, API, general visual (`ui`), and agentic surfaces
 - HTTP, MCP `stdio`, and remote MCP publication from the same agent host
 - end-to-end smoke validation across backend and agent runtime boundaries
 
@@ -70,8 +70,8 @@ publication, MCP `stdio`, and remote MCP HTTP publication.
 
 - canonical project structure
 - `backend`, `portal`, and `agent` hosts
-- a Node.js portal host rendering the board through canonical `ui` surfaces
-- domain, API, UI, and agentic surfaces
+- a Node.js web visual host rendering the board through canonical `ui` surfaces
+- domain, API, general visual (`ui`), and agentic surfaces
 - HTTP, MCP `stdio`, and remote MCP publication from the same agent host
 - end-to-end smoke validation across portal, backend, and agent runtime
   boundaries
@@ -80,8 +80,8 @@ publication, MCP `stdio`, and remote MCP HTTP publication.
 
 - canonical project structure
 - `backend`, `portal`, and `agent` hosts
-- domain, API, UI, and agentic surfaces in Go
-- a Go-native portal host that still preserves canonical APP `ui` semantics
+- domain, API, general visual (`ui`), and agentic surfaces in Go
+- a Go-native web visual host that still preserves canonical APP `ui` semantics
 - HTTP, MCP `stdio`, and remote MCP publication from the same agent host
 - end-to-end validation across backend, portal, and agent runtime boundaries
 
@@ -89,7 +89,7 @@ publication, MCP `stdio`, and remote MCP HTTP publication.
 
 - canonical project structure
 - `backend`, `portal`, and `agent` hosts
-- domain, API, UI, and agentic surfaces on a Deno runtime
+- domain, API, general visual (`ui`), and agentic surfaces on a Deno runtime
 - a Deno-native backend and agent host while preserving the same APP task-board
   semantics
 - HTTP, MCP `stdio`, and remote MCP publication from the same agent host
@@ -163,7 +163,7 @@ Expected output:
 - canonical project structure
 - `backend`, `portal`, and `agent` hosts in plain TypeScript
 - server-rendered HTML through canonical `ui` surfaces
-- domain, API, UI, and agentic surfaces
+- domain, API, general visual (`ui`), and agentic surfaces
 - registry-derived tool catalog plus HTTP, MCP `stdio`, and remote MCP HTTP
   publication from the same agent host
 - end-to-end scenario execution
@@ -174,8 +174,8 @@ Expected output:
 
 - canonical project structure
 - `backend`, `portal`, and `agent` hosts
-- a Next.js App Router shell delegating to the canonical portal host bootstrap
-- domain, API, UI, and agentic surfaces
+- a Next.js App Router shell delegating to the canonical web visual host bootstrap
+- domain, API, general visual (`ui`), and agentic surfaces
 - HTTP, MCP `stdio`, and remote MCP publication from the same agent host
 - end-to-end smoke validation across portal, backend, and agent runtime
   boundaries
@@ -235,7 +235,7 @@ Use the TypeScript example when you want to:
 - inspect a 100% TypeScript APP project end to end
 - understand host bootstrapping
 - inspect runtime composition behavior
-- learn how surfaces fit together
+- learn how domain, execution, and visual surfaces fit together
 - validate tooling changes against a running reference
 - derive the first host app and registry pattern for a new TypeScript APP
   project

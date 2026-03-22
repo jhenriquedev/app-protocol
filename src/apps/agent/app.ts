@@ -38,7 +38,7 @@ import {
 import { type UserRegisterOutput } from "../../cases/users/user_register/user_register.domain.case";
 import { createRegistry, type AgentConfig } from "./registry";
 
-const APP_VERSION = "1.1.1";
+const APP_VERSION = "1.1.2";
 const MCP_PROTOCOL_VERSION = "2025-11-25";
 const MCP_SUPPORTED_PROTOCOL_VERSIONS = [
   MCP_PROTOCOL_VERSION,

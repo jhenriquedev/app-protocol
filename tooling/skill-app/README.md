@@ -15,11 +15,13 @@ This package installs the official `/app` operational workflow into supported AI
 - create or update Cases
 - introduce `packages/` and expose them correctly through host registries
 - classify whether shared code belongs in `cases/`, `packages/`, or `core/shared/`
-- implement `domain`, `api`, `ui`, `stream`, and `agentic` surfaces
+- implement `domain`, `api`, `ui`, `web`, `mobile`, `stream`, and `agentic` surfaces
 - maintain `<case>.us.md`
 - validate APP grammar
 - review structural drift
 - adapt existing projects to APP incrementally
+
+The installed package includes both `SKILL.md` and an adjacent `spec.md` copy so hosts can read the operational profile and the normative protocol together.
 
 For generic app-level agentic hosts, the canonical host name is `agent`.
 Names such as `chatbot` are reserved for explicitly conversational specializations.
@@ -65,6 +67,13 @@ npx @app-protocol/skill-app -v
 app-skill version
 app-skill --version
 app-skill -v
+```
+
+Check whether the installed skill is behind the latest published npm version:
+
+```bash
+npx @app-protocol/skill-app outdated all --project .
+app-skill outdated codex --global
 ```
 
 ## Quick start
@@ -141,6 +150,7 @@ npm install --global @app-protocol/skill-app
 app-skill --help
 app-skill --version
 app-skill validate
+app-skill outdated all --project .
 app-skill install all --project .
 ```
 

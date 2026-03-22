@@ -54,12 +54,16 @@ flowchart LR
     domain["domain.case.ts"]:::domain
     api["api.case.ts"]:::surface
     ui["ui.case.ts"]:::surface
+    web["web.case.ts"]:::surface
+    mobile["mobile.case.ts"]:::surface
     stream["stream.case.ts"]:::surface
     agentic["agentic.case.ts"]:::surface
   end
 
   domain -->|semantic source of truth| api
   domain -->|semantic source of truth| ui
+  domain -->|semantic source of truth| web
+  domain -->|semantic source of truth| mobile
   domain -->|semantic source of truth| stream
   domain -->|optional derivation| agentic
 
@@ -67,7 +71,7 @@ flowchart LR
   classDef surface fill:#edf2f7,stroke:#4a5568,color:#1a202c;
 ```
 
-Not every Case implements every surface. What matters is that all implemented surfaces belong to the same capability.
+Not every Case implements every surface. What matters is that all implemented surfaces belong to the same capability. `ui` is the general visual surface; `web` and `mobile` are specialized visual surfaces in the same semantic family.
 
 ## 3. App Registry and Context Materialization
 

@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const sourceDir = path.join(repoRoot, "skills", "app");
+const sourceSpec = path.join(repoRoot, "spec.md");
+const installedSpec = path.join(sourceDir, "spec.md");
 
 const targets = [
   path.join(repoRoot, ".codex", "skills", "app"),
@@ -20,6 +22,12 @@ async function syncDir(from, to) {
   await mkdir(path.dirname(to), { recursive: true });
   await cp(from, to, { recursive: true });
 }
+
+await mkdir(sourceDir, { recursive: true });
+await cp(sourceSpec, installedSpec);
+console.log(
+  `synced ${path.relative(repoRoot, sourceSpec)} -> ${path.relative(repoRoot, installedSpec)}`
+);
 
 for (const target of targets) {
   await syncDir(sourceDir, target);

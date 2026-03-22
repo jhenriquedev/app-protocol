@@ -80,10 +80,14 @@ APP currently defines these surfaces:
 - `domain.case.ts`
 - `api.case.ts`
 - `ui.case.ts`
+- `web.case.ts`
+- `mobile.case.ts`
 - `stream.case.ts`
 - `agentic.case.ts`
 
 Not every Case needs every surface.
+
+`ui.case.ts` is the general visual surface. `web.case.ts` and `mobile.case.ts` are specialized visual surfaces that share APP semantics without being forced into the same concrete technical contract.
 
 ## Runtime model
 

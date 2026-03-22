@@ -56,7 +56,7 @@ A release snapshots the current accepted spec into `versions/`.
 - `spec.md` is the living draft.
 - `versions/` contains historical snapshots.
 - `docs/` explains the model but does not override the spec.
-- `docs/skill_v5.md` is the current published revision of the canonical `/app` skill.
+- `docs/skill_v6.md` is the current published revision of the canonical `/app` skill.
 - `skills/app/` is the canonical installable source of the `/app` skill.
 - `.codex/skills/app/`, `.claude/skills/app/`, `.github/skills/app/`, `.windsurf/skills/app/`, and `.agents/skills/app/` are host mirrors generated from `skills/app/`.
 - `tooling/skill-app/` is the npm-publishable installer package for `/app`.

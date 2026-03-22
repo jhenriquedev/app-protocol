@@ -1,10 +1,10 @@
 /* ========================================================================== *
- * APP v1.1.1
+ * APP v1.1.2
  * core/ui.case.ts
  * ----------------------------------------------------------------------------
  * Contrato base da surface de UI no APP.
  *
- * Representa a superfície de interface da capacidade.
+ * Representa a surface visual generalista da capacidade.
  *
  * Responsabilidade:
  * - apresentar interface ao usuário
@@ -23,6 +23,10 @@
  * não dita lifecycle hooks.
  *
  * Não depende de framework específico.
+ * `ui.case.ts` é a alternativa generalista da família visual do APP.
+ * Quando um projeto precisa de contratos especializados por plataforma,
+ * pode usar `web.case.ts` e/ou `mobile.case.ts` sem tornar `ui.case.ts`
+ * obrigatório.
  *
  * Contexto:
  * - UiContext estende AppBaseContext com infraestrutura de frontend
@@ -36,7 +40,7 @@ import { AppHttpClient } from "./shared/app_infra_contracts";
 /* ==========================================================================
  * UiContext
  * --------------------------------------------------------------------------
- * Contexto específico da surface de UI.
+ * Contexto específico da surface de UI generalista.
  *
  * Estende AppBaseContext com infraestrutura de frontend:
  * - renderer: framework de renderização (React, Vue, Svelte, Flutter, etc.)

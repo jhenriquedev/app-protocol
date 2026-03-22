@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v1.1.1
+ * APP v1.1.2
  * core/shared/app_host_contracts.ts
  * ----------------------------------------------------------------------------
  * Contratos de registry do APP.
@@ -22,6 +22,8 @@
 import { Dict } from "../domain.case";
 import { ApiContext } from "../api.case";
 import { UiContext } from "../ui.case";
+import { WebContext } from "../web.case";
+import { MobileContext } from "../mobile.case";
 import { StreamContext } from "../stream.case";
 import {
   AgenticContext,
@@ -38,12 +40,15 @@ import {
  * Apenas as surfaces que o app precisa são registradas.
  *
  * Cada surface é tipada com seu context específico (ApiContext, UiContext,
- * etc.), não com AppBaseContext genérico. Isso elimina a necessidade de
- * casts nos hosts ao instanciar Cases a partir do registry.
+ * WebContext, MobileContext, etc.), não com AppBaseContext genérico.
+ * Isso elimina a necessidade de casts nos hosts ao instanciar Cases
+ * a partir do registry.
  *
  * Exemplo:
  *   { api: UserValidateApi }                    — só backend
- *   { ui: UserValidateUi }                      — só frontend
+ *   { ui: UserValidateUi }                      — visual generalista
+ *   { web: UserValidateWeb }                    — host web
+ *   { mobile: UserValidateMobile }              — host mobile
  *   { api: UserRegisterApi, stream: UserRegisterStream }  — backend + stream
  * ========================================================================== */
 
@@ -51,6 +56,8 @@ export interface AppCaseSurfaces {
   domain?: new (...args: unknown[]) => unknown;
   api?: new (ctx: ApiContext, ...args: unknown[]) => unknown;
   ui?: new (ctx: UiContext, ...args: unknown[]) => unknown;
+  web?: new (ctx: WebContext, ...args: unknown[]) => unknown;
+  mobile?: new (ctx: MobileContext, ...args: unknown[]) => unknown;
   stream?: new (ctx: StreamContext, ...args: unknown[]) => unknown;
   agentic?: new (ctx: AgenticContext, ...args: unknown[]) => unknown;
 }

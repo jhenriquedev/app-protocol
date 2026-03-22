@@ -11,8 +11,10 @@ It is stricter than baseline APP in some areas:
 - it requires `test()` on touched surfaces
 - it requires `<case>.us.md` for new Cases, new surfaces, and semantic changes
 - it enforces the `inspect -> specify -> create/implement -> validate -> review` workflow
+- it requires the agent to read the installed `SKILL.md` and adjacent `spec.md` before acting
 
 The source of the skill lives in [`../skills/app/`](../skills/app/).
+The installable package includes an adjacent `spec.md` copy so the skill can read the normative protocol locally after installation.
 
 ## When to use it
 
@@ -25,7 +27,7 @@ Use `/app` when you want the agent to:
 - create or update a Case
 - introduce `packages/` correctly
 - classify whether a shared addition belongs in `cases/`, `packages/`, or `core/shared/`
-- implement or revise `domain`, `api`, `ui`, `stream`, or `agentic` surfaces
+- implement or revise `domain`, `api`, `ui`, `web`, `mobile`, `stream`, or `agentic` surfaces
 - validate APP grammar
 - review structural drift
 - adapt an existing project incrementally to APP
@@ -139,6 +141,8 @@ The skill may create or update:
 - `<case>.domain.case.ts`
 - `<case>.api.case.ts`
 - `<case>.ui.case.ts`
+- `<case>.web.case.ts`
+- `<case>.mobile.case.ts`
 - `<case>.stream.case.ts`
 - `<case>.agentic.case.ts`
 - `<case>.us.md`

@@ -4,6 +4,29 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## v1.1.2
+
+### Added
+
+- RFC [`0003-visual-surface-specialization.md`](./rfcs/0003-visual-surface-specialization.md) to formalize the visual surface family and platform-specialized contracts
+- Canonical `web.case.ts` and `mobile.case.ts` base contracts in the TypeScript baseline, plus `AppCaseSurfaces.web` and `AppCaseSurfaces.mobile`
+- Installer command `outdated` to compare installed `/app` skill versions against the latest published npm release
+- Installable `spec.md` shipped alongside `SKILL.md` inside the canonical `/app` skill package
+- Release snapshot [`versions/v1.1.2.md`](./versions/v1.1.2.md) for the current working draft
+
+### Changed
+
+- APP visual surfaces now form a family: `ui` remains the general surface while `web` and `mobile` are specialized optional surfaces with shared semantics and independent concrete contracts
+- Root, installer, example, skill metadata, runtime headers, docs, and release verification now align on `1.1.2`
+- The active `/app` documentation set is promoted to `docs/skill_v6.md`
+- `/app` now requires agents to read the installed adjacent `spec.md` together with `SKILL.md`
+- Skill sync now copies the current root `spec.md` into the installable skill before mirroring it to host targets and the npm package
+
+### Fixed
+
+- Removed drift where active docs, release checks, and skill manifests still referenced `v1.1.1` or `docs/skill_v5.md`
+- Removed installer-package ambiguity by making `spec.md` a required installed artifact instead of a repo-only reference
+
 ## v1.1.1
 
 ### Added

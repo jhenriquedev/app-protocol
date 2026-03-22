@@ -3,11 +3,14 @@
  * --------------------------------------------------------------------------
  * Registro único do app com três slots canônicos:
  *
- * - _cases:     surfaces de UI que este portal carrega
+ * - _cases:     surfaces de Web ou fallback UI que este portal carrega
  * - _providers: adapter de HTTP (packages/http-axios → AppHttpClient de core/)
  * - _packages:  design system + date utils expostos via ctx.packages
  *
  * Mesma interface do backend. Implementações diferentes.
+ * O portal web prefere `web.case.ts` quando existir e faz fallback
+ * para `ui.case.ts` quando a capacidade expõe apenas a surface visual
+ * generalista.
  * ========================================================================== */
 
 import { AppCaseSurfaces } from "../../core/shared/app_host_contracts";

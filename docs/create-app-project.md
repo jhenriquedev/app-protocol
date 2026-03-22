@@ -90,7 +90,7 @@ Every host app needs:
 Start with one host that matches the first delivery need:
 
 - `backend` for server/API execution
-- `portal` for frontend/UI runtime
+- `portal` for a web visual runtime using `ui` and/or `web`
 - `agent` for agentic tool hosting
 - `worker` for background processing
 - `lambdas` for serverless routing or event handling
@@ -112,7 +112,7 @@ Recommended order:
 3. add only the surfaces actually needed by the task
 4. add `test()` to each touched surface
 
-Do not begin by creating all five surfaces automatically.
+Do not begin by creating every canonical surface automatically.
 
 ## 5. Decide whether you need `packages/`
 

@@ -64,7 +64,7 @@ Canonical responsibilities:
 Rules:
 
 - only load the surfaces this host actually needs
-- do not register UI surfaces in a backend-only host unless that host really renders UI
+- do not register visual surfaces (`ui`, `web`, `mobile`) in a backend-only host unless that host really renders them
 - do not expose packages globally by habit; keep host exposure explicit
 
 ### 3. Create `app.ts`
@@ -93,7 +93,8 @@ Typical work:
 
 Typical work:
 
-- mount UI composition
+- mount visual composition
+- expose `ui` and/or `web` surfaces depending on the runtime
 - expose design or frontend packages
 - keep app-specific rendering and navigation inside the host/runtime
 

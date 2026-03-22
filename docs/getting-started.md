@@ -114,9 +114,9 @@ npm --prefix examples/react run smoke
 What it demonstrates:
 
 - backend host bootstrapping
-- portal + backend + `agent` hosts
+- web visual host (`portal`) + backend + `agent` hosts
 - HTTP, MCP `stdio`, and remote MCP publication from the same agent host
-- API, UI, and agentic surfaces
+- API, general visual (`ui`), and agentic surfaces
 - cross-case execution through `ctx.cases`
 - runtime smoke validation for HTTP and MCP
 

@@ -34,6 +34,8 @@ Typical files:
 - `<case>.domain.case.ts`
 - `<case>.api.case.ts`
 - `<case>.ui.case.ts`
+- `<case>.web.case.ts`
+- `<case>.mobile.case.ts`
 - `<case>.stream.case.ts`
 - `<case>.agentic.case.ts`
 - `<case>.us.md`
@@ -72,12 +74,34 @@ Critical rule:
 
 Purpose:
 
-- visual or interaction surface
+- general visual or interaction surface
 - local viewmodel/service/repository chain
 
 Critical rule:
 
 - UI should not perform direct cross-case composition
+
+### `web`
+
+Purpose:
+
+- visual surface specialized for web runtimes
+- browser, routing, and SSR/CSR-aware interaction contracts when needed
+
+Critical rule:
+
+- `web` shares the APP visual grammar but is not required to reuse the same concrete contract as `ui`
+
+### `mobile`
+
+Purpose:
+
+- visual surface specialized for mobile runtimes
+- device, lifecycle, navigation, and mobile-specific interaction contracts when needed
+
+Critical rule:
+
+- `mobile` shares the APP visual grammar but is not required to reuse the same concrete contract as `ui` or `web`
 
 ### `stream`
 
@@ -156,7 +180,7 @@ Critical rules:
 Different host types keep the same role but not identical boot code:
 
 - `backend` mounts request/transport bindings
-- `portal` or frontend hosts mount UI runtime concerns
+- visual hosts such as `portal`, web apps, or mobile apps mount `ui`, `web`, and/or `mobile` runtime concerns
 - `agent` exposes governed HTTP and MCP agentic boundaries from the same host catalog
 - `worker` or `lambdas` adapt execution to background or serverless triggers
 

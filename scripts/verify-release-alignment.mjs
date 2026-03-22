@@ -46,7 +46,9 @@ async function main() {
   const examplePackage = await readJson("examples/typescript/package.json");
   const installerPackage = await readJson("tooling/skill-app/package.json");
   const skillManifest = await readJson("skills/app/skill.json");
-  const skillDoc = await readText("docs/skill_v5.md");
+  const rootSpec = await readText("spec.md");
+  const installedSpec = await readText("skills/app/spec.md");
+  const skillDoc = await readText("docs/skill_v6.md");
   const installableSkill = await readText("skills/app/SKILL.md");
 
   assertEqual(rootPackage.version, version, "Root package version");
@@ -54,11 +56,21 @@ async function main() {
   assertEqual(installerPackage.version, version, "Installer package version");
   assertEqual(skillManifest.version, version, "Skill manifest version");
   assertEqual(skillManifest.revision, prdVersion, "Skill manifest revision");
+  assertEqual(skillManifest.specEntry, "spec.md", "Skill manifest specEntry");
 
-  assertIncludes(skillDoc, `Version: \`${prdVersion}\``, "docs/skill_v5.md");
-  assertIncludes(skillDoc, `Protocol: \`${protocolVersion}\``, "docs/skill_v5.md");
+  if (
+    !Array.isArray(skillManifest.requiredReads) ||
+    !skillManifest.requiredReads.includes("SKILL.md") ||
+    !skillManifest.requiredReads.includes("spec.md")
+  ) {
+    throw new Error('Skill manifest requiredReads must include "SKILL.md" and "spec.md".');
+  }
+
+  assertIncludes(skillDoc, `Version: \`${prdVersion}\``, "docs/skill_v6.md");
+  assertIncludes(skillDoc, `Protocol: \`${protocolVersion}\``, "docs/skill_v6.md");
   assertIncludes(installableSkill, `Version: \`${prdVersion}\``, "skills/app/SKILL.md");
   assertIncludes(installableSkill, `Protocol: \`${protocolVersion}\``, "skills/app/SKILL.md");
+  assertEqual(installedSpec, rootSpec, "Installed skill spec copy");
 
   console.log(`release alignment verified for v${version}`);
 }

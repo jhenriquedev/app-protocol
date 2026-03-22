@@ -13,6 +13,7 @@ Conventions:
 
 Current snapshots:
 
+- [`v1.1.2`](./v1.1.2.md)
 - [`v1.1.1`](./v1.1.1.md)
 - [`v1.1.0`](./v1.1.0.md)
 - [`v1.0.1`](./v1.0.1.md)
@@ -31,6 +32,7 @@ Current snapshots:
 
 Note:
 
+- `v1.1.2` formalizes the visual surface family around `ui`, `web`, and `mobile`, installs `spec.md` alongside the canonical `/app` skill, and adds installer support for checking whether an installed skill is behind the latest published version.
 - `v1.1.1` hardens the operational APP release surface: the active `/app` skill now includes exact canonical class templates for every Case surface, docs CI validates boundaries plus the installable skill package, agent-host runtime validation is enforced before tool and MCP operations, and stale example docs now point to the maintained Deno companion instead of an absent `.NET` reference.
 - `v1.1.0` consolidates the multi-runtime reference wave: the root baseline now centers the canonical `apps/agent/` host, the repository ships a self-contained 100% TypeScript companion reference, and companion examples across Next.js, Node.js, Go, Deno, .NET, Angular, Flutter, Java, Kotlin, and Python are aligned under the current `/app` profile.
 - `v1.0.1` closes the first post-stable APP refinement cycle: the `/app` skill and the working draft now normatize registry-driven projection of the complete agentic contract, host-built global prompts, and MCP semantic resources for complete `apps/agent/` publication.

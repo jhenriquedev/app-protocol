@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v1.1.1
+ * APP v1.1.2
  * core/shared/app_base_context.ts
  * ----------------------------------------------------------------------------
  * Contexto base compartilhado do APP.
@@ -8,8 +8,10 @@
  * identidade da execução, identidade do usuário e observabilidade.
  *
  * Cada surface estende este contexto com suas necessidades específicas:
- * - ApiContext   → http, db, auth
- * - UiContext    → framework renderer, client router, store
+ * - ApiContext    → http, db, auth
+ * - UiContext     → visual runtime genérico
+ * - WebContext    → browser/web runtime
+ * - MobileContext → mobile runtime
  * - StreamContext → eventBus, queue adapters, recovery metadata
  * - AgenticContext → cases registry, MCP runtime
  *
@@ -72,7 +74,8 @@ export interface AppLogger {
  * - configuração (config)
  *
  * Tudo que é específico de infraestrutura pertence ao contexto
- * da surface correspondente (ApiContext, UiContext, etc.).
+ * da surface correspondente (ApiContext, UiContext, WebContext,
+ * MobileContext, etc.).
  * ========================================================================== */
 
 export interface AppBaseContext {
