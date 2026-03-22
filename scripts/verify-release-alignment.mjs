@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildInstallableSpec } from "./lib/installable-spec.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -70,7 +71,11 @@ async function main() {
   assertIncludes(skillDoc, `Protocol: \`${protocolVersion}\``, "docs/skill_v6.md");
   assertIncludes(installableSkill, `Version: \`${prdVersion}\``, "skills/app/SKILL.md");
   assertIncludes(installableSkill, `Protocol: \`${protocolVersion}\``, "skills/app/SKILL.md");
-  assertEqual(installedSpec, rootSpec, "Installed skill spec copy");
+  assertEqual(
+    installedSpec,
+    buildInstallableSpec(rootSpec),
+    "Installed skill spec copy"
+  );
 
   console.log(`release alignment verified for v${version}`);
 }

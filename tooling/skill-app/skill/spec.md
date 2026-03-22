@@ -4,16 +4,16 @@ Status: Working draft
 
 Current snapshot alignment:
 
-- latest released version: [`v1.1.2`](./versions/v1.1.2.md)
-- earlier released snapshots: [`v1.1.0`](./versions/v1.1.0.md), [`v1.0.1`](./versions/v1.0.1.md), [`v1.0.0`](./versions/v1.0.0.md), [`v0.0.12`](./versions/v0.0.12.md), [`v0.0.11`](./versions/v0.0.11.md), [`v0.0.10`](./versions/v0.0.10.md), [`v0.0.9`](./versions/v0.0.9.md), [`v0.0.8`](./versions/v0.0.8.md), [`v0.0.7`](./versions/v0.0.7.md), [`v0.0.6`](./versions/v0.0.6.md), [`v0.0.5`](./versions/v0.0.5.md), [`v0.0.4`](./versions/v0.0.4.md), [`v0.0.2`](./versions/v0.0.2.md), [`v0.0.1`](./versions/v0.0.1.md)
+- latest released version: [`v1.1.2`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v1.1.2.md)
+- earlier released snapshots: [`v1.1.0`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v1.1.0.md), [`v1.0.1`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v1.0.1.md), [`v1.0.0`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v1.0.0.md), [`v0.0.12`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v0.0.12.md), [`v0.0.11`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v0.0.11.md), [`v0.0.10`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v0.0.10.md), [`v0.0.9`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v0.0.9.md), [`v0.0.8`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v0.0.8.md), [`v0.0.7`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v0.0.7.md), [`v0.0.6`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v0.0.6.md), [`v0.0.5`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v0.0.5.md), [`v0.0.4`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v0.0.4.md), [`v0.0.2`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v0.0.2.md), [`v0.0.1`](https://github.com/jhenriquedev/app-protocol/blob/main/versions/v0.0.1.md)
 
-This document is the living draft of the AI-First Programming Protocol. Released versions are copied into [`versions/`](./versions).
+This document is the living draft of the AI-First Programming Protocol. Released versions are copied into [`versions/`](https://github.com/jhenriquedev/app-protocol/tree/main/versions).
 
 Language policy:
 
 - this working draft is canonical in English
 - early released snapshots in `versions/` are legacy Portuguese documents
-- Portuguese backups are preserved in [`i18n/pt-br/`](./i18n/pt-br/)
+- Portuguese backups are preserved in [`i18n/pt-br/`](https://github.com/jhenriquedev/app-protocol/tree/main/i18n/pt-br)
 
 ## 1. Purpose
 

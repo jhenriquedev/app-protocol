@@ -1,6 +1,7 @@
-import { cp, mkdir, rm } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildInstallableSpec } from "./lib/installable-spec.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
@@ -24,7 +25,11 @@ async function syncDir(from, to) {
 }
 
 await mkdir(sourceDir, { recursive: true });
-await cp(sourceSpec, installedSpec);
+await writeFile(
+  installedSpec,
+  buildInstallableSpec(await readFile(sourceSpec, "utf8")),
+  "utf8"
+);
 console.log(
   `synced ${path.relative(repoRoot, sourceSpec)} -> ${path.relative(repoRoot, installedSpec)}`
 );

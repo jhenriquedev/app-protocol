@@ -22,7 +22,7 @@ implementing the full protocol in Python with zero external dependencies.
 
 ## Domain Model
 
-```
+```text
 Task:
   id:         str (UUID v4)
   title:      str (non-empty)
@@ -42,6 +42,7 @@ Task:
 ## Development Phases
 
 ### Phase 1: Bootstrap + Core
+
 - [x] Directory structure
 - [x] `pyproject.toml`
 - [x] All `__init__.py` files
@@ -49,10 +50,12 @@ Task:
 - [x] `core/` base classes (5 files)
 
 ### Phase 2: Packages
+
 - [x] `packages/data/` — JsonFileStore with file locking
 - [x] `packages/design_system/` — tkinter widget library
 
 ### Phase 3: Cases — Domain
+
 - [x] `task_create.us.md`
 - [x] `task_list.us.md`
 - [x] `task_move.us.md`
@@ -61,31 +64,37 @@ Task:
 - [x] `task_move_domain_case.py`
 
 ### Phase 4: Cases — API
+
 - [x] `task_create_api_case.py`
 - [x] `task_list_api_case.py`
 - [x] `task_move_api_case.py`
 
 ### Phase 5: Cases — UI (tkinter)
+
 - [x] `task_create_ui_case.py`
 - [x] `task_list_ui_case.py`
 - [x] `task_move_ui_case.py`
 
 ### Phase 6: Backend Host
+
 - [x] `apps/backend/registry.py`
 - [x] `apps/backend/app.py`
 - [x] `apps/backend/server.py`
 
 ### Phase 7: Portal Host (tkinter)
+
 - [x] `apps/portal/registry.py`
 - [x] `apps/portal/app.py`
 - [x] `apps/portal/main.py`
 
 ### Phase 8: Cases — Agentic
+
 - [x] `task_create_agentic_case.py`
 - [x] `task_list_agentic_case.py`
 - [x] `task_move_agentic_case.py`
 
 ### Phase 9: Agent Host + MCP
+
 - [x] `apps/agent/registry.py`
 - [x] `apps/agent/app.py`
 - [x] `apps/agent/server.py`
@@ -94,6 +103,7 @@ Task:
 - [x] `apps/agent/mcp_http.py`
 
 ### Phase 10: Validation + Documentation
+
 - [x] `__main__.py` — test runner
 - [ ] `README.md`
 

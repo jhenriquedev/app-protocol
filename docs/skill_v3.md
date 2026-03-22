@@ -466,31 +466,31 @@ In `/app`, `test()` is required for every surface the agent creates or edits.
 
 ### Minimum Expected Phases
 
-**domain**
+#### domain
 
 1. `definition()` integrity
 2. `validate()` behavior when present
 3. `examples()` consistency when present
 
-**api**
+#### api
 
 1. availability of `_service` or `_composition`
 2. validation/authorization when present
 3. integrated execution through `handler()`
 
-**ui**
+#### ui
 
 1. `view()` returns a valid visual unit
 2. local slots function
 3. the basic integrated flow closes
 
-**stream**
+#### stream
 
 1. `subscribe()` shape when present
 2. pipeline slots function
 3. `handler()` processes a valid synthetic event
 
-**agentic**
+#### agentic
 
 1. definition integrity
 2. schema and policy consistency

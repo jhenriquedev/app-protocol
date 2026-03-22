@@ -160,6 +160,7 @@ All notable changes to this project should be documented in this file.
 - Root, example, installer package, skill metadata, and runtime headers advanced to `0.0.10`
 - `/app` descriptions now emphasize inspecting architecture, creating or updating Cases, implementing surfaces, validating APP grammar, and reviewing drift
 - Getting started, skill usage, and package docs now explain APP as the protocol layer of the AI-First Programming Paradigm and improve first-use onboarding
+
 ## v0.0.9
 
 ### Added
