@@ -10,8 +10,8 @@ and improving scanability.
 
 ## Revision Metadata
 
-- Version: `1.1.2-prd`
-- Protocol: `app@v1.1.2`
+- Version: `1.1.3-prd`
+- Protocol: `app@v1.1.3`
 - Status: `prd`
 
 ## What This Skill Does

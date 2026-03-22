@@ -1,5 +1,5 @@
 /* ========================================================================== *
- * APP v1.1.1
+ * APP v1.1.3
  * core/shared/app_infra_contracts.ts
  * ----------------------------------------------------------------------------
  * Minimal infrastructure contracts for per-surface contexts.

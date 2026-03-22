@@ -4,6 +4,20 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## v1.1.3
+
+### Changed
+
+- Root, installer, example, skill metadata, runtime headers, docs, and release alignment now advance to `1.1.3`
+- The current working draft and the installable skill spec now point to `v1.1.3` as the latest released snapshot
+- Release docs and snapshot indexes now reflect the new patch release and keep `v1.1.1` visible in the release alignment chain
+
+### Fixed
+
+- Stabilized the installable `spec.md` copies generated for skill hosts by rewriting root-relative links to canonical GitHub URLs
+- Fixed markdownlint drift in release-facing docs and plans so the release branch matches CI expectations
+- Cut a release snapshot from the post-`v1.1.2` documentation and validation fixes instead of leaving them only on `main`
+
 ## v1.1.2
 
 ### Added

@@ -3,7 +3,7 @@
 ## Product Scope
 
 Task board application with three columns (todo, doing, done) and three operations
-(create, list, move). Validates that APP v1.1.1 remains language-agnostic by
+(create, list, move). Validates that APP v1.1.3 remains language-agnostic by
 implementing the full protocol in Python with zero external dependencies.
 
 ## Architectural Decisions
