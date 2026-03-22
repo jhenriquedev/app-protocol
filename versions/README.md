@@ -13,6 +13,7 @@ Conventions:
 
 Current snapshots:
 
+- [`v1.1.6`](./v1.1.6.md)
 - [`v1.1.5`](./v1.1.5.md)
 - [`v1.1.4`](./v1.1.4.md)
 - [`v1.1.3`](./v1.1.3.md)
@@ -35,6 +36,7 @@ Current snapshots:
 
 Note:
 
+- `v1.1.6` is the correctly aligned release of the Claude Code compatibility patch: it republishes the frontmatter-safe `/app` skill wording on a commit/tag pair cut in sequence after the broken `v1.1.5` tag.
 - `v1.1.5` is the clean re-cut of the Claude Code compatibility patch: it republishes the frontmatter-safe `/app` skill wording on a correctly aligned release/tag pair after the broken `v1.1.4` tag cut.
 - `v1.1.4` is the Claude Code compatibility patch for the installable `/app` skill: it removes XML-like angle-bracket notation from the skill description frontmatter while preserving the `spec.md`-alongside-`SKILL.md` installation model and aligned release metadata.
 - `v1.1.3` is the stabilization patch for the `v1.1.2` release train: it cuts a clean release from the CI/documentation fixes, preserves the installable `spec.md` publishing model, and keeps the release metadata aligned after the post-tag corrections.

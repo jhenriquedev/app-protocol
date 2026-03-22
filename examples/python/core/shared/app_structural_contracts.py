@@ -1,5 +1,5 @@
 # ==========================================================================
-# APP v1.1.5
+# APP v1.1.6
 # core/shared/app_structural_contracts.py
 # --------------------------------------------------------------------------
 # Structural contracts that cross all surfaces.

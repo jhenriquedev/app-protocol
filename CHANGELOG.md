@@ -4,6 +4,18 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## v1.1.6
+
+### Changed
+
+- Root, installer, example, skill metadata, runtime headers, docs, and release alignment now advance to `1.1.6`
+- The current working draft and the installable skill spec now point to `v1.1.6` as the latest released snapshot
+
+### Fixed
+
+- Re-cut the Claude Code compatibility patch on a correctly aligned release commit and tag after the broken `v1.1.5` tag publication
+- Preserved the frontmatter-safe `/app` skill description across the canonical skill, mirrored host installs, and the npm package
+
 ## v1.1.5
 
 ### Changed

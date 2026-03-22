@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "app.protocol.examples.kotlin"
-version = "1.1.5"
+version = "1.1.6"
 
 val ktorVersion = "3.2.3"
 val kotlinxCoroutinesVersion = "1.10.2"
