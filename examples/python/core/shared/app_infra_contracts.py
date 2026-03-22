@@ -1,5 +1,5 @@
 # ==========================================================================
-# APP v1.1.4
+# APP v1.1.5
 # core/shared/app_infra_contracts.py
 # --------------------------------------------------------------------------
 # Minimal infrastructure contracts for per-surface contexts.

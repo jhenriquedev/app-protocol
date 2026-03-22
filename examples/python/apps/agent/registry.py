@@ -1,5 +1,5 @@
 # ==========================================================================
-# APP v1.1.4
+# APP v1.1.5
 # apps/agent/registry.py
 # --------------------------------------------------------------------------
 # Agent host registry with full AgenticRegistry implementation.

@@ -9,7 +9,7 @@ The naming should stay split in two layers:
 
 Current status:
 
-- Latest released snapshot: [`v1.1.4`](./versions/v1.1.4.md)
+- Latest released snapshot: [`v1.1.5`](./versions/v1.1.5.md)
 - Working draft: [`spec.md`](./spec.md)
 - Maturity: stable protocol baseline with TypeScript reference implementation
 

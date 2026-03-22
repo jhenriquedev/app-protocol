@@ -1,7 +1,7 @@
 {
   "name": "app",
-  "version": "1.1.4",
-  "revision": "1.1.4-prd",
+  "version": "1.1.5",
+  "revision": "1.1.5-prd",
   "entry": "SKILL.md",
   "specEntry": "spec.md",
   "requiredReads": ["SKILL.md", "spec.md"],
