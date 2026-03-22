@@ -1,4 +1,4 @@
-# APP v1.1.3 — core/
+# APP v1.1.4 — core/
 # Re-exports for base surface classes.
 
 from core.agentic_case import (

@@ -13,6 +13,7 @@ Conventions:
 
 Current snapshots:
 
+- [`v1.1.4`](./v1.1.4.md)
 - [`v1.1.3`](./v1.1.3.md)
 - [`v1.1.2`](./v1.1.2.md)
 - [`v1.1.1`](./v1.1.1.md)
@@ -33,6 +34,7 @@ Current snapshots:
 
 Note:
 
+- `v1.1.4` is the Claude Code compatibility patch for the installable `/app` skill: it removes XML-like angle-bracket notation from the skill description frontmatter while preserving the `spec.md`-alongside-`SKILL.md` installation model and aligned release metadata.
 - `v1.1.3` is the stabilization patch for the `v1.1.2` release train: it cuts a clean release from the CI/documentation fixes, preserves the installable `spec.md` publishing model, and keeps the release metadata aligned after the post-tag corrections.
 - `v1.1.2` formalizes the visual surface family around `ui`, `web`, and `mobile`, installs `spec.md` alongside the canonical `/app` skill, and adds installer support for checking whether an installed skill is behind the latest published version.
 - `v1.1.1` hardens the operational APP release surface: the active `/app` skill now includes exact canonical class templates for every Case surface, docs CI validates boundaries plus the installable skill package, agent-host runtime validation is enforced before tool and MCP operations, and stale example docs now point to the maintained Deno companion instead of an absent `.NET` reference.

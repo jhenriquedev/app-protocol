@@ -4,8 +4,8 @@ Status: Working draft
 
 Current snapshot alignment:
 
-- latest released version: [`v1.1.3`](./versions/v1.1.3.md)
-- earlier released snapshots: [`v1.1.2`](./versions/v1.1.2.md), [`v1.1.1`](./versions/v1.1.1.md), [`v1.1.0`](./versions/v1.1.0.md), [`v1.0.1`](./versions/v1.0.1.md), [`v1.0.0`](./versions/v1.0.0.md), [`v0.0.12`](./versions/v0.0.12.md), [`v0.0.11`](./versions/v0.0.11.md), [`v0.0.10`](./versions/v0.0.10.md), [`v0.0.9`](./versions/v0.0.9.md), [`v0.0.8`](./versions/v0.0.8.md), [`v0.0.7`](./versions/v0.0.7.md), [`v0.0.6`](./versions/v0.0.6.md), [`v0.0.5`](./versions/v0.0.5.md), [`v0.0.4`](./versions/v0.0.4.md), [`v0.0.2`](./versions/v0.0.2.md), [`v0.0.1`](./versions/v0.0.1.md)
+- latest released version: [`v1.1.4`](./versions/v1.1.4.md)
+- earlier released snapshots: [`v1.1.3`](./versions/v1.1.3.md), [`v1.1.2`](./versions/v1.1.2.md), [`v1.1.1`](./versions/v1.1.1.md), [`v1.1.0`](./versions/v1.1.0.md), [`v1.0.1`](./versions/v1.0.1.md), [`v1.0.0`](./versions/v1.0.0.md), [`v0.0.12`](./versions/v0.0.12.md), [`v0.0.11`](./versions/v0.0.11.md), [`v0.0.10`](./versions/v0.0.10.md), [`v0.0.9`](./versions/v0.0.9.md), [`v0.0.8`](./versions/v0.0.8.md), [`v0.0.7`](./versions/v0.0.7.md), [`v0.0.6`](./versions/v0.0.6.md), [`v0.0.5`](./versions/v0.0.5.md), [`v0.0.4`](./versions/v0.0.4.md), [`v0.0.2`](./versions/v0.0.2.md), [`v0.0.1`](./versions/v0.0.1.md)
 
 This document is the living draft of the AI-First Programming Protocol. Released versions are copied into [`versions/`](./versions).
 
@@ -1440,7 +1440,7 @@ APP does not claim exclusivity over the paradigm. It is the first normative expr
 - ~~Install the APP spec alongside the canonical `/app` skill~~ — the installable skill package now ships `spec.md` together with `SKILL.md`, and the operational profile requires agents to read both before acting
 - ~~Add release-visible version drift checks for the installable spec and active skill revision~~ — release verification now checks `docs/skill_v6.md`, the installable skill manifest requirements, and the synchronized `skills/app/spec.md`
 
-### Open after v1.1.3
+### Open after v1.1.4
 
 - Strengthen static conformance tooling beyond the initial boundary validator (`validate:boundaries`) with deeper registry and import-graph checks
 - Define and implement formal conformance tooling/workflow across static, review-level, and runtime checks

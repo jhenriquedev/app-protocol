@@ -1,6 +1,6 @@
 ---
 name: app
-description: use when setting up APP projects, adding host apps, creating or updating Cases, introducing packages, classifying shared code across cases/packages/core/shared, maintaining <case>.us.md, validating APP grammar, reviewing structural drift, and adapting existing projects incrementally with the canonical /app workflow
+description: use when setting up APP projects, adding host apps, creating or updating Cases, introducing packages, classifying shared code across cases/packages/core/shared, maintaining case .us.md artifacts, validating APP grammar, reviewing structural drift, and adapting existing projects incrementally with the canonical /app workflow
 ---
 # /app — Canonical Operational Skill for APP
 
@@ -10,8 +10,8 @@ and improving scanability.
 
 ## Revision Metadata
 
-- Version: `1.1.3-prd`
-- Protocol: `app@v1.1.3`
+- Version: `1.1.4-prd`
+- Protocol: `app@v1.1.4`
 - Status: `prd`
 
 ## What This Skill Does

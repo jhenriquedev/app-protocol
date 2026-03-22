@@ -4,6 +4,18 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## v1.1.4
+
+### Changed
+
+- Root, installer, example, skill metadata, runtime headers, docs, and release alignment now advance to `1.1.4`
+- The current working draft and the installable skill spec now point to `v1.1.4` as the latest released snapshot
+
+### Fixed
+
+- Updated the `/app` skill frontmatter description to remove XML-like angle-bracket notation so `SKILL.md` can be imported by Claude Code without `description cannot contain XML tags`
+- Kept the installable skill metadata aligned with the same Claude-compatible wording across the canonical skill, mirrored host installs, and the npm package
+
 ## v1.1.3
 
 ### Changed

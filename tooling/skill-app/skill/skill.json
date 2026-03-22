@@ -1,11 +1,11 @@
 {
   "name": "app",
-  "version": "1.1.3",
-  "revision": "1.1.3-prd",
+  "version": "1.1.4",
+  "revision": "1.1.4-prd",
   "entry": "SKILL.md",
   "specEntry": "spec.md",
   "requiredReads": ["SKILL.md", "spec.md"],
-  "description": "Use when setting up APP projects, adding host apps, creating or updating Cases, introducing packages, classifying shared code across cases/packages/core/shared, maintaining <case>.us.md, validating APP grammar, reviewing structural drift, and adapting existing projects incrementally with the canonical /app workflow.",
+  "description": "Use when setting up APP projects, adding host apps, creating or updating Cases, introducing packages, classifying shared code across cases/packages/core/shared, maintaining case .us.md artifacts, validating APP grammar, reviewing structural drift, and adapting existing projects incrementally with the canonical /app workflow.",
   "hosts": {
     "codex": {
       "projectPath": ".codex/skills/app",

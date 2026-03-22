@@ -1,4 +1,4 @@
-# APP v1.1.3 — core/shared/
+# APP v1.1.4 — core/shared/
 # Re-exports for shared contracts.
 
 from core.shared.app_base_context import AppBaseContext, AppLogger
