@@ -2,7 +2,6 @@
 name: app
 description: use when setting up APP projects, adding host apps, creating or updating Cases, introducing packages, classifying shared code across cases/packages/core/shared, maintaining <case>.us.md, validating APP grammar, reviewing structural drift, and adapting existing projects incrementally with the canonical /app workflow
 ---
-
 # /app — Canonical Operational Skill for APP
 
 This is the active PRD revision of the canonical `/app` skill.
@@ -74,14 +73,14 @@ APP is the protocol layer of the AI-First Programming Paradigm.
 APP defines baseline protocol grammar.
 `/app` defines a stricter operational profile for agents working on APP projects.
 
-| Topic | APP baseline | `/app` profile |
-| --- | --- | --- |
-| `test()` | strongly recommended | required on every surface created or edited by the agent |
-| `<case>.us.md` | optional support artifact | required for new Cases, new surfaces, and semantic changes |
-| workflow | free | `inspect → specify → create/implement → validate → review` |
-| validation | may be partial | must happen before task closure |
+| Topic                | APP baseline                                                            | `/app` profile                                                                                                                                                   |
+| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `test()`           | strongly recommended                                                    | required on every surface created or edited by the agent                                                                                                           |
+| `<case>.us.md`     | optional support artifact                                               | required for new Cases, new surfaces, and semantic changes                                                                                                         |
+| workflow             | free                                                                    | `inspect → specify → create/implement → validate → review`                                                                                                   |
+| validation           | may be partial                                                          | must happen before task closure                                                                                                                                    |
 | agentic completeness | `agentic` optional; app-level agentic host formalized in current spec | when the task requires agentic at Case or app level, the full formal definition is mandatory; partial or placeholder agentic layers are non-conformant in `/app` |
-| subagents | outside protocol scope | required when supported and parallel work is useful |
+| subagents            | outside protocol scope                                                  | required when supported and parallel work is useful                                                                                                                |
 
 ### Core Rules
 
@@ -100,34 +99,34 @@ APP defines baseline protocol grammar.
 packages/ → core/ → cases/ → apps/
 ```
 
-| Layer | Role |
-| --- | --- |
-| `packages/` | shared project code exposed by the host through `ctx.packages` |
-| `core/` | protocol contracts, base classes, types, integration interfaces |
-| `cases/` | capabilities; shareable business logic lives here |
-| `apps/` | hosts; select Cases, providers, packages, runtime, and deployment model |
+| Layer         | Role                                                                    |
+| ------------- | ----------------------------------------------------------------------- |
+| `packages/` | shared project code exposed by the host through `ctx.packages`        |
+| `core/`     | protocol contracts, base classes, types, integration interfaces         |
+| `cases/`    | capabilities; shareable business logic lives here                       |
+| `apps/`     | hosts; select Cases, providers, packages, runtime, and deployment model |
 
 ### Import Rules
 
-| Relationship | Rule |
-| --- | --- |
-| `cases/` → `core/` | allowed |
-| `apps/` → `cases/` | allowed through registry |
-| `apps/` → `packages/` | allowed |
+| Relationship                              | Rule                            |
+| ----------------------------------------- | ------------------------------- |
+| `cases/` → `core/`                   | allowed                         |
+| `apps/` → `cases/`                   | allowed through registry        |
+| `apps/` → `packages/`                | allowed                         |
 | `cases/` → `packages/` direct import | forbidden; use `ctx.packages` |
-| Case A → Case B direct import | forbidden; use `ctx.cases` |
-| `cases/` → `apps/` | forbidden |
+| Case A → Case B direct import            | forbidden; use `ctx.cases`    |
+| `cases/` → `apps/`                   | forbidden                       |
 
 ### Structural Tasks Supported by `/app`
 
-| Task | Canonical result |
-| --- | --- |
-| new APP project | create canonical layers, first host app, first registry, and first Case path |
-| new host app | add `apps/<app>/app.ts` and `apps/<app>/registry.ts` with only needed `_cases`, `_providers`, `_packages` |
-| new package | add shared project code under `packages/` and expose it per app through `_packages` / `ctx.packages` |
-| new `core/shared/` artifact | add only if it is a protocol-level contract or shared structural shape |
-| new canonical surface | stop normal implementation flow and treat as protocol evolution |
-| existing-project adoption | carve out APP-managed areas incrementally; do not force a full rewrite unless requested |
+| Task                          | Canonical result                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| new APP project               | create canonical layers, first host app, first registry, and first Case path                                        |
+| new host app                  | add `apps/<app>/app.ts` and `apps/<app>/registry.ts` with only needed `_cases`, `_providers`, `_packages` |
+| new package                   | add shared project code under `packages/` and expose it per app through `_packages` / `ctx.packages`          |
+| new `core/shared/` artifact | add only if it is a protocol-level contract or shared structural shape                                              |
+| new canonical surface         | stop normal implementation flow and treat as protocol evolution                                                     |
+| existing-project adoption     | carve out APP-managed areas incrementally; do not force a full rewrite unless requested                             |
 
 ## 4. Case Model
 
@@ -164,13 +163,13 @@ Implement only the surfaces the task needs.
 
 ### 5.1 Summary Matrix
 
-| Surface | File | Goal | Required in `/app` | Optional | Key Rules |
-| --- | --- | --- | --- | --- | --- |
-| `domain` | `<case>.domain.case.ts` | pure semantics, invariants, validation, schemas, examples | `caseName()`, `description()`, `inputSchema()`, `outputSchema()`, `test()` | `validate`, `invariants`, `valueObjects`, `enums`, `examples`, `definition` | no I/O; consumed manually by other surfaces; no auto-wiring of `domain.validate()` |
-| `api` | `<case>.api.case.ts` | backend execution, auth, orchestration, response | `handler(input)`, `test()`, one execution center: `_service` or `_composition` | `router`, `_validate`, `_authorize`, `_repository` | `handler()` receives business input; `router()` only binds transport; `_composition` uses `ctx.cases` |
-| `ui` | `<case>.ui.case.ts` | self-contained visual unit | `view()`, `test()` | `_viewmodel`, `_service`, `_repository`, `setState` | UI must not do direct cross-case composition |
-| `stream` | `<case>.stream.case.ts` | event consumption, publication, declarative recovery | `handler(event)`, `test()`, one execution center: `_service` or `_composition` | `subscribe`, `recoveryPolicy`, `_consume`, `_repository`, `_publish` | `subscribe()` and `recoveryPolicy()` are declarative; `recoveryPolicy()` must be deterministic and free of I/O |
-| `agentic` | `<case>.agentic.case.ts` | discovery, tool contract, policy, MCP integration | `discovery()`, `context()`, `prompt()`, `tool()`, `test()` when surface exists | `mcp`, `rag`, `policy`, `examples` | `tool.execute()` delegates to a canonical surface; no shadow business logic; if the task requires the agentic layer, `/app` requires the full formal definition, not a partial stub |
+| Surface     | File                       | Goal                                                      | Required in `/app`                                                                     | Optional                                                                                | Key Rules                                                                                                                                                                               |
+| ----------- | -------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domain`  | `<case>.domain.case.ts`  | pure semantics, invariants, validation, schemas, examples | `caseName()`, `description()`, `inputSchema()`, `outputSchema()`, `test()`     | `validate`, `invariants`, `valueObjects`, `enums`, `examples`, `definition` | no I/O; consumed manually by other surfaces; no auto-wiring of `domain.validate()`                                                                                                    |
+| `api`     | `<case>.api.case.ts`     | backend execution, auth, orchestration, response          | `handler(input)`, `test()`, one execution center: `_service` or `_composition`   | `router`, `_validate`, `_authorize`, `_repository`                              | `handler()` receives business input; `router()` only binds transport; `_composition` uses `ctx.cases`                                                                           |
+| `ui`      | `<case>.ui.case.ts`      | self-contained visual unit                                | `view()`, `test()`                                                                   | `_viewmodel`, `_service`, `_repository`, `setState`                             | UI must not do direct cross-case composition                                                                                                                                            |
+| `stream`  | `<case>.stream.case.ts`  | event consumption, publication, declarative recovery      | `handler(event)`, `test()`, one execution center: `_service` or `_composition`   | `subscribe`, `recoveryPolicy`, `_consume`, `_repository`, `_publish`          | `subscribe()` and `recoveryPolicy()` are declarative; `recoveryPolicy()` must be deterministic and free of I/O                                                                    |
+| `agentic` | `<case>.agentic.case.ts` | discovery, tool contract, policy, MCP integration         | `discovery()`, `context()`, `prompt()`, `tool()`, `test()` when surface exists | `mcp`, `rag`, `policy`, `examples`                                              | `tool.execute()` delegates to a canonical surface; no shadow business logic; if the task requires the agentic layer, `/app` requires the full formal definition, not a partial stub |
 
 ### 5.2 Critical Surface Rules
 
@@ -849,9 +848,9 @@ Non-negotiable interpretation:
 
 ### Atomic vs Composed Case
 
-| Type | Center | Meaning |
-| --- | --- | --- |
-| atomic | `_service()` | local capability logic, no orchestration |
+| Type     | Center             | Meaning                                        |
+| -------- | ------------------ | ---------------------------------------------- |
+| atomic   | `_service()`     | local capability logic, no orchestration       |
 | composed | `_composition()` | orchestrates other Cases through `ctx.cases` |
 
 ### Non-Negotiable Runtime Rules
@@ -1018,25 +1017,25 @@ If the task is already clear and localized, the agent may create/update
 inspect → specify → create/implement → validate → review
 ```
 
-| Step | Goal | Minimum Output / Rule |
-| --- | --- | --- |
-| `inspect` | understand current topology before acting | relevant Cases, surfaces, apps, registries, conformance or drift signals; does not modify code |
-| `specify` | materialize or update `<case>.us.md` | every relevant semantic change must be reflected there |
-| `create` | scaffold a new Case or surface | create `domain` first for new Cases; scaffold only needed surfaces; include `test()` from the start; create `<case>.us.md` together |
-| `implement` | write or adjust a surface inside grammar | respect project conventions; do not invent slots; keep semantics local; update `test()` |
-| `validate` | check structural, behavioral, operational conformance | use tooling when available; otherwise use manual grammar checklist, review `test()`, run project validations, and cross-check against `<case>.us.md` |
-| `review` | inspect final result before closure | focus on grammar violations, drift, surface inconsistency, composition/recovery/agentic risk |
+| Step          | Goal                                                  | Minimum Output / Rule                                                                                                                                    |
+| ------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `inspect`   | understand current topology before acting             | relevant Cases, surfaces, apps, registries, conformance or drift signals; does not modify code                                                           |
+| `specify`   | materialize or update `<case>.us.md`                | every relevant semantic change must be reflected there                                                                                                   |
+| `create`    | scaffold a new Case or surface                        | create `domain` first for new Cases; scaffold only needed surfaces; include `test()` from the start; create `<case>.us.md` together                |
+| `implement` | write or adjust a surface inside grammar              | respect project conventions; do not invent slots; keep semantics local; update `test()`                                                                |
+| `validate`  | check structural, behavioral, operational conformance | use tooling when available; otherwise use manual grammar checklist, review `test()`, run project validations, and cross-check against `<case>.us.md` |
+| `review`    | inspect final result before closure                   | focus on grammar violations, drift, surface inconsistency, composition/recovery/agentic risk                                                             |
 
 ### Structural Task Routing
 
-| If the task is... | Then the skill should... |
-| --- | --- |
-| new project bootstrap | inspect repo state, scaffold canonical layers, add first host app, and validate minimal APP topology |
-| new host app | inspect runtime needs, create `app.ts` + `registry.ts`, wire only needed Cases/providers/packages, then validate host semantics; if the host is `agent`, require the complete formal agentic host definition |
-| package introduction | classify the shared code as `packages/`, expose it through `_packages`, and validate `ctx.packages` usage |
-| `core/shared/` addition | check whether it is truly protocol-level; if not, keep it out of `core/shared/` |
-| new canonical surface proposal | stop normal implementation and switch to protocol-evolution guidance |
-| existing-project adaptation | use incremental adoption, preserve bounded legacy areas, and avoid broad rewrites unless requested |
+| If the task is...              | Then the skill should...                                                                                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| new project bootstrap          | inspect repo state, scaffold canonical layers, add first host app, and validate minimal APP topology                                                                                                               |
+| new host app                   | inspect runtime needs, create `app.ts` + `registry.ts`, wire only needed Cases/providers/packages, then validate host semantics; if the host is `agent`, require the complete formal agentic host definition |
+| package introduction           | classify the shared code as `packages/`, expose it through `_packages`, and validate `ctx.packages` usage                                                                                                    |
+| `core/shared/` addition      | check whether it is truly protocol-level; if not, keep it out of `core/shared/`                                                                                                                                  |
+| new canonical surface proposal | stop normal implementation and switch to protocol-evolution guidance                                                                                                                                               |
+| existing-project adaptation    | use incremental adoption, preserve bounded legacy areas, and avoid broad rewrites unless requested                                                                                                                 |
 
 ## 9. Validation
 
@@ -1131,13 +1130,13 @@ In `/app`, `test()` is required for every surface the agent creates or edits.
 
 ### Minimum Expected Phases
 
-| Surface | Minimum phases |
-| --- | --- |
-| `domain` | `definition()` integrity; `validate()` behavior when present; `examples()` consistency when present |
-| `api` | availability of `_service` or `_composition`; validation/authorization when present; integrated execution through `handler()` |
-| `ui` | `view()` returns a valid visual unit; local slots function; basic integrated flow closes |
-| `stream` | `subscribe()` shape when present; pipeline slots function; `handler()` processes a valid synthetic event |
-| `agentic` | definition integrity; schema and policy consistency; `tool.execute()` delegates and returns expected shape |
+| Surface     | Minimum phases                                                                                                                      |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `domain`  | `definition()` integrity; `validate()` behavior when present; `examples()` consistency when present                           |
+| `api`     | availability of `_service` or `_composition`; validation/authorization when present; integrated execution through `handler()` |
+| `ui`      | `view()` returns a valid visual unit; local slots function; basic integrated flow closes                                          |
+| `stream`  | `subscribe()` shape when present; pipeline slots function; `handler()` processes a valid synthetic event                        |
+| `agentic` | definition integrity; schema and policy consistency;`tool.execute()` delegates and returns expected shape                         |
 
 When `apps/agent/` is touched, validation must also cover:
 
@@ -1180,11 +1179,11 @@ Do not use subagents for:
 
 Not every project will be fully aligned with APP.
 
-| Level | Interpretation |
-| --- | --- |
-| `structural-only` | recognizable structure without explicit APP |
-| `partial` | APP partially adopted or mixed with local conventions |
-| `full` | explicit and consistent APP |
+| Level               | Interpretation                                        |
+| ------------------- | ----------------------------------------------------- |
+| `structural-only` | recognizable structure without explicit APP           |
+| `partial`         | APP partially adopted or mixed with local conventions |
+| `full`            | explicit and consistent APP                           |
 
 Rules:
 
@@ -1209,18 +1208,18 @@ Rules:
 
 ### IF → THEN
 
-| If... | Then... |
-| --- | --- |
-| new capability | create `<case>.us.md` and `domain` first |
-| new surface | update `<case>.us.md` before or during implementation |
-| technical bug without semantic change | may fix directly, but still review `test()` |
-| contract change | update `<case>.us.md` and `test()` |
-| composition doubt | prefer atomic first; promote to composed only if needed |
-| agentic surface is required | fully define `discovery`, `context`, `prompt`, `tool`, and `test`, plus any required `policy` / `mcp` / `rag` / `examples` |
-| `apps/agent/` is required | fully define the formal agent host contract, not only the Case-level `agentic` surfaces |
-| platform supports subagents | use them when useful parallelism exists |
-| platform does not support subagents | ignore that capability |
-| automated tooling does not exist | validate manually with this skill checklist |
+| If...                                 | Then...                                                                                                                                      |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| new capability                        | create `<case>.us.md` and `domain` first                                                                                                 |
+| new surface                           | update `<case>.us.md` before or during implementation                                                                                      |
+| technical bug without semantic change | may fix directly, but still review `test()`                                                                                                |
+| contract change                       | update `<case>.us.md` and `test()`                                                                                                       |
+| composition doubt                     | prefer atomic first; promote to composed only if needed                                                                                      |
+| agentic surface is required           | fully define `discovery`, `context`, `prompt`, `tool`, and `test`, plus any required `policy` / `mcp` / `rag` / `examples` |
+| `apps/agent/` is required           | fully define the formal agent host contract, not only the Case-level `agentic` surfaces                                                    |
+| platform supports subagents           | use them when useful parallelism exists                                                                                                      |
+| platform does not support subagents   | ignore that capability                                                                                                                       |
+| automated tooling does not exist      | validate manually with this skill checklist                                                                                                  |
 
 ## 15. Task Closure
 
